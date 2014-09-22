@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="tool.js" type="text/javascript"></script>
+    <script src="interact.js" type="text/javascript"></script>
+
+    <script>
+    var pictureTool = new BoardEditor.PictureTool();
+    var locationTool = new BoardEditor.LocationTool();
+    var cardTool = new BoardEditor.CardTool();
+    var mainElem = null;
+    var cardsElem = null;
+
+    function addPicture(e) {
+        var file = e.target.files[0];
+        e.target.value = "";
+        if (!file)
+            return;
+
+        var reader = new FileReader();
+        reader.onloadend = function(e) {
+            var image = pictureTool.createPicture(reader.result);
+            mainElem.appendChild(image);
+        }
+        reader.readAsDataURL(file);
+    }
+
+    function addLocation(e) {
+        var location = locationTool.createLocation();
+        mainElem.appendChild(location);
+    }
+
+    function createCards(e) {
+        while (cardsElem.lastChild)
+            cardsElem.removeChild(cardsElem.lastChild);
+
+        [].forEach.call(mainElem.children, function(child) {
+            if (!(child instanceof HTMLDivElement))
+                return;
+
+            var card = cardTool.createCard(child, mainElem);
+            cardsElem.appendChild(card);
+        })
+    }
+
+    window.onload = function() {
+        document.getElementById("addPicture").addEventListener("change", addPicture);
+        document.getElementById("addLocation").addEventListener("click", addLocation);
+        document.getElementById("createCards").addEventListener("click", createCards);
+
+        mainElem = document.getElementById("main");
+        cardsElem = document.getElementById("cards");
+    }
+    </script>
+
+    <style>
+    #main {
+        width: 400px;
+        height: 400px;
+        border: 1px solid blue;
+        overflow: hidden;
+        position: relative;
+    }
+    .picture {
+        border: 1px solid black;
+    }
+    .location {
+        z-index: 1;
+        border: 3px solid red;
+    }
+    #cards {
+        border: 1px solid red;
+        width: 400px;
+        height: 400px;
+    }
+    .card {
+        border: 1px dashed green;
+    }
+    </style>
+</head>
+
+<body>
+    <input id="addPicture" type="file"></input>
+    <button id="addLocation">LOCATION</button>
+    <button id="createCards">CARDS</button>
+    <div id="main"></div>
+    <div id="cards"></div>
+</body>
+
+</html>
