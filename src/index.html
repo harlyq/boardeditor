@@ -2,15 +2,21 @@
 <html>
 
 <head>
+    <!--link href="bootstrap-3.2.0-dist/css/bootstrap.css" rel="stylesheet">
+    <script src="jquery-2.1.1.js" type="text/javascript"></script>
+    <script src="bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script-->
     <script src="tool.js" type="text/javascript"></script>
     <script src="interact.js" type="text/javascript"></script>
+    <script src="decklayout.js" type="text/javascript"></script>
+    <script src="deckcard.js" type="text/javascript"></script>
 
     <script>
     var pictureTool = new BoardEditor.PictureTool();
     var locationTool = new BoardEditor.LocationTool();
     var cardTool = new BoardEditor.CardTool();
-    var mainElem = null;
+    var cutoutElem = null;
     var cardsElem = null;
+    var boardElem = null;
 
     function addPicture(e) {
         var file = e.target.files[0];
@@ -44,48 +50,210 @@
         })
     }
 
-    window.onload = function() {
-        document.getElementById("addPicture").addEventListener("change", addPicture);
-        document.getElementById("addLocation").addEventListener("click", addLocation);
-        document.getElementById("createCards").addEventListener("click", createCards);
+    window.addEventListener('load', function(e) {
+        // document.getElementById("addPicture").addEventListener("change", addPicture);
+        // document.getElementById("addLocation").addEventListener("click", addLocation);
+        // document.getElementById("createCards").addEventListener("click", createCards);
 
-        mainElem = document.getElementById("main");
-        cardsElem = document.getElementById("cards");
-    }
+        // cutoutElem = document.getElementById("cutout");
+        // cardsElem = document.getElementById("cards");
+        // boardElem = document.getElementById("board");
+        // mainElem = cutoutElem;
+
+        // //setMainElem(cutoutElem);
+
+        // $('#myTab a').click(function(e) {
+        //     e.preventDefault();
+        //     $(this).tab('show')
+        //     mainElem = $($(e.target).attr("href"))[0];
+        // });
+
+        var cards = document.querySelectorAll("deck-card");
+        [].forEach.call(cards, function(card) {
+            card.addEventListener('click', function(e) {
+                card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
+            });
+        });
+
+        var dropIndex = -3;
+        var dropTarget = null;
+        var dummyElem = document.getElementById('dummy');
+
+        interact("deck-card")
+            .draggable(true)
+            .on('dragmove', function(event) {
+                var target = event.target,
+                    x = (parseInt(target.getAttribute('data-x')) || 0) + event.dx,
+                    y = (parseInt(target.getAttribute('data-y')) || 0) + event.dy;
+
+                target.classList.add('drag-target');
+                target.style.webkitTransform = 'translate(' + x + 'px, ' + y + 'px)';
+
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+
+                if (!dropTarget)
+                    return;
+
+                var x = event.clientX - dropTarget.offsetLeft;
+                var y = event.clientY - dropTarget.offsetTop;
+                var numChildren = dropTarget.children.length;
+
+                var index = dropTarget.getIndex(x, y, numChildren, dummyElem.offsetWidth, dummyElem.offsetHeight);
+                if (index !== dropIndex) {
+                    if (index > -1) {
+                        var afterElem = dropTarget.children[index];
+
+                        if (dropIndex > -1)
+                            dropTarget.removeChild(dummyElem);
+
+                        if (afterElem.nextSibling)
+                            dropTarget.insertBefore(dummyElem, afterElem.nextSibling);
+                        else
+                            dropTarget.appendChild(dummyElem);
+                    } else {
+                        dropTarget.insertBefore(dummyElem, dropTarget.firstChild);
+                    }
+                }
+
+                index = dropIndex;
+            })
+            .on('dragend', function(event) {
+                var target = event.target;
+                target.style.webkitTransform = '';
+                target.classList.remove('drag-target');
+                target.setAttribute('data-x', 0);
+                target.setAttribute('data-y', 0);
+            });
+
+        interact("#layout02")
+            .dropzone(true)
+            .accept(".deck01")
+            .on('dragenter', function(event) {
+                dropIndex = -2;
+                dropTarget = event.target;
+                event.target.classList.add('drop-target');
+            })
+            .on('dragleave', function(event) {
+                event.target.classList.remove('drop-target');
+                event.target.removeChild(dummyElem);
+                dropTarget = null;
+            })
+            .on('drop', function(event) {
+                dropTarget = null;
+                event.target.classList.remove('drop-target');
+                event.target.insertBefore(event.relatedTarget, dummyElem);
+                event.target.removeChild(dummyElem);
+            });
+    });
     </script>
 
     <style>
-    #main {
-        width: 400px;
-        height: 400px;
-        border: 1px solid blue;
+    .tab-pane {
         overflow: hidden;
         position: relative;
     }
+    #cutout {
+        position: relative;
+        width: 400px;
+        height: 400px;
+        border: 1px solid blue;
+    }
+    #cards {
+        position: relative;
+        border: 1px solid red;
+        width: 400px;
+        height: 400px;
+    }
+    #board {
+        position: relative;
+        border: 1px solid orange;
+        width: 400px;
+        height: 400px;
+    }
     .picture {
-        border: 1px solid black;
+        position: absolute;
+        /*border: 1px solid black;*/
     }
     .location {
         z-index: 1;
         border: 3px solid red;
     }
-    #cards {
-        border: 1px solid red;
-        width: 400px;
-        height: 400px;
-    }
     .card {
         border: 1px dashed green;
+    }
+    #tools {
+        float: left;
+    }
+    #pages {
+        float: left;
+    }
+    deck-cutout {
+        position: absolute;
+        border: 3px solid red;
+    }
+    deck-layout {
+        position: absolute;
+        border: 1px solid green;
+    }
+    deck-card {
+        position: absolute;
+        border: 1px solid blue;
+    }
+    .drop-target {
+        background-color: yellow;
+    }
+    .drag-target {
+        z-index: 10;
+    }
+    #dummy {
+        position: absolute;
+        width: 50px;
+        height: 60px;
+        background-color: red;
     }
     </style>
 </head>
 
 <body>
-    <input id="addPicture" type="file"></input>
-    <button id="addLocation">LOCATION</button>
-    <button id="createCards">CARDS</button>
-    <div id="main"></div>
-    <div id="cards"></div>
+    <!--
+    <div id="tools" class="btn-group-vertical">
+        <input id="addPicture" type="file"></input>
+        <button id="addLocation" type="button" class="btn btn-default">LOCATION</button>
+        <button id="createCards" type="button" class="btn btn-default">CARDS</button>
+    </div>
+    <div id="pages">
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+            <li class="active"><a href="#cutout" role="tab" data-toggle="tab">Cut-Out</a> 
+            </li>
+            <li><a href="#cards" role="tab" data-toggle="tab">Card</a> 
+            </li>
+            <li><a href="#board" role="tab" data-toggle="tab">Board</a> 
+            </li>
+        </ul>
+        <div id="content" class="tab-content">
+            <div id="cutout" class="tab-pane active"></div>
+            <div id="cards" class="tab-pane"></div>
+            <div id="board" class="tab-pane"></div>
+        </div>
+    </div>
+    -->
+    <div id="board">
+        <img src="Mancala (2).svg" class="picture" style="width: 300px; height: 300px; left: 10px; top: 50px"></img>
+        <deck-layout id="layout01" layout="stack" offsetx="2" offsety="2" style="left: 10px; top: 10px; width: 50px; height: 60px">
+            <deck-card id="card01" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
+            <deck-card id="card02" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
+            <deck-card id="card03" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
+        </deck-layout>
+        <deck-layout id="layout02" layout="fan" style="left: 10px; top: 300px; width: 150px; height: 60px">
+        </deck-layout>
+    </div>
+    <div id="cutout">
+        <img src="derelect house.jpg" class="picture" style="width: 100px; height: 200px; left: 10px; top: 50px"></img>
+        <deck-cutout id="cutout01" style="left: 20px; top: 120px; width: 200px; height: 50px"></deck-cutout>
+        <deck-cutout id="cutout02" style="left: 20px; top: 180px; width: 100px; height: 50px"></deck-cutout>
+    </div>
+    <div id="dummy"></div>
 </body>
 
 </html>

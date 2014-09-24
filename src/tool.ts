@@ -1,22 +1,5 @@
 /// <reference path="interact.d.ts" />
 module BoardEditor {
-    // class Element {
-    //     elem: HTMLElement = null;
-    //     left: number = 0;
-    //     top: number = 0;
-    //     width: number = 0;
-    //     height: number = 0;
-
-    //     constructor(elemType > : string) {
-    //         if (elemType !== 'undefined')
-    //             this.element = document.createElement(elemType);
-    //     }
-
-    //     toStyle(): string {
-    //         return '{left:' + this.left + 'px; top:' + this.top + 'px; width:' + this.width + 'px; height:' + this.height 'px}';
-    //     }
-    // }
-
     class Config {
         top = 10;
         left = 10;
@@ -64,10 +47,8 @@ module BoardEditor {
     };
 
     var resizeMove = function(event) {
-        var target = event.target;
-
         // add the change in coords to the previous width of the target element
-        var
+        var target = event.target,
             newWidth = parseFloat(target.style.width) + event.dx,
             newHeight = parseFloat(target.style.height) + event.dy;
 
