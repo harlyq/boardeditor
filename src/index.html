@@ -68,12 +68,12 @@
         //     mainElem = $($(e.target).attr("href"))[0];
         // });
 
-        var cards = document.querySelectorAll("deck-card");
-        [].forEach.call(cards, function(card) {
-            card.addEventListener('click', function(e) {
-                card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
-            });
-        });
+        // var cards = document.querySelectorAll("deck-card");
+        // [].forEach.call(cards, function(card) {
+        //     card.addEventListener('click', function(e) {
+        //         card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
+        //     });
+        // });
 
         var dropIndex = -3;
         var dropTarget = null;
@@ -240,12 +240,12 @@
     -->
     <div id="board">
         <img src="Mancala (2).svg" class="picture" style="width: 300px; height: 300px; left: 10px; top: 50px"></img>
-        <deck-layout id="layout01" layout="stack" offsetx="2" offsety="2" style="left: 10px; top: 10px; width: 50px; height: 60px">
+        <deck-layout id="layout01" layout="stack" visibility="facedown" offsetx="2" offsety="2" style="left: 10px; top: 10px; width: 50px; height: 60px">
             <deck-card id="card01" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
             <deck-card id="card02" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
             <deck-card id="card03" class="deck01" faceDown="false" front="cutout01" back="cutout02" style="width: 40px; height: 50px"></deck-card>
         </deck-layout>
-        <deck-layout id="layout02" layout="fan" style="left: 10px; top: 300px; width: 150px; height: 60px">
+        <deck-layout id="layout02" layout="fan" visibility="flip" style="left: 10px; top: 300px; width: 150px; height: 60px">
         </deck-layout>
     </div>
     <div id="cutout">

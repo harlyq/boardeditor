@@ -5,17 +5,21 @@ class DeckLayout {
         [layout: string]: (index: number, count: number, options: DeckLayout.Options) => number
     } = {};
     private options: DeckLayout.Options = {};
+    private flipCardHandler = null;
+
     static transformKeyword: string = '';
 
-    constructor(options: DeckLayout.Options) {
+    constructor(public parent: HTMLElement, options: DeckLayout.Options) {
         var thisOptions = this.options;
-        thisOptions.layout = 'left';
+        thisOptions.layout = 'stack';
         thisOptions.maxspacing = 1;
         thisOptions.align = 'center';
         thisOptions.rotate = 0;
         thisOptions.offsetx = 0;
         thisOptions.offsety = 0;
-        thisOptions.element = null;
+        thisOptions.visibility = 'any';
+
+        this.flipCardHandler = this.flipCard.bind(this);
 
         this.setOptions(options);
 
@@ -26,10 +30,9 @@ class DeckLayout {
         }
 
         if (!DeckLayout.transformKeyword) {
-            var elem = document.createElement('div');
             var transformStrings = ['transform', 'OTransform', 'webkitTransform', 'MozTransform', 'msTransform'];
             for (var j = 0; j < transformStrings.length; ++j) {
-                if (transformStrings[j] in elem.style) {
+                if (transformStrings[j] in parent.style) {
                     DeckLayout.transformKeyword = transformStrings[j];
                     break;
                 }
@@ -43,6 +46,11 @@ class DeckLayout {
 
         for (var i in options)
             thisOptions[i] = options[i];
+
+
+        this.parent.removeEventListener('click', this.flipCardHandler);
+        if (options.visibility === 'flip')
+            this.parent.addEventListener('click', this.flipCardHandler);
     }
 
     // fn returns a number in the range 0 (left-most) to 1 (right-most)
@@ -66,6 +74,29 @@ class DeckLayout {
         card.style[DeckLayout.transformKeyword] = 'translate(' + left + 'px,' + top + 'px)';
     }
 
+    flipCard(e) {
+        var card = < HTMLElement > (event.target);
+        card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
+    }
+
+    applyOptions(cards ? : any) {
+        var options = this.options;
+        var element = this.parent;
+        if (typeof cards === 'undefined')
+            cards = element.children;
+
+        [].forEach.call(cards, function(card) {
+            switch (options.visibility) {
+                case 'faceup':
+                    card.setAttribute('facedown', 'false');
+                    break;
+                case 'facedown':
+                    card.setAttribute('facedown', 'true');
+                    break;
+            }
+        });
+    }
+
     forEach(fn: (card: any, i: number, left: number, top: number) => void);
     forEach(cards: any, fn: (card: any, i: number, left: number, top: number) => void);
     forEach(cardsOrFn: any, fn ? : (card: any, left: number, top: number) => void) {
@@ -73,12 +104,12 @@ class DeckLayout {
         var cards = cardsOrFn;
         if (typeof cardsOrFn === 'function') {
             fn = cardsOrFn;
-            cards = options.element.children;
+            cards = this.parent.children;
         }
         if (typeof fn === 'undefined')
             return; // nothing to do
 
-        var element = options.element;
+        var element = this.parent;
         if (element) {
             options.width = element.offsetWidth;
             options.height = element.offsetHeight;
@@ -202,11 +233,11 @@ module DeckLayout {
         rotate ? : number;
         offsetx ? : number;
         offsety ? : number;
-        element ? : HTMLElement;
         top ? : number;
         left ? : number;
         width ? : number;
         height ? : number;
+        visibility ? : string; // any, faceup, facedown
     }
 
     interface TopLeft {
@@ -222,68 +253,66 @@ module DeckLayout {
 
 var DeckLayoutPrototype = Object.create(HTMLElement.prototype);
 
-DeckLayoutPrototype.createdCallback = function() {
-    this.options = {
-        element: this
-    };
+DeckLayoutPrototype.optionsList = ['layout', 'visibility', 'rotate', 'offsetx', 'offsety', 'align'];
 
+DeckLayoutPrototype.createdCallback = function() {
     var self = this;
+    this.options = {};
+
     [].forEach.call(this.attributes, function(attr) {
-        self.options[attr.name] = attr.value;
+        if (DeckLayoutPrototype.optionsList.indexOf(attr.name) !== -1)
+            self.options[attr.name] = attr.value;
     });
+
+    this.DeckLayout = new DeckLayout(this, this.options);
 };
 
 DeckLayoutPrototype.attachedCallback = function() {
-    this.DeckLayout = new DeckLayout(this.options);
-    this.DeckLayout.forEach(DeckLayout.position);
+    this.update();
 };
 
-DeckLayoutPrototype.detachedCallback = function() {
-    this.DeckLayout = null;
-}
+DeckLayoutPrototype.detachedCallback = function() {}
 
 DeckLayoutPrototype.attributeChangedCallback = function(attrName: string, oldVal, newVal) {
-    this.options[attrName] = newVal;
+    if (DeckLayoutPrototype.optionsList.indexOf(attrName) !== -1) {
+        this.options[attrName] = newVal;
 
-    if (this.DeckLayout) {
         this.DeckLayout.setOptions(this.options);
-        this.DeckLayout.forEach(DeckLayout.position);
+        this.DeckLayout.applyOptions();
     }
 }
 
 DeckLayoutPrototype.forEach = function(cardsOrFn: any, fn ? : (card: any, i: number, left: number, top: number) => void) {
-    if (this.DeckLayout)
-        this.DeckLayout.forEach(cardsOrFn, fn);
+    this.DeckLayout.forEach(cardsOrFn, fn);
 }
 
 DeckLayoutPrototype.getIndex = function(x: number, y: number, count: number, cardWidth: number, cardHeight: number): number {
-    if (this.DeckLayout)
-        return this.DeckLayout.getIndex(x, y, count, cardWidth, cardHeight);
-    return -1;
+    return this.DeckLayout.getIndex(x, y, count, cardWidth, cardHeight);
+}
+
+DeckLayoutPrototype.update = function() {
+    this.DeckLayout.forEach(DeckLayout.position);
+    this.DeckLayout.applyOptions();
 }
 
 DeckLayoutPrototype.appendChild = function(newElement: Node) {
     HTMLElement.prototype.appendChild.call(this, newElement);
-    if (this.DeckLayout)
-        this.DeckLayout.forEach(DeckLayout.position);
+    this.update();
 }
 
 DeckLayoutPrototype.removeChild = function(oldElement: Node) {
     HTMLElement.prototype.removeChild.call(this, oldElement);
-    if (this.DeckLayout)
-        this.DeckLayout.forEach(DeckLayout.position);
+    this.update();
 }
 
 DeckLayoutPrototype.insertBefore = function(newElement: Node, referenceElement: Node) {
     HTMLElement.prototype.insertBefore.call(this, newElement, referenceElement);
-    if (this.DeckLayout)
-        this.DeckLayout.forEach(DeckLayout.position);
+    this.update();
 }
 
 DeckLayoutPrototype.replaceChild = function(newElement: Node, oldElement: Node) {
     HTMLElement.prototype.replaceChild.call(this, newElement, oldElement);
-    if (this.DeckLayout)
-        this.DeckLayout.forEach(DeckLayout.position);
+    this.update();
 }
 
 if ('registerElement' in document) {
