@@ -37,7 +37,6 @@ class DeckLayout {
                     break;
                 }
             }
-            //DeckLayout.transformKeyword = 'webkitTransform';
         }
     }
 

@@ -95,11 +95,12 @@
                 if (!dropTarget)
                     return;
 
-                var x = event.clientX - dropTarget.offsetLeft;
-                var y = event.clientY - dropTarget.offsetTop;
-                var numChildren = dropTarget.children.length;
+                var x = event.clientX - dropTarget.offsetLeft,
+                    y = event.clientY - dropTarget.offsetTop,
+                    numChildren = dropTarget.children.length;
 
                 var index = dropTarget.getIndex(x, y, numChildren, dummyElem.offsetWidth, dummyElem.offsetHeight);
+
                 if (index !== dropIndex) {
                     if (index > -1) {
                         var afterElem = dropTarget.children[index];

@@ -61,7 +61,7 @@ class DeckCard {
                 nw = ( < HTMLImageElement > child).naturalWidth,
                 nh = ( < HTMLImageElement > child).naturalHeight;
 
-            // Downsize in steps (50%) to improve resize quality when cw/nw > 2
+            // TODO Downsize in steps (50%) to improve resize quality when cw/nw > 2
             ctx.drawImage(child, 0, 0, nw, nh, (cx - sx), (cy - sy), cw * dw / sw, ch * dh / sh);
         });
     }
