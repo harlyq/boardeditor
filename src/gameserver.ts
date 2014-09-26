@@ -1,5 +1,4 @@
 /// <reference path="game.ts" />
-
 function extend(base: any, other: any): any {
     for (var i in other)
         base[i] = other[i];
@@ -7,42 +6,11 @@ function extend(base: any, other: any): any {
 
 // server has perfect knowledge of the game.  validates all moves.
 class GameServer {
-    locations: GameLocation[] = [];
-    cards: GameCard[] = [];
+    game: Game = null;
     moves: GameMove[] = [];
-
-    createLocation(name: string, id: number, visibility: {
-        [userId: number]: GameLocation.Visibility
-    }): GameLocation {
-        var location = new GameLocation(name, id, visibility);
-        this.locations.push(location);
-        return location;
-    }
-
-    createCard(id: number, front: string, back: string, facedown: boolean): GameCard {
-        var card = new GameCard(id, front, back, facedown);
-        this.cards.push(card);
-        return card;
-    }
 
     newGame() {
         this.moves.length = 0;
-    }
-
-    findLocation(id: number): GameLocation {
-        for (var i = 0; i < this.locations.length; ++i) {
-            if (this.locations[i].id === id)
-                return this.locations[i];
-        }
-        return null;
-    }
-
-    findCard(id: number): GameCard {
-        for (var i = 0; i < this.cards.length; ++i) {
-            if (this.cards[i].id === id)
-                return this.cards[i];
-        }
-        return null;
     }
 
     moveCard(move: GameMove) {
@@ -52,9 +20,9 @@ class GameServer {
         this.moves.push(move);
         move.id = this.moves.length;
 
-        var from = this.findLocation(move.fromId),
-            to = this.findLocation(move.toId),
-            card = this.findCard(move.cardId);
+        var from = this.game.findLocation(move.fromId),
+            to = this.game.findLocation(move.toId),
+            card = this.game.findCard(move.cardId);
 
         if (!card && from) {
             card = from.getCard();
@@ -69,9 +37,9 @@ class GameServer {
         var userMoves = [];
         for (var i = lastMove + 1; i < this.moves.length; ++i) {
             var move = this.moves[i],
-                from = this.findLocation(move.fromId),
-                to = this.findLocation(move.toId),
-                card = this.findCard(move.cardId),
+                from = this.game.findLocation(move.fromId),
+                to = this.game.findLocation(move.toId),
+                card = this.game.findCard(move.cardId),
                 toVisibility = to.getVisibility(userId),
                 fromVisibility = from.getVisibility(userId),
                 newMove = extend({}, move);
@@ -89,6 +57,6 @@ class GameServer {
     }
 
     validate(msg: GameMove): boolean {
-        return this.findLocation(msg.fromId) !== null && this.findLocation(msg.toId) !== null;
+        return this.game.findLocation(msg.fromId) !== null && this.game.findLocation(msg.toId) !== null;
     }
 }

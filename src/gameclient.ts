@@ -1,14 +1,30 @@
 /// <reference path="game.ts" />
 class GameClient {
-    updateBoard() {
+    game: Game = null;
+    showMoves: boolean = true;
 
+    requestMove(cardId: number, fromId: number, toId: number) {
+        var msg: GameMove = {
+            cardId: cardId,
+            fromId: fromId,
+            toId: toId
+        };
     }
 
-    moveCard(cardId: number, from: GameLocation, to: GameLocation) {
-        var msg = {
-            cardId: cardId,
-            from: from,
-            to: to
-        };
+    applyMoves(moves: GameMove[]) {
+        for (var i = 0; i < moves.length; ++i)
+            this.applyMove(moves[i]);
+    }
+
+    applyMove(move: GameMove) {
+        var from = this.game.findLocation(move.fromId),
+            to = this.game.findLocation(move.toId),
+            card = this.game.findCard(move.cardId);
+
+        if (!card)
+            card = from.getCard();
+
+        from.removeCard(card);
+        to.addCard(card);
     }
 }
