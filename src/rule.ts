@@ -25,8 +25,15 @@ class BaseRule {
 
     static _nextUnique: number = 1;
 
-    constructor() {
+    constructor(...args: any[]) {
         this._unique = BaseRule._nextUnique++;
+
+        // copy all of the recognised arguments
+        for (var i in args) {
+            var privateI = '_' + i;
+            if (typeof this[privateI] !== 'undefined')
+                this[privateI] = args[i];
+        }
     }
 
     isResolved(env: any): boolean {
@@ -74,8 +81,8 @@ class MoveRule extends BaseRule {
     _from: LocationRule;
     _to: LocationRule;
 
-    constructor() {
-        super();
+    constructor(...args: any[]) {
+        super(args);
         this._type = 'MoveRule';
     }
 
@@ -105,8 +112,6 @@ class MoveRule extends BaseRule {
         this._to = rule;
         return this;
     }
-
-
 }
 
 class CountRule extends BaseRule {
@@ -330,8 +335,8 @@ class UserNameRule extends UserRule {
 class LabelRule extends BaseRule {
     _label: string;
 
-    constructor() {
-        super();
+    constructor(...args: any[]) {
+        super(args);
         this._type = 'LabelRule';
     }
 
@@ -348,8 +353,8 @@ class LabelRule extends BaseRule {
 class GotoRule extends BaseRule {
     _label: string;
 
-    constructor() {
-        super();
+    constructor(...args: any[]) {
+        super(args);
         this._type = 'SuperRule';
     }
 
@@ -380,3 +385,11 @@ var game =
     ])
 
 console.log(game.save());
+
+function move(...args: any[]): MoveRule {
+    return new MoveRule(args);
+}
+
+function goto(...args: any[]): GotoRule {
+    return new GotoRule(args);
+}

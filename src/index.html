@@ -10,6 +10,7 @@
     <script src="decklayout.js" type="text/javascript"></script>
     <script src="deckcard.js" type="text/javascript"></script>
     <script src="rule.js" type="text/javascript"></script>
+    <script src="rule2.js" type="text/javascript"></script>
 
     <script>
     var pictureTool = new BoardEditor.PictureTool();
@@ -147,6 +148,13 @@
                 event.target.insertBefore(event.relatedTarget, dummyElem);
                 event.target.removeChild(dummyElem);
             });
+
+        var move1 = move({
+            from: "one",
+            to: "two"
+        }).user("me");
+        var move2 = move("a", "b").user("you");
+        var move3 = move().from("first").to("second").user("them");
     });
     </script>
 

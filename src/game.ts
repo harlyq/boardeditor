@@ -128,6 +128,7 @@ class Game {
     locations: GameLocation[] = [];
     cards: GameCard[] = [];
     users: GameUser[] = [];
+    variables: GameVariable[] = [];
 
     createLocation(name: string, locationId: number, visibility: {
         [userId: number]: GameLocation.Visibility
@@ -147,6 +148,13 @@ class Game {
         var user = new GameUser(name, userId);
         this.users.push(user);
         return user;
+    }
+
+    createVariable(name: string, value ? : any): GameVariable {
+        var variable = new GameVariable(value);
+        variable.setName(name);
+        this.variables.push(variable);
+        return variable;
     }
 
     findLocation(id: number): GameLocation {
@@ -173,12 +181,36 @@ class Game {
         return null;
     }
 
+    findVariable(name: string): GameVariable {
+        for (var i = 0; i < this.variables.length; ++i) {
+            if (this.variables[i].name === name)
+                return this.variables[i];
+        }
+        return null;
+    }
+
+    resolve(list: string): string {
+        var names = list.split(',');
+        for (var j = 0; j < names.length; ++j) {
+            var parts = names[j].split('.');
+            for (var i = 0; i < parts.length; ++i) {
+                if (parts[i][0] === '$') {
+                    var alias = this.findVariable(parts[i].substr(1));
+                    parts[i] = alias.toString();
+                }
+            }
+            names[j] = parts.join('.');
+        }
+        return names.join(',');
+    }
+
     save(): any {
         var obj = {
             type: 'Game',
             locations: [],
             cards: [],
-            users: []
+            users: [],
+            variables: []
         };
 
         for (var i = 0; i < this.locations.length; ++i)
@@ -189,6 +221,9 @@ class Game {
 
         for (var i = 0; i < this.users.length; ++i)
             obj.users.push(this.users[i].save());
+
+        for (var i = 0; i < this.variables.length; ++i)
+            obj.variables.push(this.variables[i].save());
     }
 
     load(obj: any) {
@@ -216,5 +251,277 @@ class Game {
             user.load(obj.users[i]);
             this.users.push(user);
         }
+
+        for (var i = 0; i < obj.variables.length; ++i) {
+            var variable = new GameVariable('');
+            variable.load(obj.variables[i]);
+            this.variables.push(variable);
+        }
+    }
+}
+
+class GameVariable {
+    // use seperate index and data lists, as it is easier to iterate, index and count
+    // 'index' can have duplicates, but 'data' will not
+    private index: number[] = [];
+    private data: string[] = [];
+    public name: string = '';
+
+    constructor(variable ? : any) {
+        if (typeof variable !== 'undefined')
+            this.set(variable);
+    }
+
+    setName(name: string) {
+        this.name = name;
+    }
+
+    clone(): GameVariable {
+        var variable = new GameVariable();
+        return variable.copy(this);
+    }
+
+    copy(other: GameVariable): GameVariable {
+        this.index = other.index;
+        this.data = other.data;
+        return this;
+    }
+
+    set(variable: any): GameVariable {
+        if (variable instanceof GameVariable) {
+            return this.copy( < GameVariable > variable);
+        }
+
+        this.index.length = 0;
+        this.data.length = 0;
+        this.add(variable);
+
+        return this;
+    }
+
+    toArray(): string[] {
+        var list: string[] = [];
+        for (var i = 0; i < this.index.length; ++i) {
+            list.push(this.data[this.index[i]]);
+        }
+        return list;
+    }
+
+    toString(): string {
+        if (this.index.length === 0)
+            return '';
+
+        return this.data[this.index[0]];
+    }
+
+    toNumber(): number {
+        if (this.index.length === 0)
+            return Number.NaN;
+
+        return parseFloat(this.data[this.index[0]]);
+    }
+
+    toBoolean(): boolean {
+        return this.index.length > 0;
+    }
+
+    join(seperator: string): string {
+        var str = '';
+        for (var i = 0; i < this.index.length; ++i) {
+            if (i > 0)
+                str += seperator;
+
+            str += this.data[this.index[i]];
+        }
+        return str;
+    }
+
+    sum(): number {
+        var total = 0;
+        for (var i = 0; i < this.index.length; ++i) {
+            var val = parseFloat(this.data[this.index[i]]);
+            if (!isNaN(val))
+                total += val;
+        }
+        return total;
+    }
+
+    product(): number {
+        var total = 1;
+        for (var i = 0; i < this.index.length; ++i) {
+            var val = parseFloat(this.data[this.index[i]]);
+            if (!isNaN(val))
+                total *= val;
+        }
+        return total;
+    }
+
+    at(i: number): string {
+        if (typeof this.index[i] === 'undefined')
+            return undefined;
+
+        return this.data[this.index[i]];
+    }
+
+    count(): number {
+        return this.data.length;
+    }
+
+    add(variable: any): GameVariable {
+        if (variable instanceof GameVariable) {
+            variable = variable.toArray();
+        } else if (Array.isArray(variable)) {
+            // do nothing
+        } else if (typeof variable === 'string') {
+            // the string 'a,b' is split into a list 'a' and 'b'
+            variable = variable.split(',');
+        } else {
+            variable = [variable.toString()];
+        } // else object????
+
+        for (var i = 0; i < variable.length; ++i)
+            this.addItem(variable[i]);
+
+        return this;
+    }
+
+    private addItem(value: string) {
+        // if a value already exsits, add it's index to the end of the index list
+        var i = this.data.indexOf(value);
+        if (i !== -1) {
+            var j = this.index.indexOf(i);
+            this.index.push(i);
+            return;
+        }
+
+        this.index.push(this.data.length);
+        this.data.push(value);
+    }
+
+    remove(variable: any): GameVariable {
+        if (variable instanceof GameVariable) {
+            variable = variable.toArray();
+        } else if (Array.isArray(variable)) {
+            // do nothing
+        } else if (typeof variable === 'string') {
+            variable = variable.split(',')
+        } else {
+            variable = [variable.toString()];
+        }
+
+        for (var i = 0; i < variable.length; ++i)
+            this.removeItem(variable[i]);
+
+        return this;
+    }
+
+    // if the value exists, we remove the index, but not the actual data,
+    // this means that the iterator functions still work, even if the
+    // variable has been removed
+    private removeItem(value: string) {
+        var i = this.data.indexOf(value);
+        if (i !== -1) {
+            var j = this.index.lastIndexOf(i); // remove from the end
+            if (j !== -1)
+                this.index.splice(j, 1);
+        }
+    }
+
+    union(variable: any): GameVariable {
+        this.add(variable);
+
+        var i = 0;
+        while (i < this.index.length) {
+            var j = this.index.lastIndexOf(i);
+            if (i !== j)
+                this.index.splice(j, 1); // remove from the end
+            else
+                i++;
+        }
+
+        return this;
+    }
+
+    clear(): GameVariable {
+        this.data.length = 0;
+        this.index.length = 0;
+        return this;
+    }
+
+    indexOf(variable: any): number {
+        var value = new GameVariable(variable).toString();
+        for (var i = 0; i < this.index.length; ++i) {
+            if (this.data[this.index[i]] === value)
+                return i;
+        }
+        return -1;
+    }
+
+    private indexOfData(variable: any): number {
+        var value = new GameVariable(variable).toString();
+        for (var i = 0; i < this.data.length; ++i) {
+            if (this.data[i] === value)
+                return i;
+        }
+        return -1;
+    }
+
+    find(isTrue: (value: string, i ? : number) => boolean): GameVariable {
+        for (var i = 0; i < this.index.length; ++i) {
+            if (isTrue(this.data[this.index[i]], i))
+                return new GameVariable(this.data[i]);
+        }
+
+        return new GameVariable();
+    }
+
+    forEach(func: (value: string, i ? : number) => void) {
+        for (var i = 0; i < this.index.length; ++i)
+            func(this.data[this.index[i]], i);
+    }
+
+    // assumes no duplicates
+    next(list: any): GameVariable {
+        if (!(list instanceof GameVariable))
+            list = new GameVariable(list);
+
+        var listVariable = ( < GameVariable > list);
+        var i = listVariable.indexOfData(this.toString);
+        if (i === -1 || i === this.data.length)
+            return new GameVariable();
+
+        return new GameVariable(this.data[i + 1]);
+    }
+
+
+    // assumes no duplicates
+    prev(list: any): GameVariable {
+        if (!(list instanceof GameVariable))
+            list = new GameVariable(list);
+
+        var listVariable = ( < GameVariable > list);
+        var i = listVariable.indexOfData(this.toString);
+        if (i <= 0)
+            return new GameVariable();
+
+        return new GameVariable(this.data[i - 1]);
+    }
+
+    save(): any {
+        return {
+            type: 'Variable',
+            name: this.name,
+            index: this.index,
+            data: this.data
+        };
+    }
+
+    load(obj: any) {
+        if (obj.type !== 'Variable')
+            return;
+
+        this.name = obj.name;
+        this.index = obj.index;
+        this.data = obj.data;
     }
 }
