@@ -1,21 +1,69 @@
+var LABEL_PREFIX = '.'
+var LABEL_PREFIX_LENGTH = LABEL_PREFIX.length;
+
 class GameLocation {
-    cards: GameCard[];
+    cards: GameCard[] = [];
+    labels: string[] = [];
 
     constructor(public name: string, public id: number, public visibility: {
         [userId: number]: GameLocation.Visibility
     }) {}
 
-    addCard(card: GameCard) {
+    matches(tag: string): boolean {
+        if (tag.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
+            return this.containsLabel(tag.substr(LABEL_PREFIX_LENGTH));
+        else
+            return this.name === tag;
+    }
+
+        addLabel(label: string): GameLocation {
+        var i = this.labels.indexOf(label);
+        if (i === -1)
+            this.labels.push(label);
+
+        return this;
+    }
+
+        removeLabel(label: string): GameLocation {
+        var i = this.labels.indexOf(label);
+        if (i !== -1)
+            this.labels.splice(i, 1);
+
+        return this;
+    }
+
+        containsLabel(label: string): boolean {
+        for (var i = 0; i < this.labels.length; ++i) {
+            if (this.labels[i] === label)
+                return true;
+        }
+        return false;
+    }
+
+        addCard(card: GameCard) {
         this.cards.push(card);
     }
 
-    removeCard(card: GameCard) {
+        removeCard(card: GameCard) {
         var i = this.cards.indexOf(card);
         if (i !== -1)
             this.cards.splice(i, 1);
     }
 
-    getCard(): GameCard {
+        containsCard(card: GameCard) {
+        return this.cards.indexOf(card) !== -1;
+    }
+
+        findCard(cardId: number): GameCard {
+        for (var i = 0; i < this.cards.length; ++i) {
+            if (this.cards[i].id === cardId)
+                return this.cards[i];
+        }
+
+        return null;
+    }
+
+        getTopCard(): GameCard {
         var numCards = this.cards.length;
         if (numCards === 0)
             return null;
@@ -23,7 +71,20 @@ class GameLocation {
         return this.cards[numCards - 1];
     }
 
-    getVisibility(userId: number): GameLocation.Visibility {
+        getBottomCard(): GameCard {
+        if (this.cards.length === 0)
+            return null;
+
+        return this.cards[0];
+    }
+
+        getCard(i: number): GameCard {
+        if (i < 0 || i >= this.cards.length)
+            return null;
+        return this.cards[i];
+    }
+
+        getVisibility(userId: number): GameLocation.Visibility {
         var visibility = this.visibility[userId];
         if (typeof visibility == 'undefined')
             visibility = GameLocation.Visibility.None;
@@ -31,7 +92,7 @@ class GameLocation {
         return visibility;
     }
 
-    save(): any {
+        save(): any {
         var obj = {
             type: 'GameLocation',
             name: this.name,
@@ -44,7 +105,7 @@ class GameLocation {
             obj.cards.push(this.cards[i].save());
     }
 
-    load(obj: any) {
+        load(obj: any) {
         if (obj.type !== 'GameLocation')
             return;
 
@@ -115,7 +176,7 @@ class GameUser {
         };
     }
 
-    load(obj: any) {
+        load(obj: any) {
         if (obj.type !== 'GameUser')
             return;
 
@@ -138,50 +199,75 @@ class Game {
         return location;
     }
 
-    createCard(cardId: number, front: string, back: string, facedown: boolean): GameCard {
+        createCard(cardId: number, front: string, back: string, facedown: boolean): GameCard {
         var card = new GameCard(cardId, front, back, facedown);
         this.cards.push(card);
         return card;
     }
 
-    createUser(name: string, userId: number): GameUser {
+        createUser(name: string, userId: number): GameUser {
         var user = new GameUser(name, userId);
         this.users.push(user);
         return user;
     }
 
-    createVariable(name: string, value ? : any): GameVariable {
+        createVariable(name: string, value ? : any): GameVariable {
         var variable = new GameVariable(value);
         variable.setName(name);
         this.variables.push(variable);
         return variable;
     }
 
-    findLocation(id: number): GameLocation {
+        findLocationByName(name: string): GameLocation {
         for (var i = 0; i < this.locations.length; ++i) {
-            if (this.locations[i].id === id)
+            if (this.locations[i].name === name)
                 return this.locations[i];
         }
         return null;
     }
 
-    findCard(id: number): GameCard {
+        findLocationsByLabel(label: string): GameLocation[] {
+        var locations: GameLocation[] = [];
+        for (var i = 0; i < this.locations.length; ++i) {
+            if (this.locations[i].containsLabel(label))
+                locations.push(this.locations[i]);
+        }
+        return locations;
+    }
+
+        findLocation(locationId: number): GameLocation {
+        for (var i = 0; i < this.locations.length; ++i) {
+            if (this.locations[i].id === locationId)
+                return this.locations[i];
+        }
+        return null;
+    }
+
+        findCard(cardId: number): GameCard {
         for (var i = 0; i < this.cards.length; ++i) {
-            if (this.cards[i].id === id)
+            if (this.cards[i].id === cardId)
                 return this.cards[i];
         }
         return null;
     }
 
-    findUser(id: number): GameUser {
+        findUser(userId: number): GameUser {
         for (var i = 0; i < this.users.length; ++i) {
-            if (this.users[i].id === id)
+            if (this.users[i].id === userId)
                 return this.users[i];
         }
         return null;
     }
 
-    findVariable(name: string): GameVariable {
+        findUserByName(name: string): GameUser {
+        for (var i = 0; i < this.users.length; ++i) {
+            if (this.users[i].name === name)
+                return this.users[i];
+        }
+        return null;
+    }
+
+        findVariable(name: string): GameVariable {
         for (var i = 0; i < this.variables.length; ++i) {
             if (this.variables[i].name === name)
                 return this.variables[i];
@@ -189,7 +275,63 @@ class Game {
         return null;
     }
 
-    resolve(list: string): string {
+        queryCards(cards: string): GameCard[] {
+        var ids = cards.split(',');
+        var gameCards: GameCard[] = [];
+
+        for (var i = 0; i < ids.length; ++i)
+            gameCards.push(this.findCard(parseInt(ids[i])));
+
+        return gameCards;
+    }
+
+        queryLocations(query: string): GameLocation[] {
+        var tags = query.split(',');
+        var gameLocations: GameLocation[] = [];
+
+        for (var j = 0; j < this.locations.length; ++j) {
+            var location = this.locations[j];
+
+            for (var i = 0; i < tags.length; ++i) {
+                var tag = tags[i];
+                if (location.matches(tag)) {
+                    gameLocations.push(location);
+                    break;
+                }
+            }
+        }
+
+        return gameLocations;
+    }
+
+        getUsersById(users: string): GameUser[] {
+        var ids = users.split(',');
+        var gameUsers: GameUser[] = [];
+        for (var i = 0; i < ids.length; ++i)
+            gameUsers.push(this.findUser(parseInt(ids[i])));
+
+        return gameUsers;
+    }
+
+        getUsersByName(users: string): GameUser[] {
+        var names = users.split(',');
+        var gameUsers: GameUser[] = [];
+        for (var i = 0; i < name.length; ++i)
+            gameUsers.push(this.findUserByName(names[i]));
+
+        return gameUsers;
+    }
+
+        getVariablesByName(variables: string): GameVariable[] {
+        var names = variables.split(',');
+        var gameVariables: GameVariable[] = [];
+        for (var i = 0; i < names.length; ++i)
+            gameVariables.push(this.findVariable(names[i]));
+
+        return gameVariables;
+    }
+
+        resolve(list: string): string {
         var names = list.split(',');
         for (var j = 0; j < names.length; ++j) {
             var parts = names[j].split('.');
@@ -204,7 +346,7 @@ class Game {
         return names.join(',');
     }
 
-    save(): any {
+        save(): any {
         var obj = {
             type: 'Game',
             locations: [],
@@ -226,7 +368,7 @@ class Game {
             obj.variables.push(this.variables[i].save());
     }
 
-    load(obj: any) {
+        load(obj: any) {
         if (obj.type !== 'Game')
             return;
 

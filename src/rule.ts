@@ -40,7 +40,7 @@ class BaseRule {
         return false;
     }
 
-    indexOf(options: BaseRule[]): number {
+        indexOf(options: BaseRule[]): number {
         for (var i = 0; i < options.length; ++i) {
             if (options[i]._unique === this._unique)
                 return i;
@@ -48,11 +48,11 @@ class BaseRule {
         return -1;
     }
 
-    save(): any {
+        save(): any {
         return this;
     }
 
-    load(obj: any) {
+        load(obj: any) {
         if (Array.isArray(obj)) {
             for (var i = 0; i < obj.length; ++i)
                 this.assign(obj, i);
@@ -62,7 +62,7 @@ class BaseRule {
         }
     }
 
-    private assign(obj: any, i: any) {
+        private assign(obj: any, i: any) {
         if (Array.isArray(obj[i])) {
             this[i] = [];
             this[i].load(obj[i]);
@@ -93,22 +93,22 @@ class MoveRule extends BaseRule {
             this._to.isResolved(env);
     }
 
-    user(rule: UserRule): MoveRule {
+        user(rule: UserRule): MoveRule {
         this._user = rule;
         return this;
     }
 
-    count(rule: CountRule): MoveRule {
+        count(rule: CountRule): MoveRule {
         this._count = rule;
         return this;
     }
 
-    from(rule: LocationRule): MoveRule {
+        from(rule: LocationRule): MoveRule {
         this._from = rule;
         return this;
     }
 
-    to(rule: LocationRule): MoveRule {
+        to(rule: LocationRule): MoveRule {
         this._to = rule;
         return this;
     }
@@ -129,7 +129,7 @@ class CountRule extends BaseRule {
         return this._quality === Quality.Exactly || !this._isUserPick;
     }
 
-    isCountValid(env: any, value: number): boolean {
+        isCountValid(env: any, value: number): boolean {
         var amount = this._amount;
         switch (this._quality) {
             case Quality.Exactly:
@@ -146,22 +146,22 @@ class CountRule extends BaseRule {
         return false;
     }
 
-    quality(value: Quality): CountRule {
+        quality(value: Quality): CountRule {
         this._quality = value;
         return this;
     }
 
-    amount(value: number): CountRule {
+        amount(value: number): CountRule {
         this._amount = value;
         return this;
     }
 
-    isRandom(value: boolean): CountRule {
+        isRandom(value: boolean): CountRule {
         this._isRandom = value;
         return this;
     }
 
-    isUserPick(value: boolean): CountRule {
+        isUserPick(value: boolean): CountRule {
         this._isUserPick = value;
         return this;
     }
@@ -186,11 +186,11 @@ class LocationIdRule extends LocationRule {
         return true;
     }
 
-    isLocationValid(env: any, name: string, id: number): boolean {
+        isLocationValid(env: any, name: string, id: number): boolean {
         return id === this._id;
     }
 
-    id(value: number): LocationIdRule {
+        id(value: number): LocationIdRule {
         this._id = value;
         return this;
     }
@@ -208,7 +208,7 @@ class LocationNameRule extends LocationRule {
         return true; // TODO this may sometimes be false
     }
 
-    isLocationValid(env: any, name: string, id: number): boolean {
+        isLocationValid(env: any, name: string, id: number): boolean {
         var nameParts = this._name.split('.');
         nameParts.map(function(name) {
             return (env[name] ? env[name] : name);
@@ -219,7 +219,7 @@ class LocationNameRule extends LocationRule {
         return name === internalName;
     }
 
-    name(value: string): LocationNameRule {
+        name(value: string): LocationNameRule {
         this._name = value;
         return this;
     }
@@ -241,7 +241,7 @@ class PickRule extends BaseRule {
         });
     }
 
-    isOptionValid(env: any, options: BaseRule[]): boolean {
+        isOptionValid(env: any, options: BaseRule[]): boolean {
         if (!this._count)
             return false;
 
@@ -258,17 +258,17 @@ class PickRule extends BaseRule {
         return this._count.isCountValid(env, options.length);
     }
 
-    count(rule: CountRule): PickRule {
+        count(rule: CountRule): PickRule {
         this._count = rule;
         return this;
     }
 
-    options(rules: BaseRule[]): PickRule {
+        options(rules: BaseRule[]): PickRule {
         this._options = rules;
         return this;
     }
 
-    allowDuplicate(value: boolean): PickRule {
+        allowDuplicate(value: boolean): PickRule {
         this._allowDuplicate = value;
         return this;
     }
@@ -288,7 +288,7 @@ class SequenceRule extends BaseRule {
         });
     }
 
-    actions(rules: BaseRule[]): SequenceRule {
+        actions(rules: BaseRule[]): SequenceRule {
         this._actions = rules;
         return this;
     }
@@ -308,7 +308,7 @@ class UserIdRule extends UserRule {
         return true;
     }
 
-    id(value: number): UserIdRule {
+        id(value: number): UserIdRule {
         this._id = value;
         return this;
     }
@@ -326,7 +326,7 @@ class UserNameRule extends UserRule {
         return true;
     }
 
-    name(value: string): UserNameRule {
+        name(value: string): UserNameRule {
         this._name = value;
         return this;
     }
@@ -344,7 +344,7 @@ class LabelRule extends BaseRule {
         return true;
     }
 
-    label(value: string): LabelRule {
+        label(value: string): LabelRule {
         this._label = value;
         return this;
     }
@@ -362,7 +362,7 @@ class GotoRule extends BaseRule {
         return true;
     }
 
-    label(value: string): GotoRule {
+        label(value: string): GotoRule {
         this._label = value;
         return this;
     }
