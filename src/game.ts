@@ -1,9 +1,15 @@
 var LABEL_PREFIX = '.'
 var LABEL_PREFIX_LENGTH = LABEL_PREFIX.length;
 
+enum LocationPosition {
+    Default, Top, Bottom, Random
+}
+
 class GameLocation {
     cards: GameCard[] = [];
     labels: string[] = [];
+    fromPosition: LocationPosition = LocationPosition.Top;
+    toPosition: LocationPosition = LocationPosition.Top;
 
     constructor(public name: string, public id: number, public visibility: {
         [userId: number]: GameLocation.Visibility
@@ -40,14 +46,57 @@ class GameLocation {
         return false;
     }
 
-        addCard(card: GameCard) {
-        this.cards.push(card);
+        addCard(card: GameCard, toPosition: LocationPosition = LocationPosition.Default): number {
+        if (toPosition === LocationPosition.Default)
+            toPosition = this.toPosition;
+
+        var numCards = this.cards.length;
+        var index = numCards;
+        switch (toPosition) {
+            case LocationPosition.Default:
+            case LocationPosition.Top:
+                index = numCards;
+                break;
+            case LocationPosition.Bottom:
+                index = 0;
+                break;
+            case LocationPosition.Random:
+                index = ~~(Math.random() * numCards);
+                break;
+        }
+
+        if (card.location)
+            card.location.removeCard(card);
+
+        this.cards.splice(index, 0, card);
+        card.location = this;
+
+        return index;
     }
 
         removeCard(card: GameCard) {
+        if (card.location !== this)
+            return; // card not in the correct location
+
         var i = this.cards.indexOf(card);
-        if (i !== -1)
-            this.cards.splice(i, 1);
+        if (i === -1)
+            return; // card is not in this location?!
+
+        this.cards.splice(i, 1);
+        card.location = null;
+    }
+
+        insertCard(card: GameCard, i: number) {
+        if (i < 0)
+            i = 0;
+        if (i >= this.cards.length)
+            i = this.cards.length - 1;
+
+        if (card.location !== null)
+            card.location.removeCard(card);
+
+        this.cards.splice(i, 0, card);
+        card.location = this;
     }
 
         containsCard(card: GameCard) {
@@ -63,24 +112,32 @@ class GameLocation {
         return null;
     }
 
-        getTopCard(): GameCard {
+        getCard(fromPosition: LocationPosition = LocationPosition.Default): GameCard {
         var numCards = this.cards.length;
         if (numCards === 0)
             return null;
 
-        return this.cards[numCards - 1];
+        if (fromPosition === LocationPosition.Default)
+            fromPosition = this.fromPosition;
+
+        switch (fromPosition) {
+            case LocationPosition.Default:
+            case LocationPosition.Top:
+                return this.cards[numCards - 1];
+                break;
+            case LocationPosition.Bottom:
+                return this.cards[0];
+                break;
+            case LocationPosition.Random:
+                return this.cards[~~(Math.random() * numCards)];
+                break;
+        }
     }
 
-        getBottomCard(): GameCard {
-        if (this.cards.length === 0)
-            return null;
-
-        return this.cards[0];
-    }
-
-        getCard(i: number): GameCard {
+        getCardByIndex(i: number): GameCard {
         if (i < 0 || i >= this.cards.length)
             return null;
+
         return this.cards[i];
     }
 
@@ -130,6 +187,8 @@ module GameLocation {
 }
 
 class GameCard {
+    location: GameLocation = null; // back pointer, do not dereference, used by GameLocation
+
     static UNKNOWN = -1;
 
     // id may be -1, typically for cards that are facedown and cannot be flipped
@@ -145,7 +204,7 @@ class GameCard {
         };
     }
 
-    load(obj: any) {
+        load(obj: any) {
         if (obj.type !== 'GameCard')
             return;
 
@@ -154,13 +213,6 @@ class GameCard {
         this.back = obj.back;
         this.facedown = obj.facedown;
     }
-}
-
-interface GameMove {
-    id ? : number; // unique id, starts from 1
-    fromId: number; // GameLocation
-    toId: number; // GameLocation
-    cardId: number; // GameCard, may be -1 if card is irrelevant
 }
 
 class GameUser {
@@ -216,6 +268,14 @@ class Game {
         variable.setName(name);
         this.variables.push(variable);
         return variable;
+    }
+
+        getNumLocations(): number {
+        return this.locations.length;
+    }
+
+        getNumCards(): number {
+        return this.cards.length;
     }
 
         findLocationByName(name: string): GameLocation {

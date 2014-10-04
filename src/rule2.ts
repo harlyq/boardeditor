@@ -1,15 +1,12 @@
-/// <reference path="command.ts" />
 /// <reference path="game.ts" />
+/// <reference path="command.ts" />
+/// <reference path="proxy.ts" />
 enum Quantity {
     Exactly, AtMost, AtLeast, MoreThan, LessThan
 }
 
 enum RuleResponse {
     Pending, Complete, Error
-}
-
-enum LocationPosition {
-    Default, Top, Bottom, Random
 }
 
 class Rules {
@@ -43,13 +40,14 @@ class BaseRule {
         }
     }
 
-    execute(game: Game) {
+    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
         debugger; // derived class must call execute
+        return RuleResponse.Error; // never call the base class
     }
 }
 
-// TODO Typescript needs a *this* type!
-class CountRule extends BaseRule {
+// T template is the derived type, works around a lack of this typing in TypeScript
+class CountRule < T > extends BaseRule {
     _position: LocationPosition = LocationPosition.Default;
     _user: string = 'BANK';
     _set: string;
@@ -72,56 +70,58 @@ class CountRule extends BaseRule {
         return false;
     }
 
-        exactly < T extends CountRule > (val: number): T {
+        exactly(val: number): T {
         this._quantity = Quantity.Exactly;
         this._count = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        atLeast < T extends CountRule > (val: number): T {
+        atLeast(val: number): T {
         this._quantity = Quantity.AtLeast;
         this._count = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        atMost < T extends CountRule > (val: number): T {
+        atMost(val: number): T {
         this._quantity = Quantity.AtMost;
         this._count = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        moreThan < T extends CountRule > (val: number): T {
+        moreThan(val: number): T {
         this._quantity = Quantity.MoreThan;
         this._count = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        lessThan < T extends CountRule > (val: number): T {
+        lessThan(val: number): T {
         this._quantity = Quantity.LessThan;
         this._count = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        position < T extends CountRule > (val: LocationPosition): T {
+        position(val: LocationPosition): T {
         this._position = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        user < T extends CountRule > (val: string): T {
+        user(val: string): T {
         this._user = val;
-        return <T > this;
+        return <T > < any > this;
     }
 
-        set < T extends CountRule > (val: string): T {
+        set(val: string): T {
         this._set = val;
-        return <T > this;
+        return <T > < any > this;
     }
 }
 
-class MoveRule extends CountRule {
+class MoveRule extends CountRule < MoveRule > {
     _from: string;
     _to: string;
     _cards: string;
+    _fromPosition: LocationPosition = LocationPosition.Default;
+    _toPosition: LocationPosition = LocationPosition.Default;
     _resolvedRule: MoveRule = null;
 
     constructor();
@@ -138,7 +138,7 @@ class MoveRule extends CountRule {
             this._to = to;
     }
 
-    execute(game: Game): RuleResponse {
+    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
         if (!this._resolvedRule) {
             var from = game.resolve(this._from);
             var to = game.resolve(this._to);
@@ -151,57 +151,59 @@ class MoveRule extends CountRule {
             if (!to)
                 return RuleResponse.Error; //this.error('Invalid to');
 
-            this._resolvedRule = this.clone().from(from).to(to).cards(cards).user < MoveRule > (user);
+            this._resolvedRule = this.clone().from(from).to(to).cards(cards).user(user);
         }
 
-        // var userProxy = game.getUserProxy(this._resolvedRule.user);
-        // var commands = userProxy.doRule(this._resolvedRule);
+        var userProxy = proxyManager.getProxy(this._resolvedRule._user);
+        if (!userProxy)
+            return RuleResponse.Error; // this.error('User does not have a proxy')
 
-        // if (!this.isMoveComplete(game, commands))
-        //     return RuleResponse.Pending;
+        var commands = userProxy.askUser(this._resolvedRule);
 
-        // if (!this.isMoveValid(game, commands))
-        //     return RuleResponse.Error; // this.error('Incorrect cards, or locations')
+        if (!this.isMoveValid(game, commands))
+            return RuleResponse.Error; // this.error('Incorrect cards, or locations')
 
         this._resolvedRule = null;
 
         return RuleResponse.Complete;
     }
 
-        isMoveValid(game: Game, commands: MoveCommand[]): boolean {
+        isMoveValid(game: Game, commands: BaseCommand[]): boolean {
         var totalCards: GameCard[] = [];
         for (var i = 0; i < commands.length; ++i) {
-            var command = commands[i];
+            if (!(commands[i] instanceof MoveCommand))
+                return false;
 
-            var fromLocation = game.findLocation(command.from);
-            if (!fromLocation || !fromLocation.matches(this._resolvedRule._from))
-                return false; // invalid from
+            var command = < MoveCommand > commands[i];
+            var from = command.card.location;
 
-            var toLocation = game.findLocation(command.to);
-            if (!toLocation || !toLocation.matches(this._resolvedRule._to))
-                return false; // invalid to
+            if (!from)
+                return false; // card is not in the game
 
-            var cards: GameCard[] = [];
-            for (var j = 0; j < command.cards.length; ++j) {
-                var card = game.findCard(command.cards[j]);
-                if (!card)
-                    return false; // undefined card
+            if (!from.matches(this._resolvedRule._from))
+                return false; // from does not match the rule
 
-                if (!fromLocation.containsCard(card))
-                    return false; // card not from correct location
+            if (!command.to.matches(this._resolvedRule._to))
+                return false; // from does not match the rule
 
-                cards.push(card);
-            }
-            if (cards.length === 0)
-                return false; // invalid cards
-
-            [].push.apply(totalCards, cards);
+            totalCards.push(command.card);
         }
 
         if (!this.isCountValid(totalCards.length))
-            return false;
+            return false; // incorrect number of cards
 
-        return false;
+        return true;
+    }
+
+        clone(): MoveRule {
+        return new MoveRule().copy(this);
+    }
+
+        copy(other: MoveRule): MoveRule {
+        for (var i in other) {
+            this[i] = other[i];
+        }
+        return this;
     }
 
         from(val: string): MoveRule {
@@ -219,14 +221,13 @@ class MoveRule extends CountRule {
         return this;
     }
 
-        clone(): MoveRule {
-        return new MoveRule().copy(this);
+        fromPosition(position: LocationPosition): MoveRule {
+        this._fromPosition = position;
+        return this;
     }
 
-        copy(other: MoveRule): MoveRule {
-        for (var i in other) {
-            this[i] = other[i];
-        }
+        toPosition(position: LocationPosition): MoveRule {
+        this._toPosition = position;
         return this;
     }
 }
@@ -236,7 +237,7 @@ function move(...args: any[]): MoveRule {
     return new f();
 }
 
-class PickRule extends CountRule {
+class PickRule extends CountRule < PickRule > {
     _variable: string;
     _list: string;
 
@@ -254,12 +255,14 @@ class PickRule extends CountRule {
             this._list = list;
     }
 
-    execute(game: Game) {
+    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
         var list = game.resolve(this._list);
         //var result = game.getPick();
+
+        return RuleResponse.Error;
     }
 
-    variable(val: string): PickRule {
+        variable(val: string): PickRule {
         this._variable = val;
         return this;
     }
@@ -289,4 +292,4 @@ function pick(...args: any[]): PickRule {
 var move1 = move({
     from: "one",
     to: "two"
-}).exactly(2).user("me");
+}).exactly(2).user("me").toPosition(LocationPosition.Top);
