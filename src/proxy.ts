@@ -1,50 +1,29 @@
-/// <reference path="game.ts" />
-/// <reference path="rule2.ts" />
-/// <reference path="command.ts" />
+/// <reference path="board.ts" />
 /// <reference path="gameclient.ts" />
 
-class ProxyManager {
-    proxies: GameProxy[] = [];
+module Game {
+    export class BaseProxy {
+        constructor(public user: string) {}
 
-    addProxy(proxy: GameProxy) {
-        this.proxies.push(proxy);
-    }
-
-    removeProxy(proxy: GameProxy) {
-        var i = this.proxies.indexOf(proxy);
-        if (i !== -1)
-            this.proxies.splice(i, 1);
-    }
-
-    getProxy(user: string): GameProxy {
-        for (var i = 0; i < this.proxies.length; ++i) {
-            if (this.proxies[i].user === user)
-                return this.proxies[i];
+        resolveRule(rule: BaseRule): BaseCommand[] {
+            return [];
         }
-        return null;
-    }
-}
-
-class GameProxy {
-    constructor(public user: string) {}
-
-    askUser(rule: BaseRule): BaseCommand[] {
-        return [];
-    }
-}
-
-class LocalProxy extends GameProxy {
-    constructor(user: string, public client: GameClient) {
-        super(user);
     }
 
-    askUser(rule: BaseRule): BaseCommand[] {
-        return this.client.askUser(rule);
-    }
-}
+    export class LocalProxy extends BaseProxy {
+        constructor(user: string, public client: Client) {
+            super(user);
+        }
 
-class RESTProxy extends GameProxy {
-    constructor(user: string) {
-        super(user);
+        resolveRule(rule: BaseRule): BaseCommand[] {
+            return this.client.resolveRule(rule);
+        }
     }
+
+    export class RESTProxy extends BaseProxy {
+        constructor(user: string) {
+            super(user);
+        }
+    }
+
 }

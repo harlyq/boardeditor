@@ -2,7 +2,11 @@
 /// <reference path="command.ts" />
 /// <reference path="proxy.ts" />
 enum Quantity {
-    Exactly, AtMost, AtLeast, MoreThan, LessThan
+    Exactly, AtMost, AtLeast, MoreThan, LessThan, All
+}
+
+enum Order {
+    Random, Sequential, Sort, User
 }
 
 enum RuleResponse {
@@ -39,11 +43,6 @@ class BaseRule {
             this[privateI] = options[i];
         }
     }
-
-    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
-        debugger; // derived class must call execute
-        return RuleResponse.Error; // never call the base class
-    }
 }
 
 // T template is the derived type, works around a lack of this typing in TypeScript
@@ -56,6 +55,7 @@ class CountRule < T > extends BaseRule {
 
     isCountValid(count: number): boolean {
         switch (this._quantity) {
+            case Quantity.All:
             case Quantity.Exactly:
                 return count === this._count;
             case Quantity.AtMost:
@@ -122,7 +122,6 @@ class MoveRule extends CountRule < MoveRule > {
     _cards: string;
     _fromPosition: LocationPosition = LocationPosition.Default;
     _toPosition: LocationPosition = LocationPosition.Default;
-    _resolvedRule: MoveRule = null;
 
     constructor();
     constructor(options: any);
@@ -138,37 +137,22 @@ class MoveRule extends CountRule < MoveRule > {
             this._to = to;
     }
 
-    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
-        if (!this._resolvedRule) {
-            var from = game.resolve(this._from);
-            var to = game.resolve(this._to);
-            var cards = game.resolve(this._cards);
-            var user = game.resolve(this._user);
+    resolve(game: Game): MoveRule {
+        var from = game.resolve(this._from);
+        var to = game.resolve(this._to);
+        var cards = game.resolve(this._cards);
+        var user = game.resolve(this._user);
 
-            if (!from)
-                return RuleResponse.Error; //this.error('Invalid from');
+        if (!from)
+            return null; //this.error('Invalid from');
 
-            if (!to)
-                return RuleResponse.Error; //this.error('Invalid to');
+        if (!to)
+            return null; //this.error('Invalid to');
 
-            this._resolvedRule = this.clone().from(from).to(to).cards(cards).user(user);
-        }
-
-        var userProxy = proxyManager.getProxy(this._resolvedRule._user);
-        if (!userProxy)
-            return RuleResponse.Error; // this.error('User does not have a proxy')
-
-        var commands = userProxy.askUser(this._resolvedRule);
-
-        if (!this.isMoveValid(game, commands))
-            return RuleResponse.Error; // this.error('Incorrect cards, or locations')
-
-        this._resolvedRule = null;
-
-        return RuleResponse.Complete;
+        return this.clone().from(from).to(to).cards(cards).user(user);
     }
 
-        isMoveValid(game: Game, commands: BaseCommand[]): boolean {
+        isMoveValid(game: Game, resolvedRule: MoveRule, commands: BaseCommand[]): boolean {
         var totalCards: GameCard[] = [];
         for (var i = 0; i < commands.length; ++i) {
             if (!(commands[i] instanceof MoveCommand))
@@ -180,10 +164,10 @@ class MoveRule extends CountRule < MoveRule > {
             if (!from)
                 return false; // card is not in the game
 
-            if (!from.matches(this._resolvedRule._from))
+            if (!from.matches(resolvedRule._from))
                 return false; // from does not match the rule
 
-            if (!command.to.matches(this._resolvedRule._to))
+            if (!command.to.matches(resolvedRule._to))
                 return false; // from does not match the rule
 
             totalCards.push(command.card);
@@ -255,7 +239,7 @@ class PickRule extends CountRule < PickRule > {
             this._list = list;
     }
 
-    execute(game: Game, proxyManager: ProxyManager): RuleResponse {
+    execute(game: Game): RuleResponse {
         var list = game.resolve(this._list);
         //var result = game.getPick();
 
@@ -287,6 +271,40 @@ class PickRule extends CountRule < PickRule > {
 function pick(...args: any[]): PickRule {
     var f = PickRule.bind.apply(PickRule, [null].concat(args));
     return new f();
+}
+
+class GroupRule extends CountRule < GroupRule > {
+    _rules: BaseRule[]
+    _order: Order = Order.Sequential;
+
+    constructor();
+    constructor(options: any);
+    constructor(rules: BaseRule[]);
+    constructor(rulesOrOptions ? : any) {
+        super();
+
+        if (Array.isArray(rulesOrOptions))
+            this._rules = rulesOrOptions; // ref
+        else if (typeof rulesOrOptions === 'object')
+            this.setOptions(rulesOrOptions);
+
+        this._quantity = Quantity.All;
+    }
+
+    rules(list: BaseRule[]): GroupRule {
+        this._rules = list; // ref
+        return this;
+    }
+
+        all(): GroupRule {
+        this._quantity = Quantity.All;
+        return this;
+    }
+
+        order(value: Order): GroupRule {
+        this._order = value;
+        return this;
+    }
 }
 
 var move1 = move({

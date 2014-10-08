@@ -5,54 +5,67 @@
     <!--link href="bootstrap-3.2.0-dist/css/bootstrap.css" rel="stylesheet">
     <script src="jquery-2.1.1.js" type="text/javascript"></script>
     <script src="bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script-->
-    <script src="tool.js" type="text/javascript"></script>
+    <!--script src="tool.js" type="text/javascript"></script>
     <script src="interact.js" type="text/javascript"></script>
     <script src="decklayout.js" type="text/javascript"></script>
     <script src="deckcard.js" type="text/javascript"></script>
     <script src="game.js" type="text/javascript"></script>
     <script src="command.js" type="text/javascript"></script>
     <script src="proxy.js" type="text/javascript"></script>
-    <script src="rule2.js" type="text/javascript"></script>
+    <script src="rule2.js" type="text/javascript"></script-->
+    <script src="interact.js" type="text/javascript"></script>
+    <script src="board.js" type="text/javascript"></script>
+    <script src="boardx.js" type="text/javascript"></script>
+    <script src="gameclient.js" type="text/javascript"></script>
+    <script src="proxy.js" type="text/javascript"></script>
+    <script src="gameserver.js" type="text/javascript"></script>
+    <script src="mancala.js" type="text/javascript"></script>
 
     <script>
-    var pictureTool = new BoardEditor.PictureTool();
-    var locationTool = new BoardEditor.LocationTool();
-    var cardTool = new BoardEditor.CardTool();
-    var cutoutElem = null;
-    var cardsElem = null;
-    var boardElem = null;
+    // var pictureTool = new BoardEditor.PictureTool();
+    // var locationTool = new BoardEditor.LocationTool();
+    // var cardTool = new BoardEditor.CardTool();
+    // var cutoutElem = null;
+    // var cardsElem = null;
+    // var boardElem = null;
 
-    function addPicture(e) {
-        var file = e.target.files[0];
-        e.target.value = "";
-        if (!file)
-            return;
+    // function addPicture(e) {
+    //     var file = e.target.files[0];
+    //     e.target.value = "";
+    //     if (!file)
+    //         return;
 
-        var reader = new FileReader();
-        reader.onloadend = function(e) {
-            var image = pictureTool.createPicture(reader.result);
-            mainElem.appendChild(image);
-        }
-        reader.readAsDataURL(file);
+    //     var reader = new FileReader();
+    //     reader.onloadend = function(e) {
+    //         var image = pictureTool.createPicture(reader.result);
+    //         mainElem.appendChild(image);
+    //     }
+    //     reader.readAsDataURL(file);
+    // }
+
+    // function addLocation(e) {
+    //     var location = locationTool.createLocation();
+    //     mainElem.appendChild(location);
+    // }
+
+    // function createCards(e) {
+    //     while (cardsElem.lastChild)
+    //         cardsElem.removeChild(cardsElem.lastChild);
+
+    //     [].forEach.call(mainElem.children, function(child) {
+    //         if (!(child instanceof HTMLDivElement))
+    //             return;
+
+    //         var card = cardTool.createCard(child, mainElem);
+    //         cardsElem.appendChild(card);
+    //     })
+    // }
+
+    // will fail if generators not supported
+    function* areGeneratorsSupported() {
+        yield "isYieldSupported";
     }
 
-    function addLocation(e) {
-        var location = locationTool.createLocation();
-        mainElem.appendChild(location);
-    }
-
-    function createCards(e) {
-        while (cardsElem.lastChild)
-            cardsElem.removeChild(cardsElem.lastChild);
-
-        [].forEach.call(mainElem.children, function(child) {
-            if (!(child instanceof HTMLDivElement))
-                return;
-
-            var card = cardTool.createCard(child, mainElem);
-            cardsElem.appendChild(card);
-        })
-    }
 
     window.addEventListener('load', function(e) {
         // document.getElementById("addPicture").addEventListener("change", addPicture);
@@ -151,12 +164,28 @@
                 event.target.removeChild(dummyElem);
             });
 
-        var move1 = move({
-            from: "one",
-            to: "two"
-        }).user("me");
-        var move2 = move("a", "b").user("you");
-        var move3 = move().from("first").to("second").user("them");
+        // var move1 = move({
+        //     from: "one",
+        //     to: "two"
+        // }).user("me");
+        // var move2 = move("a", "b").user("you");
+        // var move3 = move().from("first").to("second").user("them");
+
+        var game = mancala();
+
+        var server = new Game.GameServer();
+        var bankClient = new Game.BankClient();
+
+        server.setupFunc = game.setupFunc;
+        server.newGameGen = game.newGameGen;
+        server.rulesGen = game.rulesGen;
+        server.addProxy(new Game.LocalProxy('BANK', bankClient));
+
+        bankClient.setupFunc = game.setupFunc;
+        bankClient.setup();
+
+        server.setup();
+        server.newGame();
     });
     </script>
 
