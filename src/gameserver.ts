@@ -7,6 +7,7 @@ module Game {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseProxy[] = [];
+        private lastValue: any;
 
         rulesGen: (board: Board) => {
             next(...args: any[]): any
@@ -100,21 +101,23 @@ module Game {
                 done: false
             }
             while (!result.done) {
-                result = newGameIter.next();
+                result = newGameIter.next(this.lastValue);
+                var rule = result.value;
 
                 if (!result.done) {
-                    console.log(result.value);
-                    var setupCommands = bankProxy.resolveRule(result.value);
-                    this.board.performCommand(setupCommands);
+                    console.log(rule);
+                    var setupCommands = bankProxy.resolveRule(rule);
+                    this.lastValue = this.board.performCommand(rule, setupCommands);
                     this.board.print();
                 }
             }
 
             this.rulesIter = this.rulesGen(this.board);
+            delete this.lastValue;
         }
 
         step(): boolean {
-            var result = this.rulesIter.next();
+            var result = this.rulesIter.next(this.lastValue);
             if (result.done)
                 return false; // this.error('rules completed')
 
@@ -124,7 +127,7 @@ module Game {
                 return false; // this.error('User does not have a proxy')
 
             var commands = userProxy.resolveRule(nextRule);
-            this.board.performCommand(commands);
+            this.lastValue = this.board.performCommand(nextRule, commands);
 
             // if (!this.isMoveValid(game, commands))
             //     return false; // this.error('Incorrect cards, or locations')

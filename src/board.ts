@@ -24,18 +24,18 @@ module Game {
     }
 
     export interface BaseRule {
+        id: number;
         type: string;
         user ? : string;
     }
 
     export interface MoveRule extends BaseRule {
-        id: number;
         from: string;
         fromPosition ? : Position;
         to: string;
         toPosition ? : Position;
         cards ? : string;
-        where ? : (from: Location, to: Location) => boolean;
+        whereIndex ? : number;
         hint ? : string;
         user ? : string;
         quantity ? : Quantity;
@@ -44,14 +44,13 @@ module Game {
 
     export var default_MoveRule = {
         type: 'move',
+        id: 0,
         from: '',
         fromPosition: Position.Default,
         to: '',
         toPosition: Position.Default,
         cards: '',
-        where: function(from: Location, to: Location) {
-            return true;
-        },
+        whereIndex: -1,
         hint: '',
         user: 'BANK',
         quantity: Quantity.Exactly,
@@ -69,19 +68,22 @@ module Game {
         list: any[];
         quantity: Quantity;
         count: number;
+        whereIndex: number;
     }
 
     export var default_PickRule = {
         type: 'pick',
+        id: 0,
         list: [],
         quantity: Quantity.Exactly,
         count: 1,
+        whereIndex: -1,
         user: 'BANK'
     };
 
     export interface PickCommand extends BaseCommand {
         id: number; // matches to the PickRule used for this command
-        items: any[]; // picked items
+        indices: number[]; // picked items
     }
 
     export class Location {
@@ -218,6 +220,10 @@ module Game {
                 return null;
 
             return this.cards[i];
+        }
+
+            getNumCards(): number {
+            return this.cards.length;
         }
 
             getVisibility(userId: number): Location.Visibility {
@@ -503,7 +509,8 @@ module Game {
             return rule;
         }
 
-            performCommand(commands: BaseCommand[]) {
+            performCommand(rule: BaseRule, commands: BaseCommand[]): any[] {
+            var result: any[] = [];
             for (var i = 0; i < commands.length; ++i) {
                 var command = commands[i];
                 switch (command.type) {
@@ -513,8 +520,16 @@ module Game {
                         var card = this.findCard(moveCommand.cardId);
                         to.insertCard(card, moveCommand.index);
                         break;
+
+                    case 'pick':
+                        var pickCommand = < PickCommand > command;
+                        var pickRule = < PickRule > rule;
+                        for (var i = 0; i < pickCommand.indices.length; ++i)
+                            result.push(pickRule.list[pickCommand.indices[i]]);
+                        break;
                 }
             }
+            return result;
         }
 
             print() {

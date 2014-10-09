@@ -9,6 +9,7 @@ module Game {
         board: Board = new Board();
         showMoves: boolean = true;
         setupFunc: (board: Board) => void;
+        whereList: any[];
 
         constructor() {}
 
@@ -77,22 +78,30 @@ module Game {
         }
 
         private resolveMove(moveRule: MoveRule): MoveCommand[] {
-            var fromLocations = this.board.queryLocations(moveRule.from);
+            var where = moveRule.whereIndex >= 0 ? this.whereList[moveRule.whereIndex] : () => {
+                    return true;
+                }
+                // note: can only restrict where of 'to' locations, once from is defined
+            var fromLocations = this.board.queryLocations(moveRule.from).filter(function(from) {
+                return where(from, null);
+            });
             var toLocations = this.board.queryLocations(moveRule.to);
             var cards = this.board.queryCards(moveRule.cards);
             var maxCards = this.board.getNumCards();
             var moveCommands: MoveCommand[] = [];
             var cardIndex = 0;
 
+            if (toLocations.length === 0)
+                return []; // Invalid too location
+
+            if (fromLocations.length === 0 && cards.length === 0)
+                return []; // no from location, and no cards (remaining)
+
             for (var i = 0; i < maxCards; ++i) {
-                if (fromLocations.length === 0 && cards.length === 0)
-                    break; // no from location, and no cards (remaining)
-
-                if (toLocations.length === 0)
-                    break; // Invalid too location
-
                 var from = getRandom(fromLocations);
                 var to = getRandom(toLocations);
+                if (!where(from, to))
+                    continue; // try another from,to location combination
 
                 var card: Card = null;
                 if (from) {
@@ -118,14 +127,36 @@ module Game {
 
                 if (this.isCountComplete(moveRule.quantity, moveRule.count, moveCommands.length))
                     break; // sufficient cards
+
+                if (fromLocations.length === 0 && cards.length === 0)
+                    return []; // no from location, and no cards (remaining)
             }
 
             return moveCommands;
         }
 
 
-        private resolvePick(pickRule: BaseRule): PickCommand[] {
-            return [];
+        private resolvePick(pickRule: PickRule): PickCommand[] {
+            var where = pickRule.whereIndex > -1 ? this.whereList[pickRule.whereIndex] : () => {
+                return true;
+            }
+            var pickList = pickRule.list.filter(where);
+            var originalList = pickList.slice();
+            var indices = [];
+
+            while (pickList.length > 0 && !this.isCountComplete(pickRule.quantity, pickRule.count, indices.length)) {
+                var k = ~~(Math.random() * pickList.length);
+                var pick = pickList[k];
+                pickList.splice(k, 1); // if no duplicates
+
+                indices.push(originalList.indexOf(pick));
+            }
+
+            return [{
+                type: 'pick',
+                id: pickRule.id,
+                indices: indices
+            }];
         }
     }
 
