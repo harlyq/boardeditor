@@ -175,17 +175,30 @@
 
         var server = new Game.GameServer();
         var bankClient = new Game.BankClient();
+        var player1Client = new Game.BankClient();
+        var player2Client = new Game.BankClient();
 
         server.setupFunc = game.setupFunc;
         server.newGameGen = game.newGameGen;
         server.rulesGen = game.rulesGen;
         server.addProxy(new Game.LocalProxy('BANK', bankClient));
+        server.addProxy(new Game.LocalProxy('player1', player1Client));
+        server.addProxy(new Game.LocalProxy('player2', player2Client));
 
         bankClient.setupFunc = game.setupFunc;
         bankClient.setup();
+        // bankClient.addProxy(new Game.LocalProxy('BANK'));
+
+        player1Client.setupFunc = game.setupFunc;
+        player1Client.setup();
+
+        player2Client.setupFunc = game.setupFunc;
+        player2Client.setup();
 
         server.setup();
         server.newGame();
+
+        while (server.step()) {}
     });
     </script>
 

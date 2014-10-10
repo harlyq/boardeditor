@@ -62,6 +62,10 @@ module Game {
             }
             return false;
         }
+
+            update(commands: BaseCommand[]) {
+            this.board.performCommand(commands);
+        }
     }
 
 
@@ -71,6 +75,8 @@ module Game {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);
                 case 'pick':
+                case 'pickLocation':
+                case 'pickCard':
                     return this.resolvePick( < PickRule > rule);
             }
 
@@ -78,15 +84,15 @@ module Game {
         }
 
         private resolveMove(moveRule: MoveRule): MoveCommand[] {
-            var where = moveRule.whereIndex >= 0 ? this.whereList[moveRule.whereIndex] : () => {
+            var where: any = moveRule.where || function() {
                     return true;
                 }
                 // note: can only restrict where of 'to' locations, once from is defined
-            var fromLocations = this.board.queryLocations(moveRule.from).filter(function(from) {
+            var fromLocations = this.board.queryLocation(moveRule.from).filter(function(from) {
                 return where(from, null);
             });
-            var toLocations = this.board.queryLocations(moveRule.to);
-            var cards = this.board.queryCards(moveRule.cards);
+            var toLocations = this.board.queryLocation(moveRule.to);
+            var cards = this.board.queryCard(moveRule.cards);
             var maxCards = this.board.getNumCards();
             var moveCommands: MoveCommand[] = [];
             var cardIndex = 0;
@@ -117,7 +123,7 @@ module Game {
                 var index = to.addCard(card, moveRule.toPosition);
 
                 var moveCommand = {
-                    type: 'move',
+                    type: moveRule.type,
                     id: moveRule.id,
                     cardId: card.id,
                     toId: to.id,
@@ -137,27 +143,57 @@ module Game {
 
 
         private resolvePick(pickRule: PickRule): PickCommand[] {
-            var where = pickRule.whereIndex > -1 ? this.whereList[pickRule.whereIndex] : () => {
+            var where: any = pickRule.where || function() {
                 return true;
             }
-            var pickList = pickRule.list.filter(where);
-            var originalList = pickList.slice();
-            var indices = [];
 
-            while (pickList.length > 0 && !this.isCountComplete(pickRule.quantity, pickRule.count, indices.length)) {
+            var list = [];
+            var rawList: any = pickRule.list;
+            if (typeof pickRule.list === 'string')
+                rawList = ( < string > pickRule.list).split(',');
+            if (!Array.isArray(rawList))
+                rawList = [rawList];
+
+            switch (pickRule.type) {
+                case 'pick':
+                    list = rawList;
+                    break;
+                case 'pickLocation':
+                    list = this.board.queryLocation(rawList.join(','));
+                    break;
+                case 'pickCard':
+                    list = this.board.queryCard(rawList.join(','));
+                    break;
+            }
+
+            var pickList = list.filter(where);
+            var values = [];
+
+            while (pickList.length > 0 && !this.isCountComplete(pickRule.quantity, pickRule.count, values.length)) {
                 var k = ~~(Math.random() * pickList.length);
                 var pick = pickList[k];
                 pickList.splice(k, 1); // if no duplicates
 
-                indices.push(originalList.indexOf(pick));
+                switch (pickRule.type) {
+                    case 'pick':
+                        values.push(pick);
+                        break;
+                    case 'pickLocation':
+                        values.push(pick.name);
+                        break;
+                    case 'pickCard':
+                        values.push(pick.id);
+                        break;
+                }
             }
 
             return [{
-                type: 'pick',
+                type: pickRule.type,
                 id: pickRule.id,
-                indices: indices
+                values: values
             }];
         }
+
     }
 
     export class AI extends Client {

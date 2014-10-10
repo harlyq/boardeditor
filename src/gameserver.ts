@@ -16,6 +16,7 @@ module Game {
             next(...args: any[]): any
         };
         setupFunc: (board: Board) => void;
+        whereList: any[] = [];
 
         addProxy(proxy: BaseProxy) {
             this.proxies.push(proxy);
@@ -34,7 +35,6 @@ module Game {
             }
             return null;
         }
-
 
         // moves: GameMove[] = [];
 
@@ -90,33 +90,47 @@ module Game {
         // }
 
         setup() {
-            this.setupFunc(this.board);
+            if (typeof this.setupFunc === 'function')
+                this.setupFunc(this.board);
+
             this.board.print();
         }
 
         newGame() {
-            var newGameIter = this.newGameGen(this.board);
+            if (typeof this.newGameGen === 'function')
+                var newGameIter = this.newGameGen(this.board);
+
             var bankProxy = this.getProxy('BANK');
             var result: any = {
                 done: false
             }
+
             while (!result.done) {
                 result = newGameIter.next(this.lastValue);
                 var rule = result.value;
 
                 if (!result.done) {
                     console.log(rule);
-                    var setupCommands = bankProxy.resolveRule(rule);
-                    this.lastValue = this.board.performCommand(rule, setupCommands);
+                    var commands = bankProxy.resolveRule(rule);
+                    this.lastValue = this.board.performCommand(commands);
+
+                    for (var i = 0; i < this.proxies.length; ++i)
+                        this.proxies[i].update(commands);
+
                     this.board.print();
                 }
             }
 
-            this.rulesIter = this.rulesGen(this.board);
+            if (typeof this.rulesGen === 'function')
+                this.rulesIter = this.rulesGen(this.board);
+
             delete this.lastValue;
         }
 
         step(): boolean {
+            if (!('next' in this.rulesIter))
+                return;
+
             var result = this.rulesIter.next(this.lastValue);
             if (result.done)
                 return false; // this.error('rules completed')
@@ -126,11 +140,14 @@ module Game {
             if (!userProxy)
                 return false; // this.error('User does not have a proxy')
 
+            console.log(nextRule);
             var commands = userProxy.resolveRule(nextRule);
-            this.lastValue = this.board.performCommand(nextRule, commands);
+            this.lastValue = this.board.performCommand(commands);
 
-            // if (!this.isMoveValid(game, commands))
-            //     return false; // this.error('Incorrect cards, or locations')
+            for (var i = 0; i < this.proxies.length; ++i)
+                this.proxies[i].update(commands);
+
+            this.board.print();
 
             return true;
         }

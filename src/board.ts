@@ -11,6 +11,10 @@ module Game {
         return base;
     }
 
+    function isNumeric(value: any) {
+        return !Array.isArray(value) && value - parseFloat(value) >= 0;
+    }
+
     export enum Quantity {
         Exactly, AtMost, AtLeast, MoreThan, LessThan, All
     }
@@ -20,22 +24,24 @@ module Game {
     }
 
     export interface BaseCommand {
+        id: number; // id matches the corresponding rule
         type: string;
     }
 
     export interface BaseRule {
-        id: number;
-        type: string;
+        id ? : number;
+        type ? : string;
         user ? : string;
     }
 
     export interface MoveRule extends BaseRule {
-        from: string;
+        from: any;
         fromPosition ? : Position;
-        to: string;
+        to: any;
         toPosition ? : Position;
         cards ? : string;
-        whereIndex ? : number;
+        where ? : number;
+        whereIndex ? : number; // internal, use where instead
         hint ? : string;
         user ? : string;
         quantity ? : Quantity;
@@ -43,13 +49,12 @@ module Game {
     }
 
     export var default_MoveRule = {
-        type: 'move',
-        id: 0,
         from: '',
         fromPosition: Position.Default,
         to: '',
         toPosition: Position.Default,
         cards: '',
+        where: null,
         whereIndex: -1,
         hint: '',
         user: 'BANK',
@@ -58,32 +63,30 @@ module Game {
     };
 
     export interface MoveCommand extends BaseCommand {
-        id: number; // matches to the MoveRule used for this command
         cardId: number;
         toId: number;
         index: number;
     }
 
     export interface PickRule extends BaseRule {
-        list: any[];
-        quantity: Quantity;
-        count: number;
-        whereIndex: number;
+        list: any;
+        quantity ? : Quantity;
+        count ? : number;
+        where ? : number;
+        whereIndex ? : number; // internal, use where instead
     }
 
     export var default_PickRule = {
-        type: 'pick',
-        id: 0,
-        list: [],
+        list: '',
         quantity: Quantity.Exactly,
         count: 1,
+        where: null,
         whereIndex: -1,
         user: 'BANK'
     };
 
     export interface PickCommand extends BaseCommand {
-        id: number; // matches to the PickRule used for this command
-        indices: number[]; // picked items
+        values: any[]; // picked items
     }
 
     export class Location {
@@ -99,6 +102,8 @@ module Game {
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
                 return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
+            else if (isNumeric(query))
+                return this.id === parseInt(query);
             else
                 return this.name === query;
         }
@@ -170,8 +175,6 @@ module Game {
             insertCard(card: Card, i: number) {
             if (i < 0)
                 i = 0;
-            if (i >= this.cards.length)
-                i = this.cards.length - 1;
 
             if (card.location !== null)
                 card.location.removeCard(card);
@@ -436,7 +439,7 @@ module Game {
             return null;
         }
 
-            queryCards(query: string): Card[] {
+            queryCard(query: string): Card[] {
             var tags = query.split(',');
             var cards: Card[] = [];
 
@@ -444,7 +447,8 @@ module Game {
                 var card = this.cards[j];
 
                 for (var i = 0; i < tags.length; ++i) {
-                    if (card.matches(tags[i])) {
+                    var tag = tags[i].trim();
+                    if (card.matches(tag)) {
                         cards.push(card);
                         break;
                     }
@@ -454,7 +458,7 @@ module Game {
             return cards;
         }
 
-            queryLocations(query: string): Location[] {
+            queryLocation(query: string): Location[] {
             var tags = query.split(',');
             var locations: Location[] = [];
 
@@ -462,7 +466,7 @@ module Game {
                 var location = this.locations[j];
 
                 for (var i = 0; i < tags.length; ++i) {
-                    var tag = tags[i];
+                    var tag = tags[i].trim();
                     if (location.matches(tag)) {
                         locations.push(location);
                         break;
@@ -491,25 +495,16 @@ module Game {
             return users;
         }
 
-            move(rule: MoveRule) {
-            // typescript doesn't understand the yield keyword, so this function is in boardx.js
-            // yield extend({}, default_MoveRule, rule);
-        }
+        // typescript doesn't understand the yield keyword, so these functions are in boardx.js
+            move(rule: MoveRule) {}
 
-            prepareMove(rule: MoveRule): MoveRule {
-            return rule;
-        }
+            pick(rule: MoveRule) {}
 
-            pick(rule: MoveRule) {
-            // typescript doesn't understand the yield keyword, so this function is in boardx.js
-            // yield extend({}, default_MoveRule, rule);
-        }
+            pickLocation(rule: MoveRule) {}
 
-            preparePick(rule: PickRule): PickRule {
-            return rule;
-        }
+            pickCard(rule: MoveRule) {}
 
-            performCommand(rule: BaseRule, commands: BaseCommand[]): any[] {
+            performCommand(commands: BaseCommand[]): any[] {
             var result: any[] = [];
             for (var i = 0; i < commands.length; ++i) {
                 var command = commands[i];
@@ -520,22 +515,56 @@ module Game {
                         var card = this.findCard(moveCommand.cardId);
                         to.insertCard(card, moveCommand.index);
                         break;
-
                     case 'pick':
                         var pickCommand = < PickCommand > command;
-                        var pickRule = < PickRule > rule;
-                        for (var i = 0; i < pickCommand.indices.length; ++i)
-                            result.push(pickRule.list[pickCommand.indices[i]]);
+                        result = result.concat(pickCommand.values);
+                        break;
+                    case 'pickLocation':
+                        var pickCommand = < PickCommand > command;
+                        result = result.concat(this.queryLocation(pickCommand.values.join(',')));
+                        break;
+                    case 'pickCard':
+                        var pickCommand = < PickCommand > command;
+                        result = result.concat(this.queryCard(pickCommand.values.join(',')));
                         break;
                 }
             }
             return result;
         }
 
+            next < T > (value: T, list: T[], loop: boolean = false): T {
+            var i = list.indexOf(value) + 1;
+            if (loop)
+                i = i % list.length;
+
+            if (i > list.length)
+                return undefined;
+
+            return list[i];
+        }
+
+            prev < T > (value: T, list: T[], loop: boolean = false) {
+            var i = list.indexOf(value);
+            if (i === -1) {
+                if (!loop)
+                    return undefined;
+                i = list.length - 1;
+            } else {
+                i = i - 1;
+                if (i < 0) {
+                    if (!loop)
+                        return undefined;
+                    i = list.length - 1;
+                }
+            }
+
+            return list[i];
+        }
+
             print() {
             for (var i = 0; i < this.locations.length; ++i) {
                 var location = this.locations[i];
-                var str = location.name + ": ";
+                var str = location.name + '(' + location.id + '): ';
                 for (var j = 0; j < location.cards.length; ++j) {
                     var card = location.cards[j];
                     if (j > 0)
