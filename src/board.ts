@@ -533,36 +533,32 @@ module Game {
             return [];
         }
 
-            performCommand(commands: BaseCommand[]): any[] {
-            var result: any[] = [];
-            for (var i = 0; i < commands.length; ++i) {
-                var command = commands[i];
-                switch (command.type) {
-                    case 'move':
-                        var moveCommand = < MoveCommand > command;
-                        var to = this.findLocation(moveCommand.toId);
-                        var card = this.findCard(moveCommand.cardId);
-                        to.insertCard(card, moveCommand.index);
-                        break;
-                    case 'pick':
-                        var pickCommand = < PickCommand > command;
-                        result = result.concat(pickCommand.values);
-                        break;
-                    case 'pickLocation':
-                        var pickCommand = < PickCommand > command;
-                        result = result.concat(this.queryLocation(pickCommand.values.join(',')));
-                        break;
-                    case 'pickCard':
-                        var pickCommand = < PickCommand > command;
-                        result = result.concat(this.queryCard(pickCommand.values.join(',')));
-                        break;
-                    case 'setVariable':
-                        var setCommand = < SetCommand > command;
-                        this.variables[setCommand.name] = setCommand.value;
-                        result.push(setCommand.value);
-                }
+            performCommand(command: BaseCommand): any {
+            switch (command.type) {
+                case 'move':
+                    var moveCommand = < MoveCommand > command;
+                    var to = this.findLocation(moveCommand.toId);
+                    var card = this.findCard(moveCommand.cardId);
+                    to.insertCard(card, moveCommand.index);
+                    break;
+                case 'pick':
+                    var pickCommand = < PickCommand > command;
+                    return pickCommand.values;
+                    break;
+                case 'pickLocation':
+                    var pickCommand = < PickCommand > command;
+                    return this.queryLocation(pickCommand.values.join(','));
+                    break;
+                case 'pickCard':
+                    var pickCommand = < PickCommand > command;
+                    return this.queryCard(pickCommand.values.join(','));
+                    break;
+                case 'setVariable':
+                    var setCommand = < SetCommand > command;
+                    this.variables[setCommand.name] = setCommand.value;
+                    return setCommand.value;
             }
-            return result;
+            return null;
         }
 
             getVariable(name: string): any {

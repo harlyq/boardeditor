@@ -101,7 +101,8 @@ module Game {
         }
 
             onUpdateCommands(commands: BaseCommand[]) {
-            this.board.performCommand(commands);
+            for (var i = 0; i < commands.length; ++i)
+                this.board.performCommand(commands[i]);
         }
     }
 
@@ -225,9 +226,12 @@ module Game {
     }
 
     //-------------------------------
+    var thisComputerRuleId = -1;
+
     export class HumanClient extends Client {
         pickList: any[] = [];
         lastRuleId: number = -1;
+        pauseEvents: boolean = false;
 
         locationElem: {
             [key: number]: HTMLElement;
@@ -245,10 +249,8 @@ module Game {
                 return;
 
             var i = this.pickList.indexOf(location);
-            if (i === -1) {
-                alert('not pickable');
+            if (i === -1)
                 return;
-            }
 
             this.pickList = [];
             this.clearHighlights();
@@ -329,7 +331,53 @@ module Game {
             return [];
         }
 
-            clearHighlights() {
+            onUpdateCommands(commands: BaseCommand[]) {
+            if (commands.length === 0)
+                return;
+
+            var showEvents = !this.pauseEvents && commands[0].id > thisComputerRuleId;
+
+            for (var i = 0; i < commands.length; ++i) {
+                var command = commands[i];
+                if (command.type === 'move' && showEvents) {
+                    var moveCommand = < MoveCommand > command;
+                    var card: any = this.board.queryCard(moveCommand.cardId.toString());
+                    card = (card.length > 0 ? card[0] : null);
+                    var from = (card ? card.location : null);
+                    var to: any = this.board.queryLocation(moveCommand.toId.toString());
+                    to = (to.length > 0 ? to[0] : null);
+                    var fromElem = (from ? this.locationElem[from.id] : null);
+                    var toElem = (to ? this.locationElem[to.id] : null);
+
+                    if (fromElem) {
+                        var event: CustomEvent = new( < any > CustomEvent)('removeCard', {
+                            bubbles: true,
+                            cancelable: true,
+                            detail: card
+                        });
+                        fromElem.dispatchEvent(event);
+                    }
+
+                    if (toElem) {
+                        var event: CustomEvent = new( < any > CustomEvent)('addCard', {
+                            bubbles: true,
+                            cancelable: true,
+                            detail: card
+                        });
+                        toElem.dispatchEvent(event);
+                    }
+
+                    // have a global flag which tracks when any human client on this
+                    // machine updates it's rule, so we don't dispatch the events multiple
+                    // times
+                    thisComputerRuleId = command.id;
+                }
+
+                this.board.performCommand(command);
+            }
+        }
+
+            private clearHighlights() {
             for (var i in this.locationElem) {
                 var element = this.locationElem[i];
                 if (element)

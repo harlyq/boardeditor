@@ -124,7 +124,7 @@ module Game {
                 console.log(nextRule);
                 var commands = userProxy.resolveRule(nextRule);
                 nextValue = this.handleCommands(commands);
-            } while (nextValue)
+            } while (commands.length > 0) // while we're not waiting for commands
 
             return true;
         }
@@ -133,7 +133,9 @@ module Game {
             if (commands.length === 0)
                 return undefined;
 
-            var nextValue = this.board.performCommand(commands);
+            var nextValue = undefined;
+            for (var i = 0; i < commands.length; ++i)
+                nextValue = this.board.performCommand(commands[i]);
 
             for (var i = 0; i < this.proxies.length; ++i)
                 this.proxies[i].updateCommands(commands);

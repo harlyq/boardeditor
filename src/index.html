@@ -173,6 +173,22 @@
         // var move2 = move("a", "b").user("you");
         // var move3 = move().from("first").to("second").user("them");
 
+        var board = document.querySelector('#board');
+        board.addEventListener('removeCard', function(e) {
+            e.stopPropagation();
+            e.target.classList.remove('grow');
+            e.target.classList.remove('shrink');
+            e.target.offsetWidth; // HACK force reflow
+            e.target.classList.add('shrink');
+        });
+        board.addEventListener('addCard', function(e) {
+            e.stopPropagation();
+            e.target.classList.remove('grow');
+            e.target.classList.remove('shrink');
+            e.target.offsetWidth; // HACK force reflow
+            e.target.classList.add('grow');
+        });
+
         var game = mancala();
 
         var server = new Game.GameServer();
@@ -270,8 +286,47 @@
         height: 60px;
         background-color: red;
     }
-    .highlight {
-        border: 3px solid purple;
+    deck-layout.highlight {
+        border-width: 3px;
+    }
+    .p1 {
+        border: 1px solid blue;
+    }
+    .p2 {
+        border: 1px solid red;
+    }
+    deck-layout {
+        -webkit-border-radius: 50%;
+    }
+    @-webkit-keyframes grow {
+        0% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+        50% {
+            -webkit-transform: scale3d(1.1, 1.1, 1.1);
+        }
+        100% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+    }
+    .grow {
+        -webkit-animation-name: grow;
+        -webkit-animation-duration: 1s;
+    }
+    @-webkit-keyframes shrink {
+        0% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+        50% {
+            -webkit-transform: scale3d(0.9, 0.9, 0.9);
+        }
+        100% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+    }
+    .shrink {
+        -webkit-animation-name: shrink;
+        -webkit-animation-duration: 1s;
     }
     </style>
 </head>
@@ -316,20 +371,20 @@
     <div id="dummy"></div>
     -->
     <div id="board">
-        <deck-layout name="p1_A" layout="none" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_B" layout="none" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_C" layout="none" style="left:120px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_D" layout="none" style="left:180px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_E" layout="none" style="left:240px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_F" layout="none" style="left:300px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_store" layout="none" style="left:360px; top: 10px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="p2_A" layout="none" style="left:0px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_B" layout="none" style="left:60px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_C" layout="none" style="left:120px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_D" layout="none" style="left:180px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_E" layout="none" style="left:240px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_F" layout="none" style="left:300px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_store" layout="none" style="left:360px; top: 80px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p1_A" layout="none" class="p1" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_B" layout="none" class="p1" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_C" layout="none" class="p1" style="left:120px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_D" layout="none" class="p1" style="left:180px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_E" layout="none" class="p1" style="left:240px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_F" layout="none" class="p1" style="left:300px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_store" layout="none" class="p1" style="left:360px; top: 10px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p2_A" layout="none" class="p2" style="left:0px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_B" layout="none" class="p2" style="left:60px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_C" layout="none" class="p2" style="left:120px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_D" layout="none" class="p2" style="left:180px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_E" layout="none" class="p2" style="left:240px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_F" layout="none" class="p2" style="left:300px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_store" layout="none" class="p2" style="left:360px; top: 80px; width: 60px; height: 60px"></deck-layout>
         <deck-layout name="hidden" layout="none" style="left:0px; top: 160px; width: 60px; height: 60px"></deck-layout>
     </div>
 </body>

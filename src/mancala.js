@@ -74,8 +74,8 @@ function mancala() {
         pitNames[PLAYER2] = 'p2_A, p2_B, p2_C, p2_D, p2_E, p2_F';
         pits[PLAYER1] = board.queryLocation(pitNames[PLAYER1]);
         pits[PLAYER2] = board.queryLocation(pitNames[PLAYER2]);
-        chain[PLAYER1] = pits[PLAYER1].concat(store[PLAYER1]).concat(pits[PLAYER1]);
-        chain[PLAYER2] = pits[PLAYER2].concat(store[PLAYER2]).concat(pits[PLAYER2]);
+        chain[PLAYER1] = pits[PLAYER1].concat(store[PLAYER1]).concat(pits[PLAYER2]);
+        chain[PLAYER2] = pits[PLAYER2].concat(store[PLAYER2]).concat(pits[PLAYER1]);
     }
 
     function* rules(board) {
