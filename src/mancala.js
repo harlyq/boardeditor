@@ -6,7 +6,7 @@ function mancala() {
     var PLAYER1 = 0;
     var PLAYER2 = 1;
     var currentPlayer = PLAYER2;
-    var playerName = ['player1', 'player2'];
+    var playerName = ['PLAYER1', 'PLAYER2'];
 
     var pits = [];
     var store = []
@@ -36,8 +36,9 @@ function mancala() {
         board.createLocation('p2_store', id++);
         board.createLocation('hidden', id++);
 
-        board.createUser(playerName[PLAYER1]);
-        board.createUser(playerName[PLAYER2]);
+        board.createUser('BANK', -1);
+        board.createUser(playerName[PLAYER1], PLAYER1);
+        board.createUser(playerName[PLAYER2], PLAYER2);
     }
 
     function* newGame(board) {
@@ -60,10 +61,12 @@ function mancala() {
             });
         }
 
-        currentPlayer =
+        var result =
             yield * board.pick({
                 list: [PLAYER1, PLAYER2]
             });
+        currentPlayer = result[0];
+        yield * board.setVariable('currentPlayer', playerName[currentPlayer]);
 
         store[PLAYER1] = board.queryLocation('p1_store');
         store[PLAYER2] = board.queryLocation('p2_store');
@@ -90,6 +93,7 @@ function mancala() {
             var nextPit = board.next(picked, chain[currentPlayer], true);
             var lastPit = nextPit;
 
+            // place one stone in each consecutive pit (including the current player's store)
             while (picked.getNumCards() > 0) {
                 yield * board.move({
                     from: picked,
@@ -97,6 +101,25 @@ function mancala() {
                 });
                 lastPit = nextPit;
                 nextPit = board.next(nextPit, chain[currentPlayer], true);
+            }
+
+            // if the last stone is in the current player's store, then don't change players
+            if (lastPit != store[currentPlayer]) {
+                var i = pits[currentPlayer].indexOf(lastPit);
+                if (i !== -1 && lastPit.getNumCards() === 1) {
+                    // if the last stone was in an empty pit for the current player, then take
+                    // the opponent's stones from the opposite pit
+                    var otherPlayer = 1 - currentPlayer;
+                    yield * board.move({
+                        from: lastPit,
+                        to: pits[otherPlayer][NUM_PITS - i],
+                        quantity: Game.Quantity.All
+                    });
+                }
+
+                // next player
+                currentPlayer = 1 - currentPlayer;
+                yield * board.setVariable('currentPlayer', playerName[currentPlayer]);
             }
         }
     }

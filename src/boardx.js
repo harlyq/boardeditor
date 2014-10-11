@@ -79,4 +79,14 @@
             id: uniqueId++
         }, Game.default_PickRule, rule);
     };
+
+    Game.Board.prototype.setVariable = function*(name, value) {
+        return yield {
+            type: 'setVariable',
+            id: uniqueId++,
+            name: name,
+            value: value,
+            user: 'BANK'
+        };
+    };
 })();

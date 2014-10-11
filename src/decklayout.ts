@@ -1,4 +1,5 @@
 /// <reference path="platform.js.d.ts" />
+/// <reference path="deckcard.ts" />
 /*export*/
 class DeckLayout {
     static _func: {
@@ -18,6 +19,7 @@ class DeckLayout {
         thisOptions.offsetx = 0;
         thisOptions.offsety = 0;
         thisOptions.visibility = 'any';
+        thisOptions.showcount = false;
 
         this.flipCardHandler = this.flipCard.bind(this);
 
@@ -78,11 +80,20 @@ class DeckLayout {
         card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
     }
 
+    getDeckCards(list: any): any[] {
+        var cards = [];
+        for (var i = 0; i < list.length; ++i) {
+            if (list[i] instanceof DeckCardPrototype)
+                cards.push(list[i]);
+        }
+        return cards;
+    }
+
     applyOptions(cards ? : any) {
         var options = this.options;
-        var element = this.parent;
+        var parent = this.parent;
         if (typeof cards === 'undefined')
-            cards = element.children;
+            cards = this.getDeckCards(parent.children);
 
         [].forEach.call(cards, function(card) {
             switch (options.visibility) {
@@ -94,6 +105,22 @@ class DeckLayout {
                     break;
             }
         });
+
+        var showCount = false;
+        if ('showcount' in options) {
+            showCount = options.showcount;
+        }
+
+        var countElem = < HTMLElement > (parent.querySelector('.count'));
+        if (countElem && !showCount) {
+            countElem.classList.add('hidden');
+        } else if (!countElem && showCount) {
+            countElem = document.createElement('div');
+            parent.appendChild(countElem);
+        } else if (countElem && showCount) {
+            countElem.classList.remove('hidden');
+        }
+        countElem.innerText = cards.length; // should be linked to the location model data
     }
 
     forEach(fn: (card: any, i: number, left: number, top: number) => void);
@@ -103,17 +130,17 @@ class DeckLayout {
         var cards = cardsOrFn;
         if (typeof cardsOrFn === 'function') {
             fn = cardsOrFn;
-            cards = this.parent.children;
+            cards = this.getDeckCards(this.parent.children);
         }
         if (typeof fn === 'undefined')
             return; // nothing to do
 
-        var element = this.parent;
-        if (element) {
-            options.width = element.offsetWidth;
-            options.height = element.offsetHeight;
-            options.left = element.offsetLeft;
-            options.top = element.offsetTop;
+        var parent = this.parent;
+        if (parent) {
+            options.width = parent.offsetWidth;
+            options.height = parent.offsetHeight;
+            options.left = parent.offsetLeft;
+            options.top = parent.offsetTop;
         }
 
         var numCards = cards.length;
@@ -237,6 +264,7 @@ module DeckLayout {
         width ? : number;
         height ? : number;
         visibility ? : string; // any, faceup, facedown
+        showcount ? : boolean;
     }
 
     interface TopLeft {

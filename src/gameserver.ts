@@ -3,11 +3,10 @@
 module Game {
 
     // server has perfect knowledge of the game.  validates all moves.
-    export class GameServer {
+    export class GameServer implements ProxyListener {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseProxy[] = [];
-        private lastValue: any;
 
         rulesGen: (board: Board) => {
             next(...args: any[]): any
@@ -98,58 +97,55 @@ module Game {
 
         newGame() {
             if (typeof this.newGameGen === 'function')
-                var newGameIter = this.newGameGen(this.board);
+                this.rulesIter = this.newGameGen(this.board);
 
-            var bankProxy = this.getProxy('BANK');
-            var result: any = {
-                done: false
-            }
-
-            while (!result.done) {
-                result = newGameIter.next(this.lastValue);
-                var rule = result.value;
-
-                if (!result.done) {
-                    console.log(rule);
-                    var commands = bankProxy.resolveRule(rule);
-                    this.lastValue = this.board.performCommand(commands);
-
-                    for (var i = 0; i < this.proxies.length; ++i)
-                        this.proxies[i].update(commands);
-
-                    this.board.print();
-                }
-            }
+            this.step(); // don't have user rules in the newGame!!!
 
             if (typeof this.rulesGen === 'function')
                 this.rulesIter = this.rulesGen(this.board);
 
-            delete this.lastValue;
+            this.step();
         }
 
-        step(): boolean {
+        step(nextValue ? : any): boolean {
             if (!('next' in this.rulesIter))
                 return;
 
-            var result = this.rulesIter.next(this.lastValue);
-            if (result.done)
-                return false; // this.error('rules completed')
+            do {
+                var result = this.rulesIter.next(nextValue);
+                if (result.done)
+                    return true; // this.error('rules completed')
 
-            var nextRule: BaseRule = result.value;
-            var userProxy = this.getProxy(nextRule.user);
-            if (!userProxy)
-                return false; // this.error('User does not have a proxy')
+                var nextRule: BaseRule = result.value;
+                var userProxy = this.getProxy(nextRule.user);
+                if (!userProxy)
+                    return false; // this.error('User does not have a proxy')
 
-            console.log(nextRule);
-            var commands = userProxy.resolveRule(nextRule);
-            this.lastValue = this.board.performCommand(commands);
+                console.log(nextRule);
+                var commands = userProxy.resolveRule(nextRule);
+                nextValue = this.handleCommands(commands);
+            } while (nextValue)
+
+            return true;
+        }
+
+        private handleCommands(commands: BaseCommand[]): any {
+            if (commands.length === 0)
+                return undefined;
+
+            var nextValue = this.board.performCommand(commands);
 
             for (var i = 0; i < this.proxies.length; ++i)
-                this.proxies[i].update(commands);
+                this.proxies[i].updateCommands(commands);
 
             this.board.print();
 
-            return true;
+            return nextValue;
+        }
+
+        // server only supports sendCommands
+        onSendCommands(commands: BaseCommand[]): any {
+            this.step(this.handleCommands(commands));
         }
     }
 }

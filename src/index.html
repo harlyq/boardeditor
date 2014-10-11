@@ -92,77 +92,79 @@
         //     });
         // });
 
-        var dropIndex = -3;
-        var dropTarget = null;
-        var dummyElem = document.getElementById('dummy');
+        // var dropIndex = -3;
+        // var dropTarget = null;
+        // var dummyElem = document.getElementById('dummy');
 
-        interact("deck-card")
-            .draggable(true)
-            .on('dragmove', function(event) {
-                var target = event.target,
-                    x = (parseInt(target.getAttribute('data-x')) || 0) + event.dx,
-                    y = (parseInt(target.getAttribute('data-y')) || 0) + event.dy;
+        // var deckLayout = document.getElementById("layout02")
 
-                target.classList.add('drag-target');
-                target.style.webkitTransform = 'translate(' + x + 'px, ' + y + 'px)';
+        // interact("deck-card")
+        //     .draggable(true)
+        //     .on('dragmove', function(event) {
+        //         var target = event.target,
+        //             x = (parseInt(target.getAttribute('data-x')) || 0) + event.dx,
+        //             y = (parseInt(target.getAttribute('data-y')) || 0) + event.dy;
 
-                target.setAttribute('data-x', x);
-                target.setAttribute('data-y', y);
+        //         target.classList.add('drag-target');
+        //         target.style.webkitTransform = 'translate(' + x + 'px, ' + y + 'px)';
 
-                if (!dropTarget)
-                    return;
+        //         target.setAttribute('data-x', x);
+        //         target.setAttribute('data-y', y);
 
-                var x = event.clientX - dropTarget.offsetLeft,
-                    y = event.clientY - dropTarget.offsetTop,
-                    numChildren = dropTarget.children.length;
+        //         if (!dropTarget)
+        //             return;
 
-                var index = dropTarget.getIndex(x, y, numChildren, dummyElem.offsetWidth, dummyElem.offsetHeight);
+        //         var x = event.clientX - dropTarget.offsetLeft,
+        //             y = event.clientY - dropTarget.offsetTop,
+        //             numChildren = dropTarget.children.length;
 
-                if (index !== dropIndex) {
-                    if (index > -1) {
-                        var afterElem = dropTarget.children[index];
+        //         var index = dropTarget.getIndex(x, y, numChildren, dummyElem.offsetWidth, dummyElem.offsetHeight);
 
-                        if (dropIndex > -1)
-                            dropTarget.removeChild(dummyElem);
+        //         if (index !== dropIndex) {
+        //             if (index > -1) {
+        //                 var afterElem = dropTarget.children[index];
 
-                        if (afterElem.nextSibling)
-                            dropTarget.insertBefore(dummyElem, afterElem.nextSibling);
-                        else
-                            dropTarget.appendChild(dummyElem);
-                    } else {
-                        dropTarget.insertBefore(dummyElem, dropTarget.firstChild);
-                    }
-                }
+        //                 if (dropIndex > -1)
+        //                     dropTarget.removeChild(dummyElem);
 
-                index = dropIndex;
-            })
-            .on('dragend', function(event) {
-                var target = event.target;
-                target.style.webkitTransform = '';
-                target.classList.remove('drag-target');
-                target.setAttribute('data-x', 0);
-                target.setAttribute('data-y', 0);
-            });
+        //                 if (afterElem.nextSibling)
+        //                     dropTarget.insertBefore(dummyElem, afterElem.nextSibling);
+        //                 else
+        //                     dropTarget.appendChild(dummyElem);
+        //             } else {
+        //                 dropTarget.insertBefore(dummyElem, dropTarget.firstChild);
+        //             }
+        //         }
 
-        interact("#layout02")
-            .dropzone(true)
-            .accept(".deck01")
-            .on('dragenter', function(event) {
-                dropIndex = -2;
-                dropTarget = event.target;
-                event.target.classList.add('drop-target');
-            })
-            .on('dragleave', function(event) {
-                event.target.classList.remove('drop-target');
-                event.target.removeChild(dummyElem);
-                dropTarget = null;
-            })
-            .on('drop', function(event) {
-                dropTarget = null;
-                event.target.classList.remove('drop-target');
-                event.target.insertBefore(event.relatedTarget, dummyElem);
-                event.target.removeChild(dummyElem);
-            });
+        //         index = dropIndex;
+        //     })
+        //     .on('dragend', function(event) {
+        //         var target = event.target;
+        //         target.style.webkitTransform = '';
+        //         target.classList.remove('drag-target');
+        //         target.setAttribute('data-x', 0);
+        //         target.setAttribute('data-y', 0);
+        //     });
+
+        // interact("#layout02")
+        //     .dropzone(true)
+        //     .accept(".deck01")
+        //     .on('dragenter', function(event) {
+        //         dropIndex = -2;
+        //         dropTarget = event.target;
+        //         event.target.classList.add('drop-target');
+        //     })
+        //     .on('dragleave', function(event) {
+        //         event.target.classList.remove('drop-target');
+        //         event.target.removeChild(dummyElem);
+        //         dropTarget = null;
+        //     })
+        //     .on('drop', function(event) {
+        //         dropTarget = null;
+        //         event.target.classList.remove('drop-target');
+        //         event.target.insertBefore(event.relatedTarget, dummyElem);
+        //         event.target.removeChild(dummyElem);
+        //     });
 
         // var move1 = move({
         //     from: "one",
@@ -175,15 +177,19 @@
 
         var server = new Game.GameServer();
         var bankClient = new Game.BankClient();
-        var player1Client = new Game.BankClient();
-        var player2Client = new Game.BankClient();
+        var player1Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER1');
+        var player2Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER2');
+
+        bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
+        player1Client.setProxy(Game.createLocalProxy('PLAYER1', player1Client));
+        player2Client.setProxy(Game.createLocalProxy('PLAYER2', player2Client));
 
         server.setupFunc = game.setupFunc;
         server.newGameGen = game.newGameGen;
         server.rulesGen = game.rulesGen;
-        server.addProxy(new Game.LocalProxy('BANK', bankClient));
-        server.addProxy(new Game.LocalProxy('player1', player1Client));
-        server.addProxy(new Game.LocalProxy('player2', player2Client));
+        server.addProxy(Game.createLocalProxy('BANK', server));
+        server.addProxy(Game.createLocalProxy('PLAYER1', server));
+        server.addProxy(Game.createLocalProxy('PLAYER2', server));
 
         bankClient.setupFunc = game.setupFunc;
         bankClient.setup();
@@ -197,8 +203,6 @@
 
         server.setup();
         server.newGame();
-
-        while (server.step()) {}
     });
     </script>
 
@@ -266,6 +270,9 @@
         height: 60px;
         background-color: red;
     }
+    .highlight {
+        border: 3px solid purple;
+    }
     </style>
 </head>
 
@@ -291,7 +298,6 @@
             <div id="board" class="tab-pane"></div>
         </div>
     </div>
-    -->
     <div id="board">
         <img src="Mancala (2).svg" class="picture" style="width: 300px; height: 300px; left: 10px; top: 50px"></img>
         <deck-layout id="layout01" layout="stack" visibility="facedown" offsetx="2" offsety="2" style="left: 10px; top: 10px; width: 50px; height: 60px">
@@ -308,6 +314,24 @@
         <deck-cutout id="cutout02" style="left: 20px; top: 180px; width: 100px; height: 50px"></deck-cutout>
     </div>
     <div id="dummy"></div>
+    -->
+    <div id="board">
+        <deck-layout name="p1_A" layout="none" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_B" layout="none" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_C" layout="none" style="left:120px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_D" layout="none" style="left:180px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_E" layout="none" style="left:240px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_F" layout="none" style="left:300px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_store" layout="none" style="left:360px; top: 10px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p2_A" layout="none" style="left:0px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_B" layout="none" style="left:60px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_C" layout="none" style="left:120px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_D" layout="none" style="left:180px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_E" layout="none" style="left:240px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_F" layout="none" style="left:300px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_store" layout="none" style="left:360px; top: 80px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="hidden" layout="none" style="left:0px; top: 160px; width: 60px; height: 60px"></deck-layout>
+    </div>
 </body>
 
 </html>

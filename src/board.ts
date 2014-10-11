@@ -89,6 +89,17 @@ module Game {
         values: any[]; // picked items
     }
 
+    export interface SetRule extends BaseRule {
+        name: string;
+        value: any;
+    }
+
+    export interface SetCommand extends BaseCommand {
+        name: string;
+        value: any;
+    }
+
+    //----------------------------------------------------------------
     export class Location {
         cards: Card[] = [];
         labels: string[] = [];
@@ -274,6 +285,7 @@ module Game {
         };
     }
 
+    //----------------------------------------------------------------
     export class Card {
         location: Location = null; // back pointer, do not dereference, used by Location
         labels: string[] = [];
@@ -335,6 +347,7 @@ module Game {
         }
     }
 
+    //----------------------------------------------------------------
     export class User {
         serverId: number;
 
@@ -357,10 +370,14 @@ module Game {
         }
     }
 
+    //----------------------------------------------------------------
     export class Board {
         locations: Location[] = [];
         cards: Card[] = [];
         users: User[] = [];
+        variables: {
+            [key: string]: any
+        } = {};
 
         createLocation(name: string, locationId: number, visibility ? : {
             [userId: number]: Location.Visibility
@@ -496,13 +513,25 @@ module Game {
         }
 
         // typescript doesn't understand the yield keyword, so these functions are in boardx.js
-            move(rule: MoveRule) {}
+            move(rule: MoveRule): BaseCommand[] {
+            return [];
+        }
 
-            pick(rule: MoveRule) {}
+            pick(rule: PickRule): BaseCommand[] {
+            return [];
+        }
 
-            pickLocation(rule: MoveRule) {}
+            pickLocation(rule: PickRule): BaseCommand[] {
+            return [];
+        }
 
-            pickCard(rule: MoveRule) {}
+            pickCard(rule: PickRule): BaseCommand[] {
+            return [];
+        }
+
+            setVariable(name: string, value: any): BaseCommand[] {
+            return [];
+        }
 
             performCommand(commands: BaseCommand[]): any[] {
             var result: any[] = [];
@@ -527,9 +556,17 @@ module Game {
                         var pickCommand = < PickCommand > command;
                         result = result.concat(this.queryCard(pickCommand.values.join(',')));
                         break;
+                    case 'setVariable':
+                        var setCommand = < SetCommand > command;
+                        this.variables[setCommand.name] = setCommand.value;
+                        result.push(setCommand.value);
                 }
             }
             return result;
+        }
+
+            getVariable(name: string): any {
+            return this.variables[name];
         }
 
             next < T > (value: T, list: T[], loop: boolean = false): T {
@@ -574,6 +611,14 @@ module Game {
 
                 console.log(str);
             }
+        }
+
+            getLocations(): Location[] {
+            return this.locations;
+        }
+
+            getCards(): Card[] {
+            return this.cards;
         }
 
             save(): any {

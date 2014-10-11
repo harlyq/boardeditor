@@ -1,17 +1,28 @@
 /// <reference path="board.ts" />
+/// <reference path="proxy.ts" />
+/// <reference path="deckcard.ts" />
+/// <reference path="decklayout.ts" />
 
 module Game {
+    var CLASS_HIGHLIGHT = 'highlight';
+
     var getRandom = function < T > (list: T[]): T {
         return list[~~(Math.random() * list.length)];
     }
 
-    export class Client {
+    //-------------------------------
+    export class Client implements ProxyListener {
         board: Board = new Board();
         showMoves: boolean = true;
         setupFunc: (board: Board) => void;
         whereList: any[];
+        proxy: BaseProxy = null;
 
         constructor() {}
+
+        setProxy(proxy: BaseProxy) {
+            this.proxy = proxy;
+        }
 
         setup() {
             this.setupFunc(this.board);
@@ -42,13 +53,39 @@ module Game {
         //     to.addCard(card);
         // }
 
-        resolveRule(rule: BaseRule): BaseCommand[] {
-            return []; // base class does nothing
+        onResolveRule(rule: BaseRule): BaseCommand[] {
+            switch (rule.type) {
+                case 'move':
+                    return this.resolveMove( < MoveRule > rule);
+                case 'pick':
+                case 'pickLocation':
+                case 'pickCard':
+                    return this.resolvePick( < PickRule > rule);
+                case 'setVariable':
+                    var setRule = < SetRule > rule;
+                    return [{
+                        type: 'setVariable',
+                        id: setRule.id,
+                        name: setRule.name,
+                        value: setRule.value
+                    }];
+            }
+
+            return [];
+        }
+
+            resolveMove(rule: MoveRule): BaseCommand[] {
+            return [];
+        }
+
+            resolvePick(rule: PickRule): BaseCommand[] {
+            return [];
         }
 
             isCountComplete(quantity: Quantity, count: number, value: number): boolean {
             switch (quantity) {
                 case Quantity.All:
+                    return false; // all must be accounted for elsewhere
                 case Quantity.Exactly:
                     return value === count;
                 case Quantity.AtMost:
@@ -63,27 +100,16 @@ module Game {
             return false;
         }
 
-            update(commands: BaseCommand[]) {
+            onUpdateCommands(commands: BaseCommand[]) {
             this.board.performCommand(commands);
         }
     }
 
 
+    //-------------------------------
     export class BankClient extends Client {
-        resolveRule(rule: BaseRule): BaseCommand[] {
-            switch (rule.type) {
-                case 'move':
-                    return this.resolveMove( < MoveRule > rule);
-                case 'pick':
-                case 'pickLocation':
-                case 'pickCard':
-                    return this.resolvePick( < PickRule > rule);
-            }
 
-            return [];
-        }
-
-        private resolveMove(moveRule: MoveRule): MoveCommand[] {
+        resolveMove(moveRule: MoveRule): MoveCommand[] {
             var where: any = moveRule.where || function() {
                     return true;
                 }
@@ -142,7 +168,7 @@ module Game {
         }
 
 
-        private resolvePick(pickRule: PickRule): PickCommand[] {
+        resolvePick(pickRule: PickRule): PickCommand[] {
             var where: any = pickRule.where || function() {
                 return true;
             }
@@ -174,6 +200,8 @@ module Game {
                 var pick = pickList[k];
                 pickList.splice(k, 1); // if no duplicates
 
+                // use name and id because the location structures on this client will be
+                // different from the location structurs on other clients, or on the server
                 switch (pickRule.type) {
                     case 'pick':
                         values.push(pick);
@@ -196,11 +224,128 @@ module Game {
 
     }
 
-    export class AI extends Client {
+    //-------------------------------
+    export class HumanClient extends Client {
+        pickList: any[] = [];
+        lastRuleId: number = -1;
 
+        locationElem: {
+            [key: number]: HTMLElement;
+        } = {};
+        cardElem: {
+            [key: number]: HTMLElement;
+        } = {};
+
+        constructor(public boardElem: HTMLElement, public user: string) {
+            super();
+        }
+
+        private onClickLocation(location: Location) {
+            if (this.board.getVariable('currentPlayer') !== this.user)
+                return;
+
+            var i = this.pickList.indexOf(location);
+            if (i === -1) {
+                alert('not pickable');
+                return;
+            }
+
+            this.pickList = [];
+            this.clearHighlights();
+
+            this.proxy.sendCommands([{
+                type: 'pickLocation',
+                id: this.lastRuleId,
+                values: [location.name]
+            }]);
+        }
+
+        setup() {
+            super.setup();
+
+            var self = this;
+            this.board.getLocations().forEach(function(location) {
+                var element = < HTMLElement > (self.boardElem.querySelector('[name="' + location.name + '"]'));
+                if (element) {
+                    self.locationElem[location.id] = element;
+                    element.addEventListener('click', self.onClickLocation.bind(self, location));
+                }
+            });
+
+            this.board.getCards().forEach(function(card) {
+                self.cardElem[card.id] = < HTMLElement > (self.boardElem.querySelector('[id="' + card.id + '"]'));
+            });
+        }
+
+        resolvePick(pickRule: PickRule): PickCommand[] {
+            var where: any = pickRule.where || function() {
+                return true;
+            }
+
+            var list = [];
+            var rawList: any = pickRule.list;
+            if (typeof pickRule.list === 'string')
+                rawList = ( < string > pickRule.list).split(',');
+            if (!Array.isArray(rawList))
+                rawList = [rawList];
+
+            switch (pickRule.type) {
+                case 'pick':
+                    list = rawList;
+                    break;
+                case 'pickLocation':
+                    list = this.board.queryLocation(rawList.join(','));
+                    break;
+                case 'pickCard':
+                    list = this.board.queryCard(rawList.join(','));
+                    break;
+            }
+
+            this.clearHighlights();
+
+            this.pickList = list.filter(where);
+            for (var i = 0; i < this.pickList.length; ++i) {
+                var pick = this.pickList[i];
+
+                switch (pickRule.type) {
+                    case 'pick':
+                        break;
+
+                    case 'pickLocation':
+                        var element = this.locationElem[pick.id];
+                        if (element)
+                            element.classList.add(CLASS_HIGHLIGHT);
+                        break;
+                    case 'pickCard':
+                        var element = this.locationElem[pick.id];
+                        if (element)
+                            element.classList.add(CLASS_HIGHLIGHT);
+                        break;
+                }
+            }
+
+            this.lastRuleId = pickRule.id;
+
+            return [];
+        }
+
+            clearHighlights() {
+            for (var i in this.locationElem) {
+                var element = this.locationElem[i];
+                if (element)
+                    element.classList.remove(CLASS_HIGHLIGHT);
+            }
+
+            for (var i in this.cardElem) {
+                var element = this.cardElem[i];
+                if (element)
+                    element.classList.remove(CLASS_HIGHLIGHT);
+            }
+        }
     }
 
-    export class Human extends Client {
+    //-------------------------------
+    export class AIClient extends Client {
 
     }
 
