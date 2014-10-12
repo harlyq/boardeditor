@@ -594,6 +594,50 @@ module Game {
             return list[i];
         }
 
+            convertLocation(other: any): string {
+            var str = '';
+            if (other instanceof Game.Location)
+                str = other.id.toString();
+            else if (Array.isArray(other)) {
+                for (var i = 0; i < other.length; ++i) {
+                    var value = other[i];
+                    if (i > 0)
+                        str += ',';
+                    if (value instanceof Game.Location)
+                        str += value.id;
+                    else if (typeof value === 'string')
+                        str += value;
+                    else if (typeof value === 'number')
+                        str += value.toString();
+                }
+            } else if (typeof other === 'string')
+                str = other;
+
+            return str;
+        }
+
+            convertCard(other: any): string {
+            var str = '';
+            if (other instanceof Game.Card)
+                str = other.id.toString();
+            else if (Array.isArray(other)) {
+                for (var i = 0; i < other.length; ++i) {
+                    var value = other[i];
+                    if (i > 0)
+                        str += ',';
+                    if (value instanceof Game.Card)
+                        str += value.id;
+                    else if (typeof value === 'string')
+                        str += value;
+                    else if (typeof value === 'number')
+                        str += value.toString();
+                }
+            } else if (typeof other === 'string')
+                str = other;
+
+            return str;
+        }
+
             print() {
             for (var i = 0; i < this.locations.length; ++i) {
                 var location = this.locations[i];

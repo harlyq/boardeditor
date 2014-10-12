@@ -9,16 +9,12 @@
     <script src="interact.js" type="text/javascript"></script>
     <script src="decklayout.js" type="text/javascript"></script>
     <script src="deckcard.js" type="text/javascript"></script>
-    <script src="game.js" type="text/javascript"></script>
+    <script src="oldgame.js" type="text/javascript"></script>
     <script src="command.js" type="text/javascript"></script>
     <script src="proxy.js" type="text/javascript"></script>
     <script src="rule2.js" type="text/javascript"></script-->
     <script src="interact.js" type="text/javascript"></script>
-    <script src="board.js" type="text/javascript"></script>
-    <script src="boardx.js" type="text/javascript"></script>
-    <script src="gameclient.js" type="text/javascript"></script>
-    <script src="proxy.js" type="text/javascript"></script>
-    <script src="gameserver.js" type="text/javascript"></script>
+    <script src="finalgame.js" type="text/javascript"></script>
     <script src="mancala.js" type="text/javascript"></script>
 
     <script>
@@ -189,36 +185,41 @@
             e.target.classList.add('grow');
         });
 
-        var game = mancala();
+        var myGame = mancala(); // for whereList and setup
 
-        var server = new Game.GameServer();
-        var bankClient = new Game.BankClient();
+        // var server = new Game.GameServer();
+        // var bankClient = new Game.BankClient();
         var player1Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER1');
         var player2Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER2');
 
-        bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
-        player1Client.setProxy(Game.createLocalProxy('PLAYER1', player1Client));
-        player2Client.setProxy(Game.createLocalProxy('PLAYER2', player2Client));
+        // bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
+        player1Client.setProxy(Game.createRESTServerProxy('PLAYER1', mancala.whereList, player1Client));
+        player2Client.setProxy(Game.createRESTServerProxy('PLAYER2', mancala.whereList, player2Client));
 
-        server.setupFunc = game.setupFunc;
-        server.newGameGen = game.newGameGen;
-        server.rulesGen = game.rulesGen;
-        server.addProxy(Game.createLocalProxy('BANK', server));
-        server.addProxy(Game.createLocalProxy('PLAYER1', server));
-        server.addProxy(Game.createLocalProxy('PLAYER2', server));
+        // server.setupFunc = myGame.setupFunc;
+        // server.newGameGen = myGame.newGameGen;
+        // server.rulesGen = myGame.rulesGen;
+        // server.addProxy(Game.createLocalProxy('BANK', server));
+        // server.addProxy(Game.createLocalProxy('PLAYER1', server));
+        // server.addProxy(Game.createLocalProxy('PLAYER2', server));
 
-        bankClient.setupFunc = game.setupFunc;
-        bankClient.setup();
+        // bankClient.setupFunc = myGame.setupFunc;
+        // bankClient.setup();
         // bankClient.addProxy(new Game.LocalProxy('BANK'));
 
-        player1Client.setupFunc = game.setupFunc;
+        player1Client.setupFunc = myGame.setupFunc;
         player1Client.setup();
 
-        player2Client.setupFunc = game.setupFunc;
+        player2Client.setupFunc = myGame.setupFunc;
         player2Client.setup();
 
-        server.setup();
-        server.newGame();
+        // server.setup();
+        // server.newGame();
+
+        document.getElementById("poll").addEventListener("click", function() {
+            player1Client.pollServer();
+            player2Client.pollServer();
+        })
     });
     </script>
 
@@ -370,6 +371,7 @@
     </div>
     <div id="dummy"></div>
     -->
+    <button id="poll">POLL</button>
     <div id="board">
         <deck-layout name="p1_A" layout="none" class="p1" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
         <deck-layout name="p1_B" layout="none" class="p1" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>

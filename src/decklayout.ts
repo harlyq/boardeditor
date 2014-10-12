@@ -120,7 +120,8 @@ class DeckLayout {
         } else if (countElem && showCount) {
             countElem.classList.remove('hidden');
         }
-        countElem.innerText = cards.length; // should be linked to the location model data
+        if (showCount)
+            countElem.innerText = cards.length; // should be linked to the location model data
     }
 
     forEach(fn: (card: any, i: number, left: number, top: number) => void);
@@ -278,72 +279,74 @@ module DeckLayout {
     }
 }
 
-var DeckLayoutPrototype = Object.create(HTMLElement.prototype);
+if (typeof window !== 'undefined') {
+    var DeckLayoutPrototype = Object.create(HTMLElement.prototype);
 
-DeckLayoutPrototype.optionsList = ['layout', 'visibility', 'rotate', 'offsetx', 'offsety', 'align'];
+    DeckLayoutPrototype.optionsList = ['layout', 'visibility', 'rotate', 'offsetx', 'offsety', 'align'];
 
-DeckLayoutPrototype.createdCallback = function() {
-    var self = this;
-    this.options = {};
+    DeckLayoutPrototype.createdCallback = function() {
+        var self = this;
+        this.options = {};
 
-    [].forEach.call(this.attributes, function(attr) {
-        if (DeckLayoutPrototype.optionsList.indexOf(attr.name) !== -1)
-            self.options[attr.name] = attr.value;
-    });
+        [].forEach.call(this.attributes, function(attr) {
+            if (DeckLayoutPrototype.optionsList.indexOf(attr.name) !== -1)
+                self.options[attr.name] = attr.value;
+        });
 
-    this.DeckLayout = new DeckLayout(this, this.options);
-};
+        this.DeckLayout = new DeckLayout(this, this.options);
+    };
 
-DeckLayoutPrototype.attachedCallback = function() {
-    this.update();
-};
+    DeckLayoutPrototype.attachedCallback = function() {
+        this.update();
+    };
 
-DeckLayoutPrototype.detachedCallback = function() {}
+    DeckLayoutPrototype.detachedCallback = function() {}
 
-DeckLayoutPrototype.attributeChangedCallback = function(attrName: string, oldVal, newVal) {
-    if (DeckLayoutPrototype.optionsList.indexOf(attrName) !== -1) {
-        this.options[attrName] = newVal;
+    DeckLayoutPrototype.attributeChangedCallback = function(attrName: string, oldVal, newVal) {
+        if (DeckLayoutPrototype.optionsList.indexOf(attrName) !== -1) {
+            this.options[attrName] = newVal;
 
-        this.DeckLayout.setOptions(this.options);
+            this.DeckLayout.setOptions(this.options);
+            this.DeckLayout.applyOptions();
+        }
+    }
+
+    DeckLayoutPrototype.forEach = function(cardsOrFn: any, fn ? : (card: any, i: number, left: number, top: number) => void) {
+        this.DeckLayout.forEach(cardsOrFn, fn);
+    }
+
+    DeckLayoutPrototype.getIndex = function(x: number, y: number, count: number, cardWidth: number, cardHeight: number): number {
+        return this.DeckLayout.getIndex(x, y, count, cardWidth, cardHeight);
+    }
+
+    DeckLayoutPrototype.update = function() {
+        this.DeckLayout.forEach(DeckLayout.position);
         this.DeckLayout.applyOptions();
     }
-}
 
-DeckLayoutPrototype.forEach = function(cardsOrFn: any, fn ? : (card: any, i: number, left: number, top: number) => void) {
-    this.DeckLayout.forEach(cardsOrFn, fn);
-}
+    DeckLayoutPrototype.appendChild = function(newElement: Node) {
+        HTMLElement.prototype.appendChild.call(this, newElement);
+        this.update();
+    }
 
-DeckLayoutPrototype.getIndex = function(x: number, y: number, count: number, cardWidth: number, cardHeight: number): number {
-    return this.DeckLayout.getIndex(x, y, count, cardWidth, cardHeight);
-}
+    DeckLayoutPrototype.removeChild = function(oldElement: Node) {
+        HTMLElement.prototype.removeChild.call(this, oldElement);
+        this.update();
+    }
 
-DeckLayoutPrototype.update = function() {
-    this.DeckLayout.forEach(DeckLayout.position);
-    this.DeckLayout.applyOptions();
-}
+    DeckLayoutPrototype.insertBefore = function(newElement: Node, referenceElement: Node) {
+        HTMLElement.prototype.insertBefore.call(this, newElement, referenceElement);
+        this.update();
+    }
 
-DeckLayoutPrototype.appendChild = function(newElement: Node) {
-    HTMLElement.prototype.appendChild.call(this, newElement);
-    this.update();
-}
+    DeckLayoutPrototype.replaceChild = function(newElement: Node, oldElement: Node) {
+        HTMLElement.prototype.replaceChild.call(this, newElement, oldElement);
+        this.update();
+    }
 
-DeckLayoutPrototype.removeChild = function(oldElement: Node) {
-    HTMLElement.prototype.removeChild.call(this, oldElement);
-    this.update();
-}
-
-DeckLayoutPrototype.insertBefore = function(newElement: Node, referenceElement: Node) {
-    HTMLElement.prototype.insertBefore.call(this, newElement, referenceElement);
-    this.update();
-}
-
-DeckLayoutPrototype.replaceChild = function(newElement: Node, oldElement: Node) {
-    HTMLElement.prototype.replaceChild.call(this, newElement, oldElement);
-    this.update();
-}
-
-if ('registerElement' in document) {
-    document.registerElement('deck-layout', {
-        prototype: DeckLayoutPrototype
-    });
+    if ('registerElement' in document) {
+        document.registerElement('deck-layout', {
+            prototype: DeckLayoutPrototype
+        });
+    }
 }

@@ -124,10 +124,19 @@ function mancala() {
         }
     }
 
-    var game = {};
-    game.setupFunc = setup;
-    game.rulesGen = rules;
-    game.newGameGen = newGame;
-    game.whereList = whereList;
-    return game;
+    return {
+        setupFunc: setup,
+        rulesGen: rules,
+        newGameGen: newGame,
+        whereList: whereList
+    };
+}
+
+// for commonjs
+if (typeof exports !== 'undefined') {
+    var theGame = mancala();
+    exports.setupFunc = theGame.setupFunc;
+    exports.rulesGen = theGame.rulesGen;
+    exports.newGameGen = theGame.newGameGen;
+    exports.whereList = theGame.whereList;
 }

@@ -390,6 +390,10 @@ module Game {
                     element.classList.remove(CLASS_HIGHLIGHT);
             }
         }
+
+            pollServer() {
+            this.proxy.pollServer();
+        }
     }
 
     //-------------------------------

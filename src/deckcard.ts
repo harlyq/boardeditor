@@ -67,26 +67,28 @@ class DeckCard {
     }
 }
 
-var DeckCardPrototype = Object.create(HTMLElement.prototype);
+if (typeof window !== 'undefined') {
+    var DeckCardPrototype = Object.create(HTMLElement.prototype);
 
-DeckCardPrototype.createdCallback = function() {
-    var deckCard = new DeckCard(this);
-    this.deckCard = deckCard;
+    DeckCardPrototype.createdCallback = function() {
+        var deckCard = new DeckCard(this);
+        this.deckCard = deckCard;
 
-    [].forEach.call(this.attributes, function(attr) {
-        deckCard[attr.name] = attr.value;
-    });
-}
+        [].forEach.call(this.attributes, function(attr) {
+            deckCard[attr.name] = attr.value;
+        });
+    }
 
-DeckCardPrototype.attributeChangedCallback = function(attrName: string, oldVal: string, newVal: string) {
-    this.deckCard[attrName] = newVal;
+    DeckCardPrototype.attributeChangedCallback = function(attrName: string, oldVal: string, newVal: string) {
+        this.deckCard[attrName] = newVal;
 
-    if (attrName === 'facedown')
-        this.deckCard.update();
-}
+        if (attrName === 'facedown')
+            this.deckCard.update();
+    }
 
-if ('registerElement' in document) {
-    document.registerElement('deck-card', {
-        prototype: DeckCardPrototype
-    });
+    if ('registerElement' in document) {
+        document.registerElement('deck-card', {
+            prototype: DeckCardPrototype
+        });
+    }
 }
