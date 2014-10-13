@@ -168,8 +168,8 @@ module Game {
 
         sendCommands(commands: BaseCommand[]) {
             if (HTML_DEFINED) {
-                this.request.open('POST', 'new');
-                this.request.setRequestHeader('Content-Type', 'text/json');
+                this.request.open('POST', 'new?user=' + this.user);
+                this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send(JSON.stringify(commands));
             }
         }
@@ -184,9 +184,15 @@ module Game {
                     this.lastClientId = response.commands[response.commands.length - 1].id; // remember the last id
                 }
 
-                if (response.rule && typeof this.listener.onResolveRule === 'function') {
-                    if (response.rule.user === this.user)
-                        this.listener.onResolveRule(response.rule);
+                var rule = response.rule
+                if (rule) {
+                    if ('whereIndex' in rule)
+                        rule['where'] = this.whereList[rule['whereIndex']];
+
+                    if (typeof this.listener.onResolveRule === 'function') {
+                        if (rule.user === this.user)
+                            this.listener.onResolveRule(rule);
+                    }
                 }
             }
         }
@@ -194,7 +200,7 @@ module Game {
         pollServer() {
             if (HTML_DEFINED) {
                 this.request.open('GET', 'moves?user=' + this.user + '&afterId=' + this.lastClientId);
-                this.request.setRequestHeader('Content-Type', 'text/json');
+                this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send();
             }
         }

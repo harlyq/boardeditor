@@ -193,8 +193,8 @@
         var player2Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER2');
 
         // bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
-        player1Client.setProxy(Game.createRESTServerProxy('PLAYER1', mancala.whereList, player1Client));
-        player2Client.setProxy(Game.createRESTServerProxy('PLAYER2', mancala.whereList, player2Client));
+        player1Client.setProxy(Game.createRESTServerProxy('PLAYER1', myGame.whereList, player1Client));
+        player2Client.setProxy(Game.createRESTServerProxy('PLAYER2', myGame.whereList, player2Client));
 
         // server.setupFunc = myGame.setupFunc;
         // server.newGameGen = myGame.newGameGen;
