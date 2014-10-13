@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="interact.js" type="text/javascript"></script>
+    <script src="finalgame.js" type="text/javascript"></script>
+    <script src="mancala.js" type="text/javascript"></script>
+
+    <script>
+    // $('#myTab a').click(function(e) {
+    //     e.preventDefault();
+    //     $(this).tab('show')
+    //     mainElem = $($(e.target).attr("href"))[0];
+    // });
+
+    // var cards = document.querySelectorAll("deck-card");
+    // [].forEach.call(cards, function(card) {
+    //     card.addEventListener('click', function(e) {
+    //         card.setAttribute('facedown', (card.getAttribute('facedown') === 'true' ? 'false' : 'true'));
+    //     });
+    // });
+
+    // var dropIndex = -3;
+    // var dropTarget = null;
+    // var dummyElem = document.getElementById('dummy');
+
+    // var deckLayout = document.getElementById("layout02")
+
+    // interact("deck-card")
+    //     .draggable(true)
+    //     .on('dragmove', function(event) {
+    //         var target = event.target,
+    //             x = (parseInt(target.getAttribute('data-x')) || 0) + event.dx,
+    //             y = (parseInt(target.getAttribute('data-y')) || 0) + event.dy;
+
+    //         target.classList.add('drag-target');
+    //         target.style.webkitTransform = 'translate(' + x + 'px, ' + y + 'px)';
+
+    //         target.setAttribute('data-x', x);
+    //         target.setAttribute('data-y', y);
+
+    //         if (!dropTarget)
+    //             return;
+
+    //         var x = event.clientX - dropTarget.offsetLeft,
+    //             y = event.clientY - dropTarget.offsetTop,
+    //             numChildren = dropTarget.children.length;
+
+    //         var index = dropTarget.getIndex(x, y, numChildren, dummyElem.offsetWidth, dummyElem.offsetHeight);
+
+    //         if (index !== dropIndex) {
+    //             if (index > -1) {
+    //                 var afterElem = dropTarget.children[index];
+
+    //                 if (dropIndex > -1)
+    //                     dropTarget.removeChild(dummyElem);
+
+    //                 if (afterElem.nextSibling)
+    //                     dropTarget.insertBefore(dummyElem, afterElem.nextSibling);
+    //                 else
+    //                     dropTarget.appendChild(dummyElem);
+    //             } else {
+    //                 dropTarget.insertBefore(dummyElem, dropTarget.firstChild);
+    //             }
+    //         }
+
+    //         index = dropIndex;
+    //     })
+    //     .on('dragend', function(event) {
+    //         var target = event.target;
+    //         target.style.webkitTransform = '';
+    //         target.classList.remove('drag-target');
+    //         target.setAttribute('data-x', 0);
+    //         target.setAttribute('data-y', 0);
+    //     });
+
+    // interact("#layout02")
+    //     .dropzone(true)
+    //     .accept(".deck01")
+    //     .on('dragenter', function(event) {
+    //         dropIndex = -2;
+    //         dropTarget = event.target;
+    //         event.target.classList.add('drop-target');
+    //     })
+    //     .on('dragleave', function(event) {
+    //         event.target.classList.remove('drop-target');
+    //         event.target.removeChild(dummyElem);
+    //         dropTarget = null;
+    //     })
+    //     .on('drop', function(event) {
+    //         dropTarget = null;
+    //         event.target.classList.remove('drop-target');
+    //         event.target.insertBefore(event.relatedTarget, dummyElem);
+    //         event.target.removeChild(dummyElem);
+    //     });
+
+    // var move1 = move({
+    //     from: "one",
+    //     to: "two"
+    // }).user("me");
+    // var move2 = move("a", "b").user("you");
+    // var move3 = move().from("first").to("second").user("them");
+
+    var myGame = mancala(); // for whereList and setup
+
+    window.addEventListener('message', function(e) {
+        var config = JSON.parse(e.data);
+        if ('type' in config && config.type === 'mancala') {
+            Game.createClients(document.getElementById('board'), myGame, config);
+        }
+    });
+
+    window.addEventListener('load', function(e) {
+        var board = document.querySelector('#board');
+        board.addEventListener('removeCard', function(e) {
+            e.stopPropagation();
+            e.target.classList.remove('grow');
+            e.target.classList.remove('shrink');
+            e.target.offsetWidth; // HACK force reflow
+            e.target.classList.add('shrink');
+        });
+        board.addEventListener('addCard', function(e) {
+            e.stopPropagation();
+            e.target.classList.remove('grow');
+            e.target.classList.remove('shrink');
+            e.target.offsetWidth; // HACK force reflow
+            e.target.classList.add('grow');
+        });
+
+        //window.parent.postMessage(board, '*');
+    });
+    </script>
+
+    <style>
+    #board {
+        position: relative;
+        border: 1px solid orange;
+        width: 400px;
+        height: 400px;
+    }
+    deck-layout {
+        position: absolute;
+        border: 1px solid green;
+        -webkit-border-radius: 50%;
+    }
+    deck-card {
+        position: absolute;
+        border: 1px solid blue;
+    }
+    .drop-target {
+        background-color: yellow;
+    }
+    .drag-target {
+        z-index: 10;
+    }
+    #dummy {
+        position: absolute;
+        width: 50px;
+        height: 60px;
+        background-color: red;
+    }
+    deck-layout.highlight {
+        border-width: 3px;
+    }
+    .p1 {
+        border: 1px solid blue;
+    }
+    .p2 {
+        border: 1px solid red;
+    }
+    @-webkit-keyframes grow {
+        0% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+        50% {
+            -webkit-transform: scale3d(1.1, 1.1, 1.1);
+        }
+        100% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+    }
+    .grow {
+        -webkit-animation-name: grow;
+        -webkit-animation-duration: 1s;
+    }
+    @-webkit-keyframes shrink {
+        0% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+        50% {
+            -webkit-transform: scale3d(0.9, 0.9, 0.9);
+        }
+        100% {
+            -webkit-transform: scale3d(1, 1, 1);
+        }
+    }
+    .shrink {
+        -webkit-animation-name: shrink;
+        -webkit-animation-duration: 1s;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="board">
+        <deck-layout name="p1_A" layout="none" class="p1" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_B" layout="none" class="p1" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_C" layout="none" class="p1" style="left:120px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_D" layout="none" class="p1" style="left:180px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_E" layout="none" class="p1" style="left:240px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_F" layout="none" class="p1" style="left:300px; top: 10px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_store" layout="none" class="p1" style="left:360px; top: 10px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p2_A" layout="none" class="p2" style="left:0px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_B" layout="none" class="p2" style="left:60px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_C" layout="none" class="p2" style="left:120px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_D" layout="none" class="p2" style="left:180px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_E" layout="none" class="p2" style="left:240px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_F" layout="none" class="p2" style="left:300px; top: 80px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_store" layout="none" class="p2" style="left:360px; top: 80px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="hidden" layout="none" style="left:0px; top: 160px; width: 60px; height: 60px"></deck-layout>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!--link href="bootstrap-3.2.0-dist/css/bootstrap.css" rel="stylesheet">
+    <script src="jquery-2.1.1.js" type="text/javascript"></script>
+    <script src="bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script-->
+    <!--script src="tool.js" type="text/javascript"></script>
+    <script src="interact.js" type="text/javascript"></script>
+    <script src="decklayout.js" type="text/javascript"></script>
+    <script src="deckcard.js" type="text/javascript"></script>
+    <script src="oldgame.js" type="text/javascript"></script>
+    <script src="command.js" type="text/javascript"></script>
+    <script src="proxy.js" type="text/javascript"></script>
+    <script src="rule2.js" type="text/javascript"></script-->
+    <script src="finalgame.js" type="text/javascript"></script>
+    <script src="mancala.js" type="text/javascript"></script>
+
+    <script>
+    // will fail if generators not supported
+    function* areGeneratorsSupported() {
+        yield "isYieldSupported";
+    }
+
+    window.addEventListener("message", function(e) {
+        console.log(e);
+    });
+
+    window.addEventListener('load', function(e) {
+        var myGame = mancala(); // for whereList and setup
+
+        var config = {
+            type: 'mancala',
+            users: [{
+                name: 'PLAYER1',
+                type: 'human',
+                proxy: 'message',
+                iframe: 'iframe'
+            }, {
+                name: 'PLAYER2',
+                type: 'human',
+                proxy: 'message',
+                iframe: 'iframe'
+            }]
+        }
+
+        var server = Game.createServer(myGame, config);
+
+        iframe = document.getElementById('iframe');
+        iframe.contentWindow.postMessage(JSON.stringify(config), '*');
+
+        server.newGame();
+    });
+    </script>
+
+    <style>
+    </style>
+</head>
+
+<body>
+    <iframe id="iframe" src="board.html" width="500" height="500">
+        Missing board.html
+    </iframe>
+</body>
+
+</html>

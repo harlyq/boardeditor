@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!--link href="bootstrap-3.2.0-dist/css/bootstrap.css" rel="stylesheet">
+    <script src="jquery-2.1.1.js" type="text/javascript"></script>
+    <script src="bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script-->
+    <!--script src="tool.js" type="text/javascript"></script>
+    <script src="interact.js" type="text/javascript"></script>
+    <script src="decklayout.js" type="text/javascript"></script>
+    <script src="deckcard.js" type="text/javascript"></script>
+    <script src="oldgame.js" type="text/javascript"></script>
+    <script src="command.js" type="text/javascript"></script>
+    <script src="proxy.js" type="text/javascript"></script>
+    <script src="rule2.js" type="text/javascript"></script-->
+    <script src="finalgame.js" type="text/javascript"></script>
+    <script src="mancala.js" type="text/javascript"></script>
+
+    <script>
+    // will fail if generators not supported
+    function* areGeneratorsSupported() {
+        yield "isYieldSupported";
+    }
+
+
+    window.addEventListener('load', function(e) {
+        // document.getElementById("addPicture").addEventListener("change", addPicture);
+        // document.getElementById("addLocation").addEventListener("click", addLocation);
+        // document.getElementById("createCards").addEventListener("click", createCards);
+
+        // cutoutElem = document.getElementById("cutout");
+        // cardsElem = document.getElementById("cards");
+        // boardElem = document.getElementById("board");
+        // mainElem = cutoutElem;
+
+        // //setMainElem(cutoutElem);
+
+        var myGame = mancala(); // for whereList and setup
+
+        // var server = new Game.GameServer();
+        // var bankClient = new Game.BankClient();
+        var player1Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER1');
+        var player2Client = new Game.HumanClient(document.getElementById('board'), 'PLAYER2');
+
+        // bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
+        player1Client.setProxy(Game.createRESTServerProxy('PLAYER1', myGame.whereList, player1Client));
+        player2Client.setProxy(Game.createRESTServerProxy('PLAYER2', myGame.whereList, player2Client));
+
+        // server.setupFunc = myGame.setupFunc;
+        // server.newGameGen = myGame.newGameGen;
+        // server.rulesGen = myGame.rulesGen;
+        // server.addProxy(Game.createLocalProxy('BANK', server));
+        // server.addProxy(Game.createLocalProxy('PLAYER1', server));
+        // server.addProxy(Game.createLocalProxy('PLAYER2', server));
+
+        // bankClient.setupFunc = myGame.setupFunc;
+        // bankClient.setup();
+        // bankClient.addProxy(new Game.LocalProxy('BANK'));
+
+        player1Client.setupFunc = myGame.setupFunc;
+        player1Client.setup();
+
+        player2Client.setupFunc = myGame.setupFunc;
+        player2Client.setup();
+
+        // server.setup();
+        // server.newGame();
+
+        document.getElementById("poll").addEventListener("click", function() {
+            player1Client.pollServer();
+            player2Client.pollServer();
+        })
+    });
+    </script>
+
+    <style>
+    </style>
+</head>
+
+<body>
+    <button id="poll">POLL</button>
+    <div id="iframe"></div>
+</body>
+
+</html>

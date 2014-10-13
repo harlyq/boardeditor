@@ -36,6 +36,14 @@ module Game {
         return new RESTClientProxy(user, whereList, listener);
     }
 
+    export var createMessageServerProxy = function(user: string, iframeElem: HTMLIFrameElement, whereList: any[], listener: ProxyListener): MessageServerProxy {
+        return new MessageServerProxy(user, iframeElem, whereList, listener);
+    }
+
+    export var createMessageClientProxy = function(user: string, whereList: any[], listener: ProxyListener): MessageClientProxy {
+        return new MessageClientProxy(user, whereList, listener);
+    }
+
     export class BaseProxy {
         lastRuleId: number = -1;
 
@@ -103,7 +111,7 @@ module Game {
         rule: BaseRule;
     }
 
-    export class RESTClientProxy extends BaseProxy {
+    export class RESTServerProxy extends BaseProxy {
         lastRule = null;
         commands: BaseCommand[] = [];
 
@@ -150,11 +158,11 @@ module Game {
 
     }
 
-    export class RESTServerProxy extends BaseProxy {
+    export class RESTClientProxy extends BaseProxy {
         request: any = null;
         lastClientId: number = -1;
 
-        constructor(user: string, public whereList: any[], listener: ProxyListener) {
+        constructor(user: string, private whereList: any[], listener: ProxyListener) {
             super(user, listener);
 
             if (HTML_DEFINED) {
@@ -203,6 +211,98 @@ module Game {
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send();
             }
+        }
+    }
+
+    export class MessageServerProxy extends BaseProxy {
+        constructor(user: string, private iframeElem: HTMLIFrameElement, private whereList: any[], listener: ProxyListener) {
+            super(user, listener);
+
+            window.addEventListener('message', this.onClientMessage.bind(this));
+        }
+
+        resolveRule(rule: BaseRule): BaseCommand[] {
+            var msg = {
+                type: 'resolveRule',
+                user: this.user,
+                rule: rule
+            };
+
+            if ('where' in rule)
+                rule['whereIndex'] = this.whereList.indexOf(rule['where']);
+
+            this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
+            return [];
+        }
+
+        updateCommands(commands: BaseCommand[]) {
+            if (commands.length === 0)
+                return;
+
+            var msg = {
+                type: 'updateCommands',
+                user: this.user,
+                commands: commands
+            };
+            this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
+            console.log('updateCommands to:' + this.user + ' id:' + msg.commands[0].id);
+            return [];
+        }
+
+        private onClientMessage(e) {
+            var msg: any = JSON.parse(e.data);
+            if (!msg || typeof msg !== 'object')
+                return; // not a message
+
+            if (msg.user !== this.user || !this.listener)
+                return; // not the correct user
+
+            if (msg.type === 'sendCommands' && typeof this.listener.onSendCommands === 'function') {
+                this.listener.onSendCommands(msg.commands);
+            }
+        }
+    }
+
+    export class MessageClientProxy extends BaseProxy {
+        constructor(user: string, private whereList: any[], listener: ProxyListener) {
+            super(user, listener);
+
+            window.addEventListener('message', this.onServerMessage.bind(this));
+        }
+
+        sendCommands(commands: BaseCommand[]) {
+            if (commands.length === 0)
+                return;
+
+            var msg = {
+                type: 'sendCommands',
+                user: this.user,
+                commands: commands
+            };
+            window.parent.postMessage(JSON.stringify(msg), '*');
+        }
+
+        private onServerMessage(e) {
+            var msg: any = JSON.parse(e.data);
+            if (!msg || typeof msg !== 'object')
+                return; // not a message
+
+            if (msg.type === 'updateCommands')
+                console.log('onUpdateCommands to:' + msg.user + ' this:' + this.user + ' id:' + msg.commands[0].id);
+
+            if (msg.user !== this.user || !this.listener)
+                return; // not the correct user
+
+            if (msg.type === 'resolveRule' && typeof this.listener.onResolveRule === 'function') {
+                var rule = msg.rule;
+                if ('whereIndex' in rule)
+                    rule['where'] = this.whereList[rule['whereIndex']];
+
+                this.listener.onResolveRule(rule);
+            }
+
+            if (msg.type === 'updateCommands' && typeof this.listener.onUpdateCommands === 'function')
+                this.listener.onUpdateCommands(msg.commands);
         }
     }
 }
