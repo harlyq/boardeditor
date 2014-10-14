@@ -1,1 +1,1 @@
-/// <reference path="config.ts" />
+/// <reference path="_dependencies.ts" />

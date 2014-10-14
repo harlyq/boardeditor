@@ -1,5 +1,6 @@
 /// <reference path="board.ts" />
 /// <reference path="proxy.ts" />
+/// <reference path="platform.js.d.ts" />
 /// <reference path="deckcard.ts" />
 /// <reference path="decklayout.ts" />
 /// <reference path="gameclient.ts" />
@@ -12,6 +13,7 @@ module Game {
         proxy: string; // message
         iframe ? : string; // iframe for message proxy
         client ? : Client;
+        screen ? : string; // board for this user
     }
 
     export interface GameConfig {
@@ -19,7 +21,7 @@ module Game {
         users: UserConfig[];
     }
 
-    export function createClients(boardElem: HTMLElement, game: any, config: GameConfig) {
+    export function createClients(boardElem: HTMLElement, game: any, config: GameConfig): GameConfig {
         for (var i = 0; i < config.users.length; ++i) {
             var user = config.users[i];
             var client: Client = null;
@@ -53,6 +55,7 @@ module Game {
 
             user.client = client;
         }
+        return config;
     }
 
     export function createServer(game: any, config: GameConfig): GameServer {
@@ -60,7 +63,6 @@ module Game {
 
         for (var i = 0; i < config.users.length; ++i) {
             var user = config.users[i];
-            var iframe = < HTMLIFrameElement > (document.getElementById(user.iframe));
 
             switch (user.proxy) {
                 case 'REST':
@@ -70,6 +72,7 @@ module Game {
                     server.addProxy(Game.createLocalProxy(user.name, server));
                     break;
                 case 'message':
+                    var iframe = < HTMLIFrameElement > (document.getElementById(user.iframe));
                     server.addProxy(Game.createMessageServerProxy(user.name, iframe, game.whereList, server));
                     break;
             }
@@ -89,5 +92,14 @@ module Game {
         // server.newGame();
 
         return server;
+    }
+
+    export function getProxy(config: GameConfig, name: string): BaseProxy {
+        for (var i = 0; i < config.users.length; ++i) {
+            var user = config.users[i];
+            if (user.name === name)
+                return user.client.getProxy();
+        }
+        return null;
     }
 }

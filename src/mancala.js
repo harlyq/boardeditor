@@ -42,19 +42,19 @@ function mancala() {
     }
 
     function* newGame(board) {
-        yield * board.move({
+        yield board.waitMove({
             cards: '.stones',
             to: 'hidden',
             count: NUM_STONES
         });
 
         for (var i = 0; i < NUM_PITS; ++i) {
-            yield * board.move({
+            yield board.waitMove({
                 from: 'hidden',
                 to: 'p1_' + String.fromCharCode(65 + i),
                 count: NUM_STONES_PER_PIT
             });
-            yield * board.move({
+            yield board.waitMove({
                 from: 'hidden',
                 to: 'p2_' + String.fromCharCode(65 + i),
                 count: NUM_STONES_PER_PIT
@@ -62,11 +62,11 @@ function mancala() {
         }
 
         var result =
-            yield * board.pick({
+            yield board.waitPick({
                 list: [PLAYER1, PLAYER2]
             });
         currentPlayer = result[0];
-        yield * board.setVariable('currentPlayer', playerName[currentPlayer]);
+        yield board.waitSetVariable('currentPlayer', playerName[currentPlayer]);
 
         store[PLAYER1] = board.queryLocation('p1_store');
         store[PLAYER2] = board.queryLocation('p2_store');
@@ -81,7 +81,7 @@ function mancala() {
     function* rules(board) {
         for (var turn = 0; turn < 10; ++turn) {
             var result =
-                yield * board.pickLocation({
+                yield board.waitPickLocation({
                     list: pitNames[currentPlayer],
                     where: whereAtLeastOneStone,
                     user: playerName[currentPlayer]
@@ -95,7 +95,7 @@ function mancala() {
 
             // place one stone in each consecutive pit (including the current player's store)
             while (picked.getNumCards() > 0) {
-                yield * board.move({
+                yield board.waitMove({
                     from: picked,
                     to: nextPit
                 });
@@ -110,7 +110,7 @@ function mancala() {
                     // if the last stone was in an empty pit for the current player, then take
                     // the opponent's stones from the opposite pit
                     var otherPlayer = 1 - currentPlayer;
-                    yield * board.move({
+                    yield board.waitMove({
                         from: lastPit,
                         to: pits[otherPlayer][NUM_PITS - i],
                         quantity: Game.Quantity.All
@@ -119,7 +119,7 @@ function mancala() {
 
                 // next player
                 currentPlayer = 1 - currentPlayer;
-                yield * board.setVariable('currentPlayer', playerName[currentPlayer]);
+                yield board.waitSetVariable('currentPlayer', playerName[currentPlayer]);
             }
         }
     }

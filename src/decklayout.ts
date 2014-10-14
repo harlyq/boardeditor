@@ -1,5 +1,4 @@
-/// <reference path="platform.js.d.ts" />
-/// <reference path="deckcard.ts" />
+/// <reference path="_dependencies.ts" />
 /*export*/
 class DeckLayout {
     static _func: {

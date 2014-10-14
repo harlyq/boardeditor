@@ -378,6 +378,7 @@ module Game {
         variables: {
             [key: string]: any
         } = {};
+        uniqueId: number = 1;
 
         createLocation(name: string, locationId: number, visibility ? : {
             [userId: number]: Location.Visibility
@@ -513,24 +514,49 @@ module Game {
         }
 
         // typescript doesn't understand the yield keyword, so these functions are in boardx.js
-            move(rule: MoveRule): BaseCommand[] {
-            return [];
+            waitMove(rule: MoveRule): BaseCommand[] {
+            rule.from = this.convertLocation(rule.from);
+            rule.to = this.convertLocation(rule.to);
+
+            return Game.extend({
+                type: 'move',
+                id: this.uniqueId++
+            }, Game.default_MoveRule, rule);
         }
 
-            pick(rule: PickRule): BaseCommand[] {
-            return [];
+            waitPick(rule: PickRule): PickRule {
+            return Game.extend({
+                type: 'pick',
+                id: this.uniqueId++
+            }, Game.default_PickRule, rule);
         }
 
-            pickLocation(rule: PickRule): BaseCommand[] {
-            return [];
+            waitPickLocation(rule: PickRule): PickRule {
+            rule.list = this.convertLocation(rule.list);
+
+            return Game.extend({
+                type: 'pickLocation',
+                id: this.uniqueId++
+            }, Game.default_PickRule, rule);
         }
 
-            pickCard(rule: PickRule): BaseCommand[] {
-            return [];
+            waitPickCard(rule: PickRule): PickRule {
+            rule.list = this.convertCard(rule.list);
+
+            return Game.extend({
+                type: 'pickCard',
+                id: this.uniqueId++
+            }, Game.default_PickRule, rule);
         }
 
-            setVariable(name: string, value: any): BaseCommand[] {
-            return [];
+            waitSetVariable(name: string, value: any): SetRule {
+            return {
+                type: 'setVariable',
+                id: this.uniqueId++,
+                name: name,
+                value: value,
+                user: 'BANK'
+            };
         }
 
             performCommand(command: BaseCommand): any {

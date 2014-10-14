@@ -1,5 +1,4 @@
-/// <reference path="board.ts" />
-/// <reference path="proxy.ts" />
+/// <reference path="_dependencies.ts" />
 module Game {
 
     // server has perfect knowledge of the game.  validates all moves.

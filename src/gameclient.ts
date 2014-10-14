@@ -1,7 +1,4 @@
-/// <reference path="board.ts" />
-/// <reference path="proxy.ts" />
-/// <reference path="deckcard.ts" />
-/// <reference path="decklayout.ts" />
+/// <reference path="_dependencies.ts" />
 
 module Game {
     var CLASS_HIGHLIGHT = 'highlight';
@@ -24,7 +21,11 @@ module Game {
             this.proxy = proxy;
         }
 
-        setup() {
+        getProxy(): BaseProxy {
+            return this.proxy;
+        }
+
+            setup() {
             this.setupFunc(this.board);
         }
 
@@ -53,7 +54,7 @@ module Game {
         //     to.addCard(card);
         // }
 
-        onResolveRule(rule: BaseRule): BaseCommand[] {
+            onResolveRule(rule: BaseRule): BaseCommand[] {
             switch (rule.type) {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);

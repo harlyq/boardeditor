@@ -1,4 +1,4 @@
-/// <reference path="board.ts" />
+/// <reference path="_dependencies.ts" />
 
 module Game {
     var HTML_DEFINED = typeof window !== 'undefined';
@@ -266,8 +266,6 @@ module Game {
     export class MessageClientProxy extends BaseProxy {
         constructor(user: string, private whereList: any[], listener: ProxyListener) {
             super(user, listener);
-
-            window.addEventListener('message', this.onServerMessage.bind(this));
         }
 
         sendCommands(commands: BaseCommand[]) {
@@ -282,8 +280,7 @@ module Game {
             window.parent.postMessage(JSON.stringify(msg), '*');
         }
 
-        private onServerMessage(e) {
-            var msg: any = JSON.parse(e.data);
+        private onServerMessage(msg: any) {
             if (!msg || typeof msg !== 'object')
                 return; // not a message
 

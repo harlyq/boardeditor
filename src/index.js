@@ -13,6 +13,21 @@ app.use('/', express.static(__dirname));
 
 var commands = [];
 
+var config = {
+    type: 'mancala',
+    users: [{
+        name: 'PLAYER1',
+        type: 'human',
+        proxy: 'REST',
+        screen: 'board'
+    }, {
+        name: 'PLAYER2',
+        type: 'human',
+        proxy: 'REST',
+        screen: 'board'
+    }]
+}
+
 // app.get('/', function(req, res) {
 //     res.sendFile(__dirname + '/client.html');
 // });
@@ -40,23 +55,26 @@ app.post('/new', function(req, res) {
     // TODO send a response;
 });
 
+app.get('/config', function(req, res) {
+    var screen = req.param('screen');
+    console.log('/config?screen=' + screen);
+
+    // send the configuration for the requested users
+    var localConfig = {
+        type: config.type,
+        users: []
+    }
+    for (var i = 0; i < config.users.length; ++i) {
+        var user = config.users[i];
+        if (user.screen === screen)
+            localConfig.users.push(user);
+    }
+    res.send(JSON.stringify(localConfig));
+});
+
 var host = app.listen(3000, function() {
     console.log('Listening on port ' + host.address().port);
 });
 
-console.log(Game.BankClient);
-
-var bankClient = new Game.BankClient();
-bankClient.setProxy(Game.createLocalProxy('BANK', bankClient));
-bankClient.setupFunc = mancala.setupFunc;
-bankClient.setup();
-
-var server = new Game.GameServer();
-server.setupFunc = mancala.setupFunc;
-server.newGameGen = mancala.newGameGen;
-server.rulesGen = mancala.rulesGen;
-server.addProxy(Game.createLocalProxy('BANK', server));
-server.addProxy(Game.createRESTClientProxy('PLAYER1', mancala.whereList, server));
-server.addProxy(Game.createRESTClientProxy('PLAYER2', mancala.whereList, server));
-server.setup();
+var server = new Game.createServer(mancala, config);
 server.newGame();

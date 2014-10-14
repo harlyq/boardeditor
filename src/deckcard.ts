@@ -1,4 +1,4 @@
-/// <reference path="platform.js.d.ts" />
+/// <reference path="_dependencies.ts" />
 class DeckCard {
     // HTML properties
     front: string = '';

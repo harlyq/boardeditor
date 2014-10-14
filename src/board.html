@@ -102,11 +102,25 @@
     // var move3 = move().from("first").to("second").user("them");
 
     var myGame = mancala(); // for whereList and setup
+    var myConfig = null;
 
+    // TODO put this in config.ts
     window.addEventListener('message', function(e) {
-        var config = JSON.parse(e.data);
-        if ('type' in config && config.type === 'mancala') {
-            Game.createClients(document.getElementById('board'), myGame, config);
+        var msg = JSON.parse(e.data);
+        if (!('type') in msg)
+            return; // unknown message
+
+        switch (msg.type) {
+            case 'mancala':
+                myConfig = Game.createClients(document.getElementById('board'), myGame, msg);
+                break;
+
+            case 'updateCommands':
+            case 'resolveRule':
+                var proxy = Game.getProxy(myConfig, msg.user);
+                if (proxy && typeof proxy.onServerMessage === 'function')
+                    proxy.onServerMessage(msg);
+                break;
         }
     });
 
@@ -127,7 +141,25 @@
             e.target.classList.add('grow');
         });
 
-        //window.parent.postMessage(board, '*');
+        // TODO put this in config.ts
+        var req = new XMLHttpRequest();
+        var self = this;
+        req.onload = function() {
+            msg = JSON.parse(this.response);
+            if ('type' in msg && msg.type === 'mancala')
+                myConfig = Game.createClients(document.getElementById('board'), myGame, msg);
+        };
+        req.open('GET', 'config?screen=board'); // this board layout
+        req.setRequestHeader('Content-Type', 'application/json');
+        req.send(); // will fail for the iframe version
+
+        document.getElementById("poll").addEventListener("click", function() {
+            for (var i = 0; i < myConfig.users.length; ++i) {
+                var client = myConfig.users[i].client;
+                if (client && typeof client.pollServer === 'function')
+                    client.pollServer();
+            }
+        })
     });
     </script>
 
@@ -202,6 +234,7 @@
 </head>
 
 <body>
+    <button id="poll">POLL</button>
     <div id="board">
         <deck-layout name="p1_A" layout="none" class="p1" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
         <deck-layout name="p1_B" layout="none" class="p1" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
