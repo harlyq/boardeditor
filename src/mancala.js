@@ -68,26 +68,28 @@ function mancala() {
         currentPlayer = result[0];
         yield board.waitSetVariable('currentPlayer', playerName[currentPlayer]);
 
-        store[PLAYER1] = board.queryLocation('p1_store');
-        store[PLAYER2] = board.queryLocation('p2_store');
+        store[PLAYER1] = board.queryFirstLocation('p1_store');
+        store[PLAYER2] = board.queryFirstLocation('p2_store');
         pitNames[PLAYER1] = 'p1_A, p1_B, p1_C, p1_D, p1_E, p1_F';
         pitNames[PLAYER2] = 'p2_A, p2_B, p2_C, p2_D, p2_E, p2_F';
-        pits[PLAYER1] = board.queryLocation(pitNames[PLAYER1]);
-        pits[PLAYER2] = board.queryLocation(pitNames[PLAYER2]);
+        pits[PLAYER1] = board.queryLocations(pitNames[PLAYER1]);
+        pits[PLAYER2] = board.queryLocations(pitNames[PLAYER2]);
         chain[PLAYER1] = pits[PLAYER1].concat(store[PLAYER1]).concat(pits[PLAYER2]);
         chain[PLAYER2] = pits[PLAYER2].concat(store[PLAYER2]).concat(pits[PLAYER1]);
     }
 
     function* rules(board) {
-        for (var turn = 0; turn < 10; ++turn) {
+        while (true) {
             var result =
                 yield board.waitPickLocation({
                     list: pitNames[currentPlayer],
                     where: whereAtLeastOneStone,
                     user: playerName[currentPlayer]
                 });
-            if (result.length === 0)
+            if (result.length === 0) {
+                alert('no more choices');
                 return false; // no more choices
+            }
 
             var picked = result[0];
             var nextPit = board.next(picked, chain[currentPlayer], true);
@@ -111,8 +113,8 @@ function mancala() {
                     // the opponent's stones from the opposite pit
                     var otherPlayer = 1 - currentPlayer;
                     yield board.waitMove({
-                        from: lastPit,
-                        to: pits[otherPlayer][NUM_PITS - i],
+                        from: pits[otherPlayer][NUM_PITS - i - 1],
+                        to: store[currentPlayer],
                         quantity: Game.Quantity.All
                     });
                 }
@@ -120,6 +122,18 @@ function mancala() {
                 // next player
                 currentPlayer = 1 - currentPlayer;
                 yield board.waitSetVariable('currentPlayer', playerName[currentPlayer]);
+            }
+
+            // if any one of the players has no pits then end the game
+            var sum1 = pits[PLAYER1].reduce(function(prev, curr) {
+                return prev + curr.getNumCards();
+            }, 0);
+            var sum2 = pits[PLAYER2].reduce(function(prev, curr) {
+                return prev + curr.getNumCards();
+            }, 0);
+            if (sum1 === 0 || sum2 === 0) {
+                alert('game over');
+                return;
             }
         }
     }

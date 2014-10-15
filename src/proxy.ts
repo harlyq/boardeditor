@@ -251,8 +251,10 @@ module Game {
 
         private onClientMessage(e) {
             var msg: any = JSON.parse(e.data);
-            if (!msg || typeof msg !== 'object')
-                return; // not a message
+            if (!msg || typeof msg !== 'object') {
+                _error('server received invalid message');
+                return;
+            }
 
             if (msg.user !== this.user || !this.listener)
                 return; // not the correct user
@@ -280,9 +282,11 @@ module Game {
             window.parent.postMessage(JSON.stringify(msg), '*');
         }
 
-        private onServerMessage(msg: any) {
-            if (!msg || typeof msg !== 'object')
-                return; // not a message
+        private onServerMessage(msg: any): boolean {
+            if (!msg || typeof msg !== 'object') {
+                _error('client (' + this.user + ') received invalid message');
+                return;
+            }
 
             if (msg.type === 'updateCommands')
                 console.log('onUpdateCommands to:' + msg.user + ' this:' + this.user + ' id:' + msg.commands[0].id);
@@ -296,10 +300,14 @@ module Game {
                     rule['where'] = this.whereList[rule['whereIndex']];
 
                 this.listener.onResolveRule(rule);
+            } else if (msg.type === 'updateCommands' && typeof this.listener.onUpdateCommands === 'function') {
+                this.listener.onUpdateCommands(msg.commands);
+            } else {
+                _error('client (' + this.user + ') received unknown message type - ' + msg.type);
+                return;
             }
 
-            if (msg.type === 'updateCommands' && typeof this.listener.onUpdateCommands === 'function')
-                this.listener.onUpdateCommands(msg.commands);
+            return;
         }
     }
 }

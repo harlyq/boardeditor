@@ -1,6 +1,17 @@
+/// <reference path="_dependencies.ts" />
 module Game {
     var LABEL_PREFIX = '.'
     var LABEL_PREFIX_LENGTH = LABEL_PREFIX.length;
+
+    export function _error(msg) {
+        console.error(msg);
+        debugger;
+    }
+
+    export function _assert(cond, msg ? ) {
+        console.assert(cond, msg);
+        debugger;
+    }
 
     export function extend(base: any, ...others: any[]): any {
         for (var i = 0; i < others.length; ++i) {
@@ -457,7 +468,14 @@ module Game {
             return null;
         }
 
-            queryCard(query: string): Card[] {
+            queryFirstCard(query: string): Card {
+            var cards = this.queryCards(query, true);
+            if (cards.length === 0)
+                return null;
+            return cards[0];
+        }
+
+            queryCards(query: string, quitOnFirst: boolean = false): Card[] {
             var tags = query.split(',');
             var cards: Card[] = [];
 
@@ -468,6 +486,9 @@ module Game {
                     var tag = tags[i].trim();
                     if (card.matches(tag)) {
                         cards.push(card);
+                        if (quitOnFirst)
+                            return cards;
+
                         break;
                     }
                 }
@@ -476,7 +497,14 @@ module Game {
             return cards;
         }
 
-            queryLocation(query: string): Location[] {
+            queryFirstLocation(query: string): Location {
+            var locations = this.queryLocations(query, true);
+            if (locations.length === 0)
+                return null;
+            return locations[0];
+        }
+
+            queryLocations(query: string, quitOnFirst: boolean = false): Location[] {
             var tags = query.split(',');
             var locations: Location[] = [];
 
@@ -487,6 +515,9 @@ module Game {
                     var tag = tags[i].trim();
                     if (location.matches(tag)) {
                         locations.push(location);
+                        if (quitOnFirst)
+                            return locations;
+
                         break;
                     }
                 }
@@ -517,6 +548,10 @@ module Game {
             waitMove(rule: MoveRule): BaseCommand[] {
             rule.from = this.convertLocation(rule.from);
             rule.to = this.convertLocation(rule.to);
+            if (!rule.to)
+                _error('to location is empty - ' + rule.to);
+            if (!rule.from && !rule.cards)
+                _error('from location is empty and no cards - ' + rule.from + ', ' + rule.cards);
 
             return Game.extend({
                 type: 'move',
@@ -525,6 +560,9 @@ module Game {
         }
 
             waitPick(rule: PickRule): PickRule {
+            if (!rule.list)
+                _error('pick is empty - ' + rule.list);
+
             return Game.extend({
                 type: 'pick',
                 id: this.uniqueId++
@@ -533,6 +571,8 @@ module Game {
 
             waitPickLocation(rule: PickRule): PickRule {
             rule.list = this.convertLocation(rule.list);
+            if (!rule.list)
+                _error('pick location is empty - ' + rule.list);
 
             return Game.extend({
                 type: 'pickLocation',
@@ -542,6 +582,8 @@ module Game {
 
             waitPickCard(rule: PickRule): PickRule {
             rule.list = this.convertCard(rule.list);
+            if (!rule.list)
+                _error('pick card is empty - ' + rule.list);
 
             return Game.extend({
                 type: 'pickCard',
@@ -573,11 +615,11 @@ module Game {
                     break;
                 case 'pickLocation':
                     var pickCommand = < PickCommand > command;
-                    return this.queryLocation(pickCommand.values.join(','));
+                    return this.queryLocations(pickCommand.values.join(','));
                     break;
                 case 'pickCard':
                     var pickCommand = < PickCommand > command;
-                    return this.queryCard(pickCommand.values.join(','));
+                    return this.queryCards(pickCommand.values.join(','));
                     break;
                 case 'setVariable':
                     var setCommand = < SetCommand > command;

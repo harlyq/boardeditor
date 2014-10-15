@@ -151,7 +151,9 @@
         };
         req.open('GET', 'config?screen=board'); // this board layout
         req.setRequestHeader('Content-Type', 'application/json');
-        req.send(); // will fail for the iframe version
+        try {
+            req.send(); // will fail for the iframe version
+        } catch (e) {}
 
         document.getElementById("poll").addEventListener("click", function() {
             for (var i = 0; i < myConfig.users.length; ++i) {
@@ -176,8 +178,7 @@
         -webkit-border-radius: 50%;
     }
     deck-card {
-        position: absolute;
-        border: 1px solid blue;
+        display: none;
     }
     .drop-target {
         background-color: yellow;
@@ -199,6 +200,21 @@
     }
     .p2 {
         border: 1px solid red;
+    }
+    .count {
+        text-align: center;
+        font: 20pt arial bold;
+        -webkit-user-select: none;
+        cursor: pointer;
+    }
+    .p1 > .count {
+        color: blue;
+    }
+    .p2 > .count {
+        color: red;
+    }
+    deck-layout[name="hidden"] {
+        display: none;
     }
     @-webkit-keyframes grow {
         0% {
@@ -236,21 +252,70 @@
 <body>
     <button id="poll">POLL</button>
     <div id="board">
-        <deck-layout name="p1_A" layout="none" class="p1" style="left:0px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_B" layout="none" class="p1" style="left:60px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_C" layout="none" class="p1" style="left:120px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_D" layout="none" class="p1" style="left:180px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_E" layout="none" class="p1" style="left:240px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_F" layout="none" class="p1" style="left:300px; top: 10px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_store" layout="none" class="p1" style="left:360px; top: 10px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="p2_A" layout="none" class="p2" style="left:0px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_B" layout="none" class="p2" style="left:60px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_C" layout="none" class="p2" style="left:120px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_D" layout="none" class="p2" style="left:180px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_E" layout="none" class="p2" style="left:240px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_F" layout="none" class="p2" style="left:300px; top: 80px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_store" layout="none" class="p2" style="left:360px; top: 80px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="hidden" layout="none" style="left:0px; top: 160px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p1_A" layout="none" class="p1" showcount="true" style="left:360px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_B" layout="none" class="p1" showcount="true" style="left:300px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_C" layout="none" class="p1" showcount="true" style="left:240px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_D" layout="none" class="p1" showcount="true" style="left:180px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_E" layout="none" class="p1" showcount="true" style="left:120px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_F" layout="none" class="p1" showcount="true" style="left:60px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p1_store" layout="none" class="p1" showcount="true" style="left:0px; top: 60px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="p2_A" layout="none" class="p2" showcount="true" style="left:60px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_B" layout="none" class="p2" showcount="true" style="left:120px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_C" layout="none" class="p2" showcount="true" style="left:180px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_D" layout="none" class="p2" showcount="true" style="left:240px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_E" layout="none" class="p2" showcount="true" style="left:300px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_F" layout="none" class="p2" showcount="true" style="left:360px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="p2_store" layout="none" class="p2" showcount="true" style="left:400px; top: 60px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="hidden" layout="none" showcount="true" style="left:0px; top: 240px; width: 60px; height: 60px">
+            <deck-card id="1"></deck-card>
+            <deck-card id="2"></deck-card>
+            <deck-card id="3"></deck-card>
+            <deck-card id="4"></deck-card>
+            <deck-card id="5"></deck-card>
+            <deck-card id="6"></deck-card>
+            <deck-card id="7"></deck-card>
+            <deck-card id="8"></deck-card>
+            <deck-card id="9"></deck-card>
+            <deck-card id="10"></deck-card>
+            <deck-card id="11"></deck-card>
+            <deck-card id="12"></deck-card>
+            <deck-card id="13"></deck-card>
+            <deck-card id="14"></deck-card>
+            <deck-card id="15"></deck-card>
+            <deck-card id="16"></deck-card>
+            <deck-card id="17"></deck-card>
+            <deck-card id="18"></deck-card>
+            <deck-card id="19"></deck-card>
+            <deck-card id="20"></deck-card>
+            <deck-card id="21"></deck-card>
+            <deck-card id="22"></deck-card>
+            <deck-card id="23"></deck-card>
+            <deck-card id="24"></deck-card>
+            <deck-card id="25"></deck-card>
+            <deck-card id="26"></deck-card>
+            <deck-card id="27"></deck-card>
+            <deck-card id="28"></deck-card>
+            <deck-card id="29"></deck-card>
+            <deck-card id="30"></deck-card>
+            <deck-card id="31"></deck-card>
+            <deck-card id="32"></deck-card>
+            <deck-card id="33"></deck-card>
+            <deck-card id="34"></deck-card>
+            <deck-card id="35"></deck-card>
+            <deck-card id="36"></deck-card>
+            <deck-card id="37"></deck-card>
+            <deck-card id="38"></deck-card>
+            <deck-card id="39"></deck-card>
+            <deck-card id="40"></deck-card>
+            <deck-card id="41"></deck-card>
+            <deck-card id="42"></deck-card>
+            <deck-card id="43"></deck-card>
+            <deck-card id="44"></deck-card>
+            <deck-card id="45"></deck-card>
+            <deck-card id="46"></deck-card>
+            <deck-card id="47"></deck-card>
+            <deck-card id="48"></deck-card>
+        </deck-layout>
     </div>
 </body>
 

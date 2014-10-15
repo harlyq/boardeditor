@@ -67,6 +67,8 @@ class DeckCard {
     }
 }
 
+var DeckCardElement = null;
+
 if (typeof window !== 'undefined') {
     var DeckCardPrototype = Object.create(HTMLElement.prototype);
 
@@ -87,7 +89,7 @@ if (typeof window !== 'undefined') {
     }
 
     if ('registerElement' in document) {
-        document.registerElement('deck-card', {
+        DeckCardElement = document.registerElement('deck-card', {
             prototype: DeckCardPrototype
         });
     }

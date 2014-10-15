@@ -116,20 +116,24 @@ module Game {
                     return true;
                 }
                 // note: can only restrict where of 'to' locations, once from is defined
-            var fromLocations = this.board.queryLocation(moveRule.from).filter(function(from) {
+            var fromLocations = this.board.queryLocations(moveRule.from).filter(function(from) {
                 return where(from, null);
             });
-            var toLocations = this.board.queryLocation(moveRule.to);
-            var cards = this.board.queryCard(moveRule.cards);
+            var toLocations = this.board.queryLocations(moveRule.to);
+            var cards = this.board.queryCards(moveRule.cards);
             var maxCards = this.board.getNumCards();
             var moveCommands: MoveCommand[] = [];
             var cardIndex = 0;
 
-            if (toLocations.length === 0)
-                return []; // Invalid too location
+            if (toLocations.length === 0) {
+                _error('invlaid too location - ' + moveRule.to);
+                return [];
+            }
 
-            if (fromLocations.length === 0 && cards.length === 0)
-                return []; // no from location, and no cards (remaining)
+            if (fromLocations.length === 0 && cards.length === 0) {
+                _error('invlaid from location, and no cards - ' + moveRule.from);
+                return [];
+            }
 
             for (var i = 0; i < maxCards; ++i) {
                 var from = getRandom(fromLocations);
@@ -187,10 +191,10 @@ module Game {
                     list = rawList;
                     break;
                 case 'pickLocation':
-                    list = this.board.queryLocation(rawList.join(','));
+                    list = this.board.queryLocations(rawList.join(','));
                     break;
                 case 'pickCard':
-                    list = this.board.queryCard(rawList.join(','));
+                    list = this.board.queryCards(rawList.join(','));
                     break;
             }
 
@@ -297,16 +301,21 @@ module Game {
                     list = rawList;
                     break;
                 case 'pickLocation':
-                    list = this.board.queryLocation(rawList.join(','));
+                    list = this.board.queryLocations(rawList.join(','));
                     break;
                 case 'pickCard':
-                    list = this.board.queryCard(rawList.join(','));
+                    list = this.board.queryCards(rawList.join(','));
                     break;
             }
 
             this.clearHighlights();
 
             this.pickList = list.filter(where);
+            if (this.pickList.length === 0) {
+                _error('no items in ' + pickRule.type + ' list - ' + pickRule.list + ', rule - ' + pickRule.where);
+                return [];
+            }
+
             for (var i = 0; i < this.pickList.length; ++i) {
                 var pick = this.pickList[i];
 
@@ -342,19 +351,22 @@ module Game {
                 var command = commands[i];
                 if (command.type === 'move' && showEvents) {
                     var moveCommand = < MoveCommand > command;
-                    var card: any = this.board.queryCard(moveCommand.cardId.toString());
+                    var card: any = this.board.queryCards(moveCommand.cardId.toString());
                     card = (card.length > 0 ? card[0] : null);
                     var from = (card ? card.location : null);
-                    var to: any = this.board.queryLocation(moveCommand.toId.toString());
+                    var to: any = this.board.queryLocations(moveCommand.toId.toString());
                     to = (to.length > 0 ? to[0] : null);
                     var fromElem = (from ? this.locationElem[from.id] : null);
                     var toElem = (to ? this.locationElem[to.id] : null);
+                    var cardElem = (card ? this.cardElem[card.id] : null);
 
                     if (fromElem) {
                         var event: CustomEvent = new( < any > CustomEvent)('removeCard', {
                             bubbles: true,
                             cancelable: true,
-                            detail: card
+                            detail: {
+                                card: card
+                            }
                         });
                         fromElem.dispatchEvent(event);
                     }
@@ -363,10 +375,15 @@ module Game {
                         var event: CustomEvent = new( < any > CustomEvent)('addCard', {
                             bubbles: true,
                             cancelable: true,
-                            detail: card
+                            detail: {
+                                card: card
+                            }
                         });
                         toElem.dispatchEvent(event);
                     }
+
+                    if (toElem && cardElem)
+                        toElem.appendChild(cardElem)
 
                     // have a global flag which tracks when any human client on this
                     // machine updates it's rule, so we don't dispatch the events multiple

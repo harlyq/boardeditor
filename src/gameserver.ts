@@ -112,15 +112,20 @@ module Game {
 
             do {
                 var result = this.rulesIter.next(nextValue);
-                if (result.done)
-                    return true; // this.error('rules completed')
+                if (result.done) {
+                    console.log('RULES COMPLETE');
+                    return true;
+                }
 
                 var nextRule: BaseRule = result.value;
-                var userProxy = this.getProxy(nextRule.user);
-                if (!userProxy)
-                    return false; // this.error('User does not have a proxy')
-
                 console.log(nextRule);
+
+                var userProxy = this.getProxy(nextRule.user);
+                if (!userProxy) {
+                    _error('user does not have proxy - ' + nextRule.user);
+                    return false; // this.error('User does not have a proxy')
+                }
+
                 var commands = userProxy.resolveRule(nextRule);
                 nextValue = this.handleCommands(commands);
             } while (commands.length > 0) // while we're not waiting for commands

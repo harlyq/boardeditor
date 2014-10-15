@@ -44,8 +44,24 @@ class DeckLayout {
     setOptions(options: DeckLayout.Options) {
         var thisOptions = this.options;
 
-        for (var i in options)
-            thisOptions[i] = options[i];
+        for (var i in options) {
+            if (!(i in thisOptions)) {
+                if (['style', 'name', 'id', 'class'].indexOf(i) === -1)
+                    console.log('unknown option - ' + i);
+                continue;
+            }
+
+            var value = options[i];
+            switch (typeof thisOptions[i]) {
+                case 'number':
+                    value = parseFloat(options[i]);
+                    break;
+                case 'boolean':
+                    value = options[i] ? true : false;
+                    break;
+            }
+            thisOptions[i] = value;
+        }
 
 
         this.parent.removeEventListener('click', this.flipCardHandler);
@@ -82,7 +98,8 @@ class DeckLayout {
     getDeckCards(list: any): any[] {
         var cards = [];
         for (var i = 0; i < list.length; ++i) {
-            if (list[i] instanceof DeckCardPrototype)
+            //if (list[i] instanceof DeckCardElement) not working
+            if (list[i].localName === 'deck-card')
                 cards.push(list[i]);
         }
         return cards;
@@ -115,6 +132,7 @@ class DeckLayout {
             countElem.classList.add('hidden');
         } else if (!countElem && showCount) {
             countElem = document.createElement('div');
+            countElem.classList.add('count');
             parent.appendChild(countElem);
         } else if (countElem && showCount) {
             countElem.classList.remove('hidden');
@@ -134,6 +152,9 @@ class DeckLayout {
         }
         if (typeof fn === 'undefined')
             return; // nothing to do
+
+        if (typeof DeckLayout._func[options.layout] === 'undefined')
+            return; // unknown layout
 
         var parent = this.parent;
         if (parent) {
@@ -278,6 +299,8 @@ module DeckLayout {
     }
 }
 
+var DeckLayoutElement = null;
+
 if (typeof window !== 'undefined') {
     var DeckLayoutPrototype = Object.create(HTMLElement.prototype);
 
@@ -288,18 +311,27 @@ if (typeof window !== 'undefined') {
         this.options = {};
 
         [].forEach.call(this.attributes, function(attr) {
-            if (DeckLayoutPrototype.optionsList.indexOf(attr.name) !== -1)
-                self.options[attr.name] = attr.value;
+            self.options[attr.name] = attr.value;
         });
 
         this.DeckLayout = new DeckLayout(this, this.options);
+
+        this.observer = new MutationObserver(function(mutations) {
+            self.DeckLayout.forEach(DeckLayout.position);
+            self.DeckLayout.applyOptions();
+        });
     };
 
     DeckLayoutPrototype.attachedCallback = function() {
         this.update();
+        this.observer.observe(this, {
+            childList: true
+        });
     };
 
-    DeckLayoutPrototype.detachedCallback = function() {}
+    DeckLayoutPrototype.detachedCallback = function() {
+        this.observer.disconnect();
+    }
 
     DeckLayoutPrototype.attributeChangedCallback = function(attrName: string, oldVal, newVal) {
         if (DeckLayoutPrototype.optionsList.indexOf(attrName) !== -1) {
@@ -323,28 +355,8 @@ if (typeof window !== 'undefined') {
         this.DeckLayout.applyOptions();
     }
 
-    DeckLayoutPrototype.appendChild = function(newElement: Node) {
-        HTMLElement.prototype.appendChild.call(this, newElement);
-        this.update();
-    }
-
-    DeckLayoutPrototype.removeChild = function(oldElement: Node) {
-        HTMLElement.prototype.removeChild.call(this, oldElement);
-        this.update();
-    }
-
-    DeckLayoutPrototype.insertBefore = function(newElement: Node, referenceElement: Node) {
-        HTMLElement.prototype.insertBefore.call(this, newElement, referenceElement);
-        this.update();
-    }
-
-    DeckLayoutPrototype.replaceChild = function(newElement: Node, oldElement: Node) {
-        HTMLElement.prototype.replaceChild.call(this, newElement, oldElement);
-        this.update();
-    }
-
     if ('registerElement' in document) {
-        document.registerElement('deck-layout', {
+        DeckLayoutElement = document.registerElement('deck-layout', {
             prototype: DeckLayoutPrototype
         });
     }
