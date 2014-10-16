@@ -31,12 +31,14 @@
                 name: 'PLAYER1',
                 type: 'human',
                 proxy: 'message',
-                iframe: 'iframe'
+                iframe: 'iframe',
+                me: 'red'
             }, {
                 name: 'PLAYER2',
                 type: 'human',
                 proxy: 'message',
-                iframe: 'iframe'
+                iframe: 'iframe',
+                me: 'blue'
             }]
         }
 
@@ -45,7 +47,11 @@
         iframe = document.getElementById('iframe');
         iframe.contentWindow.postMessage(JSON.stringify(config), '*');
 
-        server.newGame();
+        // use a short pause before starting a new game, to ensure that the server config
+        // message is received before any new game information
+        setTimeout(function() {
+            server.newGame()
+        }, 0);
     });
     </script>
 

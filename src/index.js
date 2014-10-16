@@ -19,12 +19,14 @@ var config = {
         name: 'PLAYER1',
         type: 'human',
         proxy: 'REST',
-        screen: 'board'
+        screen: 'board',
+        me: 'red'
     }, {
         name: 'PLAYER2',
         type: 'human',
         proxy: 'REST',
-        screen: 'board'
+        screen: 'board',
+        me: 'blue'
     }]
 }
 

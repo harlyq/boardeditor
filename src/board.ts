@@ -35,7 +35,6 @@ module Game {
     }
 
     export interface BaseCommand {
-        id: number; // id matches the corresponding rule
         type: string;
     }
 
@@ -108,6 +107,11 @@ module Game {
     export interface SetCommand extends BaseCommand {
         name: string;
         value: any;
+    }
+
+    export interface BatchCommand {
+        ruleId: number;
+        commands: BaseCommand[];
     }
 
     //----------------------------------------------------------------
@@ -389,7 +393,7 @@ module Game {
         variables: {
             [key: string]: any
         } = {};
-        uniqueId: number = 1;
+        uniqueId: number = 0;
 
         createLocation(name: string, locationId: number, visibility ? : {
             [userId: number]: Location.Visibility
@@ -544,8 +548,22 @@ module Game {
             return users;
         }
 
+            setLocalVariable(name: string, value: any) {
+            this.variables[name] = value;
+        }
+
+            applyVariables(value: string): string {
+            var parts = value.split('.');
+            for (var i = 0; i < parts.length; ++i) {
+                var alias = parts[i];
+                if (alias in this.variables)
+                    parts[i] = this.variables[alias];
+            }
+            return parts.join('.');
+        }
+
         // typescript doesn't understand the yield keyword, so these functions are in boardx.js
-            waitMove(rule: MoveRule): BaseCommand[] {
+            waitMove(rule: MoveRule): MoveRule {
             rule.from = this.convertLocation(rule.from);
             rule.to = this.convertLocation(rule.to);
             if (!rule.to)

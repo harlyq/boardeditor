@@ -14,6 +14,7 @@ module Game {
         iframe ? : string; // iframe for message proxy
         client ? : Client;
         screen ? : string; // board for this user
+        me ? : string; // local alias for this user
     }
 
     export interface GameConfig {
@@ -22,8 +23,10 @@ module Game {
     }
 
     export function createClients(boardElem: HTMLElement, game: any, config: GameConfig): GameConfig {
-        for (var i = 0; i < config.users.length; ++i) {
-            var user = config.users[i];
+        var users = config.users;
+        var numPlayers = users.length;
+        for (var i = 0; i < numPlayers; ++i) {
+            var user = users[i];
             var client: Client = null;
 
             switch (user.type) {
@@ -53,6 +56,19 @@ module Game {
             client.setupFunc = game.setupFunc;
             client.setup();
 
+            client.setLocalVariable('me', user.me);
+            for (var j = 0; j < numPlayers; ++j) {
+                if (j === i)
+                    continue;
+
+                if (j > i) {
+                    client.setLocalVariable('me+' + (j - i), users[j].me);
+                    client.setLocalVariable('me-' + (i + numPlayers - j), users[j].me);
+                } else {
+                    client.setLocalVariable('me+' + (j + numPlayers - i), users[j].me);
+                    client.setLocalVariable('me-' + (i - j), users[j].me);
+                }
+            }
             user.client = client;
         }
         return config;
@@ -95,6 +111,9 @@ module Game {
     }
 
     export function getProxy(config: GameConfig, name: string): BaseProxy {
+        if (!config || !config.users)
+            return;
+
         for (var i = 0; i < config.users.length; ++i) {
             var user = config.users[i];
             if (user.name === name)

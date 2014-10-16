@@ -29,32 +29,15 @@ module Game {
             this.setupFunc(this.board);
         }
 
-        // requestMove(cardId: number, fromId: number, toId: number) {
-        //     var msg: GameMove = {
-        //         cardId: cardId,
-        //         fromId: fromId,
-        //         toId: toId
-        //     };
-        // }
+            setLocalVariable(name: string, value: any) {
+            this.board.setLocalVariable(name, value);
+        }
 
-        // applyMoves(moves: GameMove[]) {
-        //     for (var i = 0; i < moves.length; ++i)
-        //         this.applyMove(moves[i]);
-        // }
-
-        // applyMove(move: GameMove) {
-        //     var from = this.board.findLocation(move.fromId),
-        //         to = this.board.findLocation(move.toId),
-        //         card = this.board.findCard(move.cardId);
-
-        //     if (!card)
-        //         card = from.getCard();
-
-        //     from.removeCard(card);
-        //     to.addCard(card);
-        // }
-
-            onResolveRule(rule: BaseRule): BaseCommand[] {
+            onResolveRule(rule: BaseRule): BatchCommand {
+            var batch = {
+                ruleId: rule.id,
+                commands: []
+            };
             switch (rule.type) {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);
@@ -64,23 +47,29 @@ module Game {
                     return this.resolvePick( < PickRule > rule);
                 case 'setVariable':
                     var setRule = < SetRule > rule;
-                    return [{
+                    batch.commands.push({
                         type: 'setVariable',
-                        id: setRule.id,
                         name: setRule.name,
                         value: setRule.value
-                    }];
+                    });
+                    return batch;
             }
 
-            return [];
+            return batch;
         }
 
-            resolveMove(rule: MoveRule): BaseCommand[] {
-            return [];
+            resolveMove(rule: MoveRule): BatchCommand {
+            return {
+                ruleId: rule.id,
+                commands: []
+            };;
         }
 
-            resolvePick(rule: PickRule): BaseCommand[] {
-            return [];
+            resolvePick(rule: PickRule): BatchCommand {
+            return {
+                ruleId: rule.id,
+                commands: []
+            };;
         }
 
             isCountComplete(quantity: Quantity, count: number, value: number): boolean {
@@ -101,9 +90,9 @@ module Game {
             return false;
         }
 
-            onUpdateCommands(commands: BaseCommand[]) {
-            for (var i = 0; i < commands.length; ++i)
-                this.board.performCommand(commands[i]);
+            onUpdateCommands(batch: BatchCommand) {
+            for (var i = 0; i < batch.commands.length; ++i)
+                this.board.performCommand(batch.commands[i]);
         }
     }
 
@@ -111,7 +100,7 @@ module Game {
     //-------------------------------
     export class BankClient extends Client {
 
-        resolveMove(moveRule: MoveRule): MoveCommand[] {
+        resolveMove(moveRule: MoveRule): BatchCommand {
             var where: any = moveRule.where || function() {
                     return true;
                 }
@@ -122,17 +111,20 @@ module Game {
             var toLocations = this.board.queryLocations(moveRule.to);
             var cards = this.board.queryCards(moveRule.cards);
             var maxCards = this.board.getNumCards();
-            var moveCommands: MoveCommand[] = [];
+            var batch = {
+                ruleId: moveRule.id,
+                commands: []
+            };
             var cardIndex = 0;
 
             if (toLocations.length === 0) {
                 _error('invlaid too location - ' + moveRule.to);
-                return [];
+                return batch;
             }
 
             if (fromLocations.length === 0 && cards.length === 0) {
                 _error('invlaid from location, and no cards - ' + moveRule.from);
-                return [];
+                return batch;
             }
 
             for (var i = 0; i < maxCards; ++i) {
@@ -161,20 +153,20 @@ module Game {
                     toId: to.id,
                     index: index
                 };
-                moveCommands.push(moveCommand);
+                batch.commands.push(moveCommand);
 
-                if (this.isCountComplete(moveRule.quantity, moveRule.count, moveCommands.length))
+                if (this.isCountComplete(moveRule.quantity, moveRule.count, batch.commands.length))
                     break; // sufficient cards
 
                 if (fromLocations.length === 0 && cards.length === 0)
-                    return []; // no from location, and no cards (remaining)
+                    break; // used all of the cards
             }
 
-            return moveCommands;
+            return batch;
         }
 
 
-        resolvePick(pickRule: PickRule): PickCommand[] {
+        resolvePick(pickRule: PickRule): BatchCommand {
             var where: any = pickRule.where || function() {
                 return true;
             }
@@ -221,11 +213,13 @@ module Game {
                 }
             }
 
-            return [{
-                type: pickRule.type,
-                id: pickRule.id,
-                values: values
-            }];
+            return {
+                ruleId: pickRule.id,
+                commands: [{
+                    type: pickRule.type,
+                    values: values
+                }]
+            };
         }
 
     }
@@ -260,11 +254,13 @@ module Game {
             this.pickList = [];
             this.clearHighlights();
 
-            this.proxy.sendCommands([{
-                type: 'pickLocation',
-                id: this.lastRuleId,
-                values: [location.name]
-            }]);
+            this.proxy.sendCommands({
+                ruleId: this.lastRuleId,
+                commands: [{
+                    type: 'pickLocation',
+                    values: [location.name]
+                }]
+            });
         }
 
         setup() {
@@ -284,7 +280,11 @@ module Game {
             });
         }
 
-        resolvePick(pickRule: PickRule): PickCommand[] {
+        resolvePick(pickRule: PickRule): BatchCommand {
+            var nullBatch = {
+                ruleId: pickRule.id,
+                commands: []
+            };
             var where: any = pickRule.where || function() {
                 return true;
             }
@@ -313,7 +313,7 @@ module Game {
             this.pickList = list.filter(where);
             if (this.pickList.length === 0) {
                 _error('no items in ' + pickRule.type + ' list - ' + pickRule.list + ', rule - ' + pickRule.where);
-                return [];
+                return nullBatch;
             }
 
             for (var i = 0; i < this.pickList.length; ++i) {
@@ -338,14 +338,15 @@ module Game {
 
             this.lastRuleId = pickRule.id;
 
-            return [];
+            return nullBatch;
         }
 
-            onUpdateCommands(commands: BaseCommand[]) {
-            if (commands.length === 0)
+            onUpdateCommands(batch: BatchCommand) {
+            if (!batch || batch.commands.length === 0)
                 return;
 
-            var showEvents = !this.pauseEvents && commands[0].id > thisComputerRuleId;
+            var commands = batch.commands;
+            var showEvents = !this.pauseEvents && batch.ruleId > thisComputerRuleId;
 
             for (var i = 0; i < commands.length; ++i) {
                 var command = commands[i];
@@ -388,7 +389,7 @@ module Game {
                     // have a global flag which tracks when any human client on this
                     // machine updates it's rule, so we don't dispatch the events multiple
                     // times
-                    thisComputerRuleId = command.id;
+                    thisComputerRuleId = batch.ruleId;
                 }
 
                 this.board.performCommand(command);
