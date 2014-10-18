@@ -41,7 +41,7 @@ module Game {
     export interface BaseRule {
         id ? : number;
         type ? : string;
-        user ? : string;
+        user ? : string; // maybe this should be an array
     }
 
     export interface MoveRule extends BaseRule {
@@ -555,9 +555,12 @@ module Game {
             applyVariables(value: string): string {
             var parts = value.split('.');
             for (var i = 0; i < parts.length; ++i) {
-                var alias = parts[i];
-                if (alias in this.variables)
-                    parts[i] = this.variables[alias];
+                var part = parts[i];
+                if (typeof part === 'string' && part[0] === '$') {
+                    var alias = part.substr(1);
+                    if (alias in this.variables)
+                        parts[i] = this.variables[alias];
+                }
             }
             return parts.join('.');
         }

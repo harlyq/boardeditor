@@ -9,19 +9,16 @@ module Game {
 
     //-------------------------------
     export class Client implements ProxyListener {
-        board: Board = new Board();
         showMoves: boolean = true;
         setupFunc: (board: Board) => void;
         whereList: any[];
-        proxy: BaseProxy = null;
+        localVariables: {
+            [name: string]: any
+        } = {};
 
-        constructor() {}
+        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {}
 
-        setProxy(proxy: BaseProxy) {
-            this.proxy = proxy;
-        }
-
-        getProxy(): BaseProxy {
+        getProxy(): BaseClientProxy {
             return this.proxy;
         }
 
@@ -30,7 +27,7 @@ module Game {
         }
 
             setLocalVariable(name: string, value: any) {
-            this.board.setLocalVariable(name, value);
+            this.localVariables[name] = value;
         }
 
             onResolveRule(rule: BaseRule): BatchCommand {
@@ -90,9 +87,10 @@ module Game {
             return false;
         }
 
-            onUpdateCommands(batch: BatchCommand) {
-            for (var i = 0; i < batch.commands.length; ++i)
-                this.board.performCommand(batch.commands[i]);
+            onUpdateCommands(batch: BatchCommand) {}
+
+            getUser(): string {
+            return this.user;
         }
     }
 
@@ -239,8 +237,8 @@ module Game {
             [key: number]: HTMLElement;
         } = {};
 
-        constructor(public boardElem: HTMLElement, public user: string) {
-            super();
+        constructor(user: string, proxy: BaseClientProxy, board: Board, public boardElem: HTMLElement) {
+            super(user, proxy, board);
         }
 
         private onClickLocation(location: Location) {
@@ -264,14 +262,22 @@ module Game {
         }
 
         setup() {
+            // setup the board
             super.setup();
 
             var self = this;
-            this.board.getLocations().forEach(function(location) {
-                var element = < HTMLElement > (self.boardElem.querySelector('[name="' + location.name + '"]'));
-                if (element) {
+            var layoutElements = self.boardElem.querySelectorAll('deck-layout');
+            [].forEach.call(layoutElements, function(element) {
+                var name = element.getAttribute('name');
+                var altName = self.applyVariables(name);
+
+                var location = self.board.queryFirstLocation(altName);
+                if (location) {
                     self.locationElem[location.id] = element;
                     element.addEventListener('click', self.onClickLocation.bind(self, location));
+                    self.applyLabels(element, location);
+                } else {
+                    _error('could not find deck-layout "' + name + '" alias "' + altName + '"');
                 }
             });
 
@@ -280,7 +286,30 @@ module Game {
             });
         }
 
-        resolvePick(pickRule: PickRule): BatchCommand {
+        private applyLabels(element: HTMLElement, location: Location) {
+            for (var i = 0; i < location.labels.length; ++i) {
+                var label = location.labels[i];
+                element.classList.add(label);
+            }
+        }
+
+        private applyVariables(value: string): string {
+            // apply local variables first
+            var parts = value.split('.');
+            for (var i = 0; i < parts.length; ++i) {
+                var part = parts[i];
+                if (typeof part === 'string' && part[0] === '$') {
+                    var alias = part.substr(1);
+                    if (alias in this.localVariables)
+                        parts[i] = this.localVariables[alias];
+                }
+            }
+
+            // then global variables
+            return this.board.applyVariables(parts.join('.'));
+        }
+
+            resolvePick(pickRule: PickRule): BatchCommand {
             var nullBatch = {
                 ruleId: pickRule.id,
                 commands: []
@@ -391,8 +420,6 @@ module Game {
                     // times
                     thisComputerRuleId = batch.ruleId;
                 }
-
-                this.board.performCommand(command);
             }
         }
 

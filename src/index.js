@@ -15,38 +15,40 @@ var commands = [];
 
 var config = {
     type: 'mancala',
-    users: [{
-        name: 'PLAYER1',
-        type: 'human',
+    screens: [{
+        screen: 'common',
+        mode: 'shared',
         proxy: 'REST',
-        screen: 'board',
-        me: 'red'
-    }, {
-        name: 'PLAYER2',
-        type: 'human',
-        proxy: 'REST',
-        screen: 'board',
-        me: 'blue'
+        users: [{
+            name: 'PLAYER1',
+            type: 'human',
+            me: 'red'
+        }, {
+            name: 'PLAYER2',
+            type: 'human',
+            me: 'blue'
+        }]
     }]
-}
+};
 
 // app.get('/', function(req, res) {
 //     res.sendFile(__dirname + '/client.html');
 // });
 
 app.get('/moves', function(req, res) {
-    var user = req.param('user');
+    var userNames = req.param('userNames');
     var afterId = req.param('afterId');
-    console.log('/moves?user=' + user + '&afterId=' + afterId);
+    console.log('/moves?userNames=' + userNames + '&afterId=' + afterId);
 
-    var proxy = server.getProxy(user);
-    if (proxy)
-        res.send(JSON.stringify(proxy.clientRequest(afterId)));
+    var proxies = server.getProxies(userNames);
+    console.log(proxies.length);
+    for (var i = 0; i < proxies.length; ++i)
+        res.send(JSON.stringify(proxies[i].clientRequest(afterId)));
 });
 
 app.post('/new', function(req, res) {
-    var user = req.param('user');
-    console.log('/new?user=' + user);
+    var userNames = req.param('userNames');
+    console.log('/new?userNames=' + userNames);
     console.log(req.body);
 
     // var proxy = server.getProxy(user);
@@ -61,17 +63,7 @@ app.get('/config', function(req, res) {
     var screen = req.param('screen');
     console.log('/config?screen=' + screen);
 
-    // send the configuration for the requested users
-    var localConfig = {
-        type: config.type,
-        users: []
-    }
-    for (var i = 0; i < config.users.length; ++i) {
-        var user = config.users[i];
-        if (user.screen === screen)
-            localConfig.users.push(user);
-    }
-    res.send(JSON.stringify(localConfig));
+    res.send(JSON.stringify(config));
 });
 
 var host = app.listen(3000, function() {

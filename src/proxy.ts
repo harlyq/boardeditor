@@ -6,50 +6,110 @@ module Game {
     export interface ProxyListener {
         // client listener's support
         onResolveRule ? : (rule: BaseRule) => BatchCommand;
-        onUpdateCommands ? : (commands: BatchCommand) => void;
+        onUpdateCommands ? : (batch: BatchCommand) => void;
 
         // server listener's support
-        onSendCommands ? : (commands: BatchCommand) => any;
+        onSendCommands ? : (batch: BatchCommand) => void;
+        getUser: () => string;
     }
 
     var proxyList: {
-        [user: string]: BaseProxy
+        [userNames: string]: LocalServerProxy
     } = {};
 
-    export var createLocalProxy = function(user: string, listener: ProxyListener): LocalProxy {
-        var proxy = new LocalProxy(user, listener);
-        var pairProxy = < LocalProxy > (proxyList[user]);
-        if (pairProxy) {
-            proxy.setPair(pairProxy);
-            pairProxy.setPair(proxy);
-        } else {
-            proxyList[user] = proxy;
+    export var createLocalServerProxy = function(userNames: string, listener: ProxyListener): LocalServerProxy {
+        var proxy = new LocalServerProxy(userNames, listener);
+        proxyList[userNames] = proxy;
+        return proxy;
+    }
+
+    export var createLocalClientProxy = function(userNames: string): LocalClientProxy {
+        var proxy = new LocalClientProxy(userNames);
+        var serverProxy = proxyList[userNames];
+        if (serverProxy) {
+            proxy.setPair(serverProxy);
+            serverProxy.setPair(proxy);
         }
         return proxy;
     }
 
-    export var createRESTServerProxy = function(user: string, whereList: any[], listener: ProxyListener): RESTServerProxy {
-        return new RESTServerProxy(user, whereList, listener);
+    export var createRESTServerProxy = function(userNames: string, whereList: any[], listener: ProxyListener): RESTServerProxy {
+        return new RESTServerProxy(userNames, whereList, listener);
     }
 
-    export var createRESTClientProxy = function(user: string, whereList: any[], listener: ProxyListener): RESTClientProxy {
-        return new RESTClientProxy(user, whereList, listener);
+    export var createRESTClientProxy = function(userNames: string, whereList: any[]): RESTClientProxy {
+        return new RESTClientProxy(userNames, whereList);
     }
 
-    export var createMessageServerProxy = function(user: string, iframeElem: HTMLIFrameElement, whereList: any[], listener: ProxyListener): MessageServerProxy {
-        return new MessageServerProxy(user, iframeElem, whereList, listener);
+    export var createMessageServerProxy = function(userNames: string, iframeElem: HTMLIFrameElement, whereList: any[], listener: ProxyListener): MessageServerProxy {
+        return new MessageServerProxy(userNames, iframeElem, whereList, listener);
     }
 
-    export var createMessageClientProxy = function(user: string, whereList: any[], listener: ProxyListener): MessageClientProxy {
-        return new MessageClientProxy(user, whereList, listener);
+    export var createMessageClientProxy = function(userNames: string, whereList: any[]): MessageClientProxy {
+        return new MessageClientProxy(userNames, whereList);
     }
 
-    export class BaseProxy {
+    export class BaseClientProxy {
+        lastRuleId: number = -1;
+        listeners: ProxyListener[] = [];
+        board: Board = new Board();
+
+        constructor(public userNames: string) {}
+
+        addListener(listener: ProxyListener) {
+            this.listeners.push(listener);
+        }
+
+        removeListener(listener: ProxyListener) {
+            var i = this.listeners.indexOf(listener);
+            if (i !== -1)
+                this.listeners.splice(i, 1);
+        }
+
+        onResolveRule(rule: BaseRule): BatchCommand {
+            var response = {
+                ruleId: rule.id,
+                commands: []
+            };
+            for (var i = 0; i < this.listeners.length; ++i) {
+                var listener = this.listeners[i];
+                if (listener && typeof listener.onResolveRule === 'function' && rule.user.indexOf(listener.getUser()) !== -1) {
+                    var batch = listener.onResolveRule(rule);
+                    [].push.apply(response.commands, batch.commands);
+                }
+            }
+            return response;
+        }
+
+            onUpdateCommands(batch: BatchCommand): void {
+            for (var i = 0; i < batch.commands.length; ++i) {
+                var command = batch.commands[i];
+                this.board.performCommand(command);
+            }
+
+            for (var i = 0; i < this.listeners.length; ++i) {
+                var listener = this.listeners[i];
+                if (listener && typeof listener.onUpdateCommands === 'function')
+                    listener.onUpdateCommands(batch);
+            }
+        }
+
+            sendCommands(batch: BatchCommand) {}
+
+            pollServer() {}
+    }
+
+    export class BaseServerProxy {
         lastRuleId: number = -1;
 
-        constructor(public user: string, public listener: ProxyListener) {}
+        constructor(public userNames: string, public listener: ProxyListener) {}
 
-        resolveRule(rule: BaseRule): BatchCommand {
+        onSendCommands(batch: BatchCommand): void {
+            if (this.listener && typeof this.listener.onSendCommands === 'function')
+                this.listener.onSendCommands(batch);
+        }
+
+            resolveRule(rule: BaseRule): BatchCommand {
             return {
                 ruleId: rule.id,
                 commands: []
@@ -57,43 +117,63 @@ module Game {
         }
 
             updateCommands(batch: BatchCommand) {}
-
-            sendCommands(batch: BatchCommand) {}
-
-            pollServer() {}
     }
 
-    // in general, if the proxy listener supports a function, then send it to the listener,
-    // otherwise send it to the pair.
-    export class LocalProxy extends BaseProxy {
-        pair: LocalProxy;
+    export class LocalClientProxy extends BaseClientProxy {
+        serverPair: LocalServerProxy;
 
-        constructor(user: string, listener: ProxyListener) {
-            super(user, listener);
+        constructor(userNames: string) {
+            super(userNames);
         }
 
-        setPair(proxy: LocalProxy) {
-            this.pair = proxy;
+        setPair(proxy: LocalServerProxy) {
+            this.serverPair = proxy;
         }
 
         resolveRule(rule: BaseRule): BatchCommand {
             this.lastRuleId = rule.id;
 
-            if (typeof this.listener.onResolveRule === 'function')
-                return this.listener.onResolveRule(rule);
-
-            return this.pair.resolveRule(rule);
+            return this.onResolveRule(rule);
         }
 
             updateCommands(batch: BatchCommand) {
             if (!batch)
                 return;
 
-            if (typeof this.listener.onUpdateCommands === 'function')
-                return this.listener.onUpdateCommands(batch);
+            this.onUpdateCommands(batch);
+        }
+
+            sendCommands(batch: BatchCommand) {
+            if (!batch)
+                return;
+
+            this.serverPair.sendCommands(batch);
+        }
+    }
+
+    export class LocalServerProxy extends BaseServerProxy {
+        clientPair: LocalClientProxy;
+
+        constructor(userNames: string, listener: ProxyListener) {
+            super(userNames, listener);
+        }
+
+        setPair(proxy: LocalClientProxy) {
+            this.clientPair = proxy;
+        }
+
+        resolveRule(rule: BaseRule): BatchCommand {
+            this.lastRuleId = rule.id;
+
+            return this.clientPair.resolveRule(rule);
+        }
+
+            updateCommands(batch: BatchCommand) {
+            if (!batch)
+                return;
 
             if (this.lastRuleId < batch.ruleId) {
-                this.pair.updateCommands(batch);
+                this.clientPair.updateCommands(batch);
                 this.lastRuleId = batch.ruleId;
             }
         }
@@ -102,10 +182,7 @@ module Game {
             if (!batch)
                 return;
 
-            if (typeof this.listener.onSendCommands === 'function')
-                return this.listener.onSendCommands(batch);
-
-            this.pair.sendCommands(batch);
+            this.onSendCommands(batch);
         }
     }
 
@@ -114,12 +191,12 @@ module Game {
         rule: BaseRule;
     }
 
-    export class RESTServerProxy extends BaseProxy {
+    export class RESTServerProxy extends BaseServerProxy {
         lastRule = null;
         batches: BatchCommand[] = [];
 
-        constructor(user: string, public whereList: any[], listener: ProxyListener) {
-            super(user, listener);
+        constructor(userNames: string, public whereList: any[], listener: ProxyListener) {
+            super(userNames, listener);
         }
 
         // server side
@@ -164,11 +241,11 @@ module Game {
 
     }
 
-    export class RESTClientProxy extends BaseProxy {
+    export class RESTClientProxy extends BaseClientProxy {
         request: any = null;
 
-        constructor(user: string, private whereList: any[], listener: ProxyListener) {
-            super(user, listener);
+        constructor(userNames: string, private whereList: any[]) {
+            super(userNames);
 
             if (HTML_DEFINED) {
                 this.request = new XMLHttpRequest();
@@ -181,7 +258,7 @@ module Game {
 
         sendCommands(batch: BatchCommand) {
             if (HTML_DEFINED) {
-                this.request.open('POST', 'new?user=' + this.user);
+                this.request.open('POST', 'new?userNames=' + this.userNames);
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send(JSON.stringify(batch));
             }
@@ -192,12 +269,10 @@ module Game {
                 var response = < RESTResponse > (JSON.parse(resp));
 
                 // commands must be processed before rules
-                if (response.batches.length > 0 && typeof this.listener.onUpdateCommands === 'function') {
-                    for (var i = 0; i < response.batches.length; ++i) {
-                        var batch = response.batches[i];
-                        this.listener.onUpdateCommands(batch);
-                        this.lastRuleId = batch.ruleId; // remember the last id
-                    }
+                for (var i = 0; i < response.batches.length; ++i) {
+                    var batch = response.batches[i];
+                    this.onUpdateCommands(batch);
+                    this.lastRuleId = batch.ruleId; // remember the last id
                 }
 
                 var rule = response.rule
@@ -205,26 +280,23 @@ module Game {
                     if ('whereIndex' in rule)
                         rule['where'] = this.whereList[rule['whereIndex']];
 
-                    if (typeof this.listener.onResolveRule === 'function') {
-                        if (rule.user === this.user)
-                            this.listener.onResolveRule(rule);
-                    }
+                    this.onResolveRule(rule);
                 }
             }
         }
 
         pollServer() {
             if (HTML_DEFINED) {
-                this.request.open('GET', 'moves?user=' + this.user + '&afterId=' + this.lastRuleId);
+                this.request.open('GET', 'moves?userNames=' + this.userNames + '&afterId=' + this.lastRuleId);
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send();
             }
         }
     }
 
-    export class MessageServerProxy extends BaseProxy {
-        constructor(user: string, private iframeElem: HTMLIFrameElement, private whereList: any[], listener: ProxyListener) {
-            super(user, listener);
+    export class MessageServerProxy extends BaseServerProxy {
+        constructor(userNames: string, private iframeElem: HTMLIFrameElement, private whereList: any[], listener: ProxyListener) {
+            super(userNames, listener);
 
             window.addEventListener('message', this.onClientMessage.bind(this));
         }
@@ -232,14 +304,14 @@ module Game {
         resolveRule(rule: BaseRule): BatchCommand {
             var msg = {
                 type: 'resolveRule',
-                user: this.user,
+                userNames: this.userNames,
                 rule: rule
             };
 
             if ('where' in rule)
                 rule['whereIndex'] = this.whereList.indexOf(rule['where']);
 
-            console.log('SEND resolveRule to:' + msg.user + ' id:' + msg.rule.id);
+            console.log('SEND resolveRule to:' + msg.userNames + ' id:' + msg.rule.id);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
             return {
                 ruleId: rule.id,
@@ -253,11 +325,11 @@ module Game {
 
             var msg = {
                 type: 'updateCommands',
-                user: this.user,
+                userNames: this.userNames,
                 batch: batch
             };
 
-            console.log('SEND updateCommands to:' + msg.user + ' id:' + msg.batch.ruleId);
+            console.log('SEND updateCommands to:' + msg.userNames + ' id:' + msg.batch.ruleId);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
             return [];
         }
@@ -269,21 +341,20 @@ module Game {
                 return;
             }
 
-            if (msg.user !== this.user || !this.listener)
-                return; // not the correct user
+            if (msg.userNames !== this.userNames)
+                return; // not the correct userNames
 
-            if (msg.type === 'sendCommands' && typeof this.listener.onSendCommands === 'function') {
-                this.listener.onSendCommands(msg.batch);
-            }
+            if (msg.type === 'sendCommands')
+                this.onSendCommands(msg.batch);
         }
     }
 
-    export class MessageClientProxy extends BaseProxy {
+    export class MessageClientProxy extends BaseClientProxy {
         rule: BaseRule = null;
         batches: BatchCommand[] = [];
 
-        constructor(user: string, private whereList: any[], listener: ProxyListener) {
-            super(user, listener);
+        constructor(userNames: string, private whereList: any[]) {
+            super(userNames);
         }
 
         sendCommands(batch: BatchCommand) {
@@ -292,7 +363,7 @@ module Game {
 
             var msg = {
                 type: 'sendCommands',
-                user: this.user,
+                userNames: this.userNames,
                 batch: batch
             };
             window.parent.postMessage(JSON.stringify(msg), '*');
@@ -302,17 +373,17 @@ module Game {
         // so only process the commands once we receive all of them in order 
         private onServerMessage(msg: any): boolean {
             if (!msg || typeof msg !== 'object') {
-                _error('client (' + this.user + ') received invalid message');
+                _error('client (' + this.userNames + ') received invalid message');
                 return;
             }
 
             if (msg.type === 'updateCommands')
-                console.log('onUpdateCommands to:' + msg.user + ' this:' + this.user + ' id:' + msg.batch.ruleId);
+                console.log('onUpdateCommands to:' + msg.userNames + ' this:' + this.userNames + ' id:' + msg.batch.ruleId);
             else if (msg.type === 'resolveRule')
-                console.log('onResolveRule to:' + msg.user + ' this:' + this.user + ' id:' + msg.rule.id);
+                console.log('onResolveRule to:' + msg.userNames + ' this:' + this.userNames + ' id:' + msg.rule.id);
 
-            if (msg.user !== this.user || !this.listener)
-                return; // not the correct user
+            if (msg.userNames !== this.userNames)
+                return; // not the correct userNames
 
             if (msg.type === 'resolveRule') {
                 var rule = msg.rule;
@@ -323,7 +394,7 @@ module Game {
                 if (this.rule.id === this.lastRuleId + 1)
                     this.sendMessages();
 
-            } else if (msg.type === 'updateCommands' && typeof this.listener.onUpdateCommands === 'function') {
+            } else if (msg.type === 'updateCommands') {
                 this.batches.push(msg.batch);
                 this.batches.sort(function(a, b): number {
                     return a.ruleId - b.ruleId;
@@ -331,18 +402,18 @@ module Game {
                 if (msg.batch.ruleId === this.lastRuleId + 1)
                     this.sendMessages();
             } else {
-                _error('client (' + this.user + ') received unknown message type - ' + msg.type);
+                _error('client (' + this.userNames + ') received unknown message type - ' + msg.type);
             }
         }
 
             private sendMessages() {
             // commands always sent first, send as many sequential commands as possible
-            if (this.batches.length > 0 && typeof this.listener.onUpdateCommands === 'function') {
+            if (this.batches.length > 0) {
                 var allSent = true;
                 var i = 0;
                 for (; i < this.batches.length; ++i) {
                     if (this.batches[i].ruleId === this.lastRuleId + 1) {
-                        this.listener.onUpdateCommands(this.batches[i]);
+                        this.onUpdateCommands(this.batches[i]);
                         this.lastRuleId++;
                     } else {
                         break;
@@ -354,8 +425,8 @@ module Game {
             }
 
             // then the rule
-            if (this.rule && this.rule.id === this.lastRuleId + 1 && typeof this.listener.onResolveRule === 'function') {
-                this.listener.onResolveRule(this.rule);
+            if (this.rule && this.rule.id === this.lastRuleId + 1) {
+                this.onResolveRule(this.rule);
                 this.rule = null;
                 // do not update the lastRuleId, as we expect an updateCommand for this rule
             }

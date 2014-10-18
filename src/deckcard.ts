@@ -26,11 +26,15 @@ class DeckCard {
         canvasElem.height = this.parent.offsetHeight;
 
         if (this.facedown === 'true') {
-            var backElem = < HTMLElement > (document.querySelector('#' + this.back));
-            this.drawCard(canvasElem, backElem);
+            if (this.back) {
+                var backElem = < HTMLElement > (document.querySelector('#' + this.back));
+                this.drawCard(canvasElem, backElem);
+            }
         } else {
-            var frontElem = < HTMLElement > (document.querySelector('#' + this.front));
-            this.drawCard(canvasElem, frontElem);
+            if (this.front) {
+                var frontElem = < HTMLElement > (document.querySelector('#' + this.front));
+                this.drawCard(canvasElem, frontElem);
+            }
         }
     }
 

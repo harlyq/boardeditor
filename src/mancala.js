@@ -29,11 +29,11 @@ function mancala() {
             card.addLabel('stones');
         }
         for (var i = 0; i < NUM_PITS; ++i) {
-            board.createLocation('p1_' + String.fromCharCode(65 + i), id++);
-            board.createLocation('p2_' + String.fromCharCode(65 + i), id++);
+            board.createLocation('red.' + String.fromCharCode(65 + i), id++).addLabel('red');
+            board.createLocation('blue.' + String.fromCharCode(65 + i), id++).addLabel('blue');
         }
-        board.createLocation('p1_store', id++);
-        board.createLocation('p2_store', id++);
+        board.createLocation('red.store', id++).addLabel('red');
+        board.createLocation('blue.store', id++).addLabel('blue');
         board.createLocation('hidden', id++);
 
         board.createUser('BANK', -1);
@@ -51,12 +51,12 @@ function mancala() {
         for (var i = 0; i < NUM_PITS; ++i) {
             yield board.waitMove({
                 from: 'hidden',
-                to: 'p1_' + String.fromCharCode(65 + i),
+                to: 'red.' + String.fromCharCode(65 + i),
                 count: NUM_STONES_PER_PIT
             });
             yield board.waitMove({
                 from: 'hidden',
-                to: 'p2_' + String.fromCharCode(65 + i),
+                to: 'blue.' + String.fromCharCode(65 + i),
                 count: NUM_STONES_PER_PIT
             });
         }
@@ -68,10 +68,10 @@ function mancala() {
         currentPlayer = result[0];
         yield board.waitSetVariable('currentPlayer', playerName[currentPlayer]);
 
-        store[PLAYER1] = board.queryFirstLocation('p1_store');
-        store[PLAYER2] = board.queryFirstLocation('p2_store');
-        pitNames[PLAYER1] = 'p1_A, p1_B, p1_C, p1_D, p1_E, p1_F';
-        pitNames[PLAYER2] = 'p2_A, p2_B, p2_C, p2_D, p2_E, p2_F';
+        store[PLAYER1] = board.queryFirstLocation('red.store');
+        store[PLAYER2] = board.queryFirstLocation('blue.store');
+        pitNames[PLAYER1] = 'red.A, red.B, red.C, red.D, red.E, red.F';
+        pitNames[PLAYER2] = 'blue.A, blue.B, blue.C, blue.D, blue.E, blue.F';
         pits[PLAYER1] = board.queryLocations(pitNames[PLAYER1]);
         pits[PLAYER2] = board.queryLocations(pitNames[PLAYER2]);
         chain[PLAYER1] = pits[PLAYER1].concat(store[PLAYER1]).concat(pits[PLAYER2]);
@@ -87,7 +87,7 @@ function mancala() {
                     user: playerName[currentPlayer]
                 });
             if (result.length === 0) {
-                alert('no more choices');
+                alert('no more choices'); // DOES NOT WORK ON SERVER
                 return false; // no more choices
             }
 

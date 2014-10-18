@@ -27,20 +27,22 @@
 
         var config = {
             type: 'mancala',
-            users: [{
-                name: 'PLAYER1',
-                type: 'human',
+            screens: [{
+                screen: 'common',
+                mode: 'shared',
                 proxy: 'message',
                 iframe: 'iframe',
-                me: 'red'
-            }, {
-                name: 'PLAYER2',
-                type: 'human',
-                proxy: 'message',
-                iframe: 'iframe',
-                me: 'blue'
+                users: [{
+                    name: 'PLAYER1',
+                    type: 'human',
+                    me: 'red'
+                }, {
+                    name: 'PLAYER2',
+                    type: 'human',
+                    me: 'blue'
+                }]
             }]
-        }
+        };
 
         var server = Game.createServer(myGame, config);
 

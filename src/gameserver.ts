@@ -5,7 +5,7 @@ module Game {
     export class GameServer implements ProxyListener {
         private board: Board = new Board();
         private rulesIter: any;
-        private proxies: BaseProxy[] = [];
+        private proxies: BaseServerProxy[] = [];
 
         rulesGen: (board: Board) => {
             next(...args: any[]): any
@@ -16,22 +16,28 @@ module Game {
         setupFunc: (board: Board) => void;
         whereList: any[] = [];
 
-        addProxy(proxy: BaseProxy) {
+        addProxy(proxy: BaseServerProxy) {
             this.proxies.push(proxy);
         }
 
-        removeProxy(proxy: BaseProxy) {
+        removeProxy(proxy: BaseServerProxy) {
             var i = this.proxies.indexOf(proxy);
             if (i !== -1)
                 this.proxies.splice(i, 1);
         }
 
-        getProxy(user: string): BaseProxy {
+        getProxies(userNames: string): BaseServerProxy[] {
+            var inputNames = userNames.split(',');
+            var proxies: BaseServerProxy[] = [];
             for (var i = 0; i < this.proxies.length; ++i) {
-                if (this.proxies[i].user === user)
-                    return this.proxies[i];
+                for (var j = 0; j < inputNames.length; ++j) {
+                    if (this.proxies[i].userNames.indexOf(inputNames[j]) !== -1) {
+                        proxies.push(this.proxies[i]); // at least one of the users is in this proxy
+                        break;
+                    }
+                }
             }
-            return null;
+            return proxies;
         }
 
         setup() {
@@ -67,13 +73,22 @@ module Game {
                 var nextRule: BaseRule = result.value;
                 console.log(nextRule);
 
-                var userProxy = this.getProxy(nextRule.user);
-                if (!userProxy) {
+                var userProxies = this.getProxies(nextRule.user);
+                if (userProxies.length === 0) {
                     _error('user does not have proxy - ' + nextRule.user);
                     return false; // this.error('User does not have a proxy')
                 }
 
-                var batch = userProxy.resolveRule(nextRule);
+                // concatenate all commands, there may be multiple commands from multiple proxies
+                var batch = {
+                    ruleId: nextRule.id,
+                    commands: []
+                };
+                for (var i = 0; i < userProxies.length; ++i) {
+                    var localBatch = userProxies[i].resolveRule(nextRule);
+                    [].push.apply(batch.commands, localBatch.commands);
+                }
+
                 nextValue = this.handleCommands(batch);
             } while (batch && batch.commands.length > 0) // while we're not waiting for commands
 
@@ -98,8 +113,12 @@ module Game {
         }
 
         // server only supports sendCommands
-        onSendCommands(batch: BatchCommand): any {
+        onSendCommands(batch: BatchCommand) {
             this.step(this.handleCommands(batch));
+        }
+
+        getUser(): string {
+            return 'SERVER';
         }
     }
 }

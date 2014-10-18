@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <script src="platform.js" type="text/javascript"></script>
     <script src="interact.js" type="text/javascript"></script>
     <script src="finalgame.js" type="text/javascript"></script>
     <script src="mancala.js" type="text/javascript"></script>
@@ -112,12 +113,12 @@
 
         switch (msg.type) {
             case 'mancala':
-                myConfig = Game.createClients(document.getElementById('board'), myGame, msg);
+                myConfig = Game.createClients('common', document.getElementById('board'), myGame, msg);
                 break;
 
             case 'updateCommands':
             case 'resolveRule':
-                var proxy = Game.getProxy(myConfig, msg.user);
+                var proxy = Game.getClientProxy(myConfig, 'common', msg.userNames);
                 if (proxy && typeof proxy.onServerMessage === 'function')
                     proxy.onServerMessage(msg);
                 break;
@@ -147,19 +148,23 @@
         req.onload = function() {
             msg = JSON.parse(this.response);
             if ('type' in msg && msg.type === 'mancala')
-                myConfig = Game.createClients(document.getElementById('board'), myGame, msg);
+                myConfig = Game.createClients('common', document.getElementById('board'), myGame, msg);
         };
-        req.open('GET', 'config?screen=board'); // this board layout
+        req.open('GET', 'config?screen=common'); // this board layout
         req.setRequestHeader('Content-Type', 'application/json');
         try {
             req.send(); // will fail for the iframe version
         } catch (e) {}
 
         document.getElementById("poll").addEventListener("click", function() {
-            for (var i = 0; i < myConfig.users.length; ++i) {
-                var client = myConfig.users[i].client;
-                if (client && typeof client.pollServer === 'function')
+            var screenConfig = Game.getScreenConfig(myConfig, 'common');
+
+            for (var i = 0; i < screenConfig.users.length; ++i) {
+                var client = screenConfig.users[i].client;
+                if (client && typeof client.pollServer === 'function') {
                     client.pollServer();
+                    break;
+                }
             }
         })
     });
@@ -195,10 +200,10 @@
     deck-layout.highlight {
         border-width: 3px;
     }
-    .p1 {
+    .blue {
         border: 1px solid blue;
     }
-    .p2 {
+    .red {
         border: 1px solid red;
     }
     .count {
@@ -207,10 +212,10 @@
         -webkit-user-select: none;
         cursor: pointer;
     }
-    .p1 > .count {
+    .blue > .count {
         color: blue;
     }
-    .p2 > .count {
+    .red > .count {
         color: red;
     }
     deck-layout[name="hidden"] {
@@ -252,20 +257,20 @@
 <body>
     <button id="poll">POLL</button>
     <div id="board">
-        <deck-layout name="p1_A" layout="none" class="p1" showcount="true" style="left:360px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_B" layout="none" class="p1" showcount="true" style="left:300px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_C" layout="none" class="p1" showcount="true" style="left:240px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_D" layout="none" class="p1" showcount="true" style="left:180px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_E" layout="none" class="p1" showcount="true" style="left:120px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_F" layout="none" class="p1" showcount="true" style="left:60px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p1_store" layout="none" class="p1" showcount="true" style="left:0px; top: 60px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="p2_A" layout="none" class="p2" showcount="true" style="left:60px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_B" layout="none" class="p2" showcount="true" style="left:120px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_C" layout="none" class="p2" showcount="true" style="left:180px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_D" layout="none" class="p2" showcount="true" style="left:240px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_E" layout="none" class="p2" showcount="true" style="left:300px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_F" layout="none" class="p2" showcount="true" style="left:360px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="p2_store" layout="none" class="p2" showcount="true" style="left:400px; top: 60px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="$me.A" layout="none" showcount="true" style="left:360px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.B" layout="none" showcount="true" style="left:300px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.C" layout="none" showcount="true" style="left:240px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.D" layout="none" showcount="true" style="left:180px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.E" layout="none" showcount="true" style="left:120px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.F" layout="none" showcount="true" style="left:60px; top: 20px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me.store" layout="none" showcount="true" style="left:0px; top: 60px; width: 60px; height: 60px"></deck-layout>
+        <deck-layout name="$me+1.A" layout="none" showcount="true" style="left:60px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.B" layout="none" showcount="true" style="left:120px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.C" layout="none" showcount="true" style="left:180px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.D" layout="none" showcount="true" style="left:240px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.E" layout="none" showcount="true" style="left:300px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.F" layout="none" showcount="true" style="left:360px; top: 120px; width: 40px; height: 40px"></deck-layout>
+        <deck-layout name="$me+1.store" layout="none" showcount="true" style="left:400px; top: 60px; width: 60px; height: 60px"></deck-layout>
         <deck-layout name="hidden" layout="none" showcount="true" style="left:0px; top: 240px; width: 60px; height: 60px">
             <deck-card id="1"></deck-card>
             <deck-card id="2"></deck-card>
