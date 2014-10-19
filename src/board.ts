@@ -74,6 +74,7 @@ module Game {
 
     export interface MoveCommand extends BaseCommand {
         cardId: number;
+        fromId: number;
         toId: number;
         index: number;
     }

@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <script src="platform.js" type="text/javascript"></script>
+    <!--script src="platform.js" type="text/javascript"></script-->
     <script src="interact.js" type="text/javascript"></script>
     <script src="finalgame.js" type="text/javascript"></script>
     <script src="mancala.js" type="text/javascript"></script>
@@ -126,7 +126,10 @@
     });
 
     window.addEventListener('load', function(e) {
+        makeDeckLayout(".deck-layout");
+
         var board = document.querySelector('#board');
+
         board.addEventListener('removeCard', function(e) {
             e.stopPropagation();
             e.target.classList.remove('grow');
@@ -177,10 +180,10 @@
         width: 400px;
         height: 400px;
     }
-    deck-layout {
+    .deck-layout {
         position: absolute;
         border: 1px solid green;
-        -webkit-border-radius: 50%;
+        border-radius: 50%;
     }
     deck-card {
         display: none;
@@ -197,7 +200,7 @@
         height: 60px;
         background-color: red;
     }
-    deck-layout.highlight {
+    .deck-layout.highlight {
         border-width: 3px;
     }
     .blue {
@@ -210,6 +213,7 @@
         text-align: center;
         font: 20pt arial bold;
         -webkit-user-select: none;
+        -moz-user-select: none;
         cursor: pointer;
     }
     .blue > .count {
@@ -218,7 +222,7 @@
     .red > .count {
         color: red;
     }
-    deck-layout[name="hidden"] {
+    .deck-layout[name="hidden"] {
         display: none;
     }
     @-webkit-keyframes grow {
@@ -251,27 +255,57 @@
         -webkit-animation-name: shrink;
         -webkit-animation-duration: 1s;
     }
+    @keyframes grow {
+        0% {
+            transform: scale3d(1, 1, 1);
+        }
+        50% {
+            transform: scale3d(1.1, 1.1, 1.1);
+        }
+        100% {
+            transform: scale3d(1, 1, 1);
+        }
+    }
+    .grow {
+        animation-name: grow;
+        animation-duration: 1s;
+    }
+    @keyframes shrink {
+        0% {
+            transform: scale3d(1, 1, 1);
+        }
+        50% {
+            transform: scale3d(0.9, 0.9, 0.9);
+        }
+        100% {
+            transform: scale3d(1, 1, 1);
+        }
+    }
+    .shrink {
+        animation-name: shrink;
+        animation-duration: 1s;
+    }
     </style>
 </head>
 
 <body>
     <button id="poll">POLL</button>
     <div id="board">
-        <deck-layout name="$me.A" layout="none" showcount="true" style="left:360px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.B" layout="none" showcount="true" style="left:300px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.C" layout="none" showcount="true" style="left:240px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.D" layout="none" showcount="true" style="left:180px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.E" layout="none" showcount="true" style="left:120px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.F" layout="none" showcount="true" style="left:60px; top: 20px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me.store" layout="none" showcount="true" style="left:0px; top: 60px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="$me+1.A" layout="none" showcount="true" style="left:60px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.B" layout="none" showcount="true" style="left:120px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.C" layout="none" showcount="true" style="left:180px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.D" layout="none" showcount="true" style="left:240px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.E" layout="none" showcount="true" style="left:300px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.F" layout="none" showcount="true" style="left:360px; top: 120px; width: 40px; height: 40px"></deck-layout>
-        <deck-layout name="$me+1.store" layout="none" showcount="true" style="left:400px; top: 60px; width: 60px; height: 60px"></deck-layout>
-        <deck-layout name="hidden" layout="none" showcount="true" style="left:0px; top: 240px; width: 60px; height: 60px">
+        <div name="$me.A" class="deck-layout" layout="none" count="0" style="left:360px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.B" class="deck-layout" layout="none" count="0" style="left:300px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.C" class="deck-layout" layout="none" count="0" style="left:240px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.D" class="deck-layout" layout="none" count="0" style="left:180px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.E" class="deck-layout" layout="none" count="0" style="left:120px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.F" class="deck-layout" layout="none" count="0" style="left:60px; top: 20px; width: 40px; height: 40px"></div>
+        <div name="$me.store" class="deck-layout" layout="none" count="0" style="left:0px; top: 60px; width: 60px; height: 60px"></div>
+        <div name="$me+1.A" class="deck-layout" layout="none" count="0" style="left:60px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.B" class="deck-layout" layout="none" count="0" style="left:120px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.C" class="deck-layout" layout="none" count="0" style="left:180px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.D" class="deck-layout" layout="none" count="0" style="left:240px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.E" class="deck-layout" layout="none" count="0" style="left:300px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.F" class="deck-layout" layout="none" count="0" style="left:360px; top: 120px; width: 40px; height: 40px"></div>
+        <div name="$me+1.store" class="deck-layout" layout="none" count="0" style="left:400px; top: 60px; width: 60px; height: 60px"></div>
+        <div name="hidden" class="deck-layout" layout="none" count="0" style="left:0px; top: 240px; width: 60px; height: 60px">
             <deck-card id="1"></deck-card>
             <deck-card id="2"></deck-card>
             <deck-card id="3"></deck-card>
@@ -320,7 +354,7 @@
             <deck-card id="46"></deck-card>
             <deck-card id="47"></deck-card>
             <deck-card id="48"></deck-card>
-        </deck-layout>
+        </div>
     </div>
 </body>
 

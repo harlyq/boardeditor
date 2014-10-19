@@ -18,7 +18,7 @@ class DeckLayout {
         thisOptions.offsetx = 0;
         thisOptions.offsety = 0;
         thisOptions.visibility = 'any';
-        thisOptions.showcount = false;
+        thisOptions.count = -1;
 
         this.flipCardHandler = this.flipCard.bind(this);
 
@@ -112,6 +112,9 @@ class DeckLayout {
             cards = this.getDeckCards(parent.children);
 
         [].forEach.call(cards, function(card) {
+            if (!(card instanceof HTMLElement))
+                return;
+
             switch (options.visibility) {
                 case 'faceup':
                     card.setAttribute('facedown', 'false');
@@ -122,23 +125,20 @@ class DeckLayout {
             }
         });
 
-        var showCount = false;
-        if ('showcount' in options) {
-            showCount = options.showcount;
-        }
-
+        var showCount = options.count >= 0;
         var countElem = < HTMLElement > (parent.querySelector('.count'));
+
         if (countElem && !showCount) {
             countElem.classList.add('hidden');
         } else if (!countElem && showCount) {
             countElem = document.createElement('div');
             countElem.classList.add('count');
             parent.appendChild(countElem);
-        } else if (countElem && showCount) {
+        } else if (countElem && !showCount) {
             countElem.classList.remove('hidden');
         }
         if (showCount)
-            countElem.innerText = cards.length; // should be linked to the location model data
+            countElem.textContent = options.count.toString();
     }
 
     forEach(fn: (card: any, i: number, left: number, top: number) => void);
@@ -285,7 +285,7 @@ module DeckLayout {
         width ? : number;
         height ? : number;
         visibility ? : string; // any, faceup, facedown
-        showcount ? : boolean;
+        count ? : number;
     }
 
     interface TopLeft {
@@ -302,62 +302,58 @@ module DeckLayout {
 var DeckLayoutElement = null;
 
 if (typeof window !== 'undefined') {
-    var DeckLayoutPrototype = Object.create(HTMLElement.prototype);
+    function makeDeckLayoutInternal(elementOrElementsOrSelector: any) {
+        var elements = [];
+        if (typeof elementOrElementsOrSelector === 'string')
+            elements = [].slice.call(document.querySelectorAll(elementOrElementsOrSelector));
+        if (Array.isArray(elementOrElementsOrSelector))
+            elements = elementOrElementsOrSelector;
+        if (elementOrElementsOrSelector instanceof HTMLElement)
+            elements = [elementOrElementsOrSelector];
 
-    DeckLayoutPrototype.optionsList = ['layout', 'visibility', 'rotate', 'offsetx', 'offsety', 'align'];
+        for (var i = 0; i < elements.length; ++i) {
+            var element = elements[i];
+            var options = {};
 
-    DeckLayoutPrototype.createdCallback = function() {
-        var self = this;
-        this.options = {};
+            [].forEach.call(element.attributes, function(attr) {
+                options[attr.name] = attr.value;
+            });
 
-        [].forEach.call(this.attributes, function(attr) {
-            self.options[attr.name] = attr.value;
-        });
+            if (!('DeckLayout' in element)) {
+                element.DeckLayout = new DeckLayout(element, options);
 
-        this.DeckLayout = new DeckLayout(this, this.options);
-
-        this.observer = new MutationObserver(function(mutations) {
-            self.DeckLayout.forEach(DeckLayout.position);
-            self.DeckLayout.applyOptions();
-        });
-    };
-
-    DeckLayoutPrototype.attachedCallback = function() {
-        this.update();
-        this.observer.observe(this, {
-            childList: true
-        });
-    };
-
-    DeckLayoutPrototype.detachedCallback = function() {
-        this.observer.disconnect();
-    }
-
-    DeckLayoutPrototype.attributeChangedCallback = function(attrName: string, oldVal, newVal) {
-        if (DeckLayoutPrototype.optionsList.indexOf(attrName) !== -1) {
-            this.options[attrName] = newVal;
-
-            this.DeckLayout.setOptions(this.options);
-            this.DeckLayout.applyOptions();
+                var observer = new MutationObserver(updateDeckLayout.bind(element));
+                observer.observe(element, {
+                    childList: true,
+                    attributes: true
+                });
+            } else {
+                element.DeckLayout.setOptions(options);
+            }
+            updateDeckLayout.call(element);
         }
     }
 
-    DeckLayoutPrototype.forEach = function(cardsOrFn: any, fn ? : (card: any, i: number, left: number, top: number) => void) {
-        this.DeckLayout.forEach(cardsOrFn, fn);
-    }
+    function updateDeckLayout(mutation) {
+        var deckLayout = this.DeckLayout;
+        var options = {};
 
-    DeckLayoutPrototype.getIndex = function(x: number, y: number, count: number, cardWidth: number, cardHeight: number): number {
-        return this.DeckLayout.getIndex(x, y, count, cardWidth, cardHeight);
-    }
-
-    DeckLayoutPrototype.update = function() {
-        this.DeckLayout.forEach(DeckLayout.position);
-        this.DeckLayout.applyOptions();
-    }
-
-    if ('registerElement' in document) {
-        DeckLayoutElement = document.registerElement('deck-layout', {
-            prototype: DeckLayoutPrototype
+        [].forEach.call(this.attributes, function(attr) {
+            options[attr.name] = attr.value;
         });
+        deckLayout.setOptions(options);
+        deckLayout.forEach(DeckLayout.position);
+        deckLayout.applyOptions();
     }
+}
+
+/*export*/
+function makeDeckLayout(selector: string);
+/*export*/
+function makeDeckLayout(element: HTMLElement);
+/*export*/
+function makeDeckLayout(elements: HTMLElement[]);
+/*export*/
+function makeDeckLayout(elementOrElementsOrSelector: any) {
+    makeDeckLayoutInternal(elementOrElementsOrSelector);
 }

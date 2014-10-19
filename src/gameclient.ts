@@ -142,6 +142,9 @@ module Game {
                 if (!card)
                     break; // no cards at this location, or no cards remaining
 
+                // in case from was null, get the position from the card
+                from = card.location;
+
                 var index = to.addCard(card, moveRule.toPosition);
 
                 var moveCommand = {
@@ -149,6 +152,7 @@ module Game {
                     id: moveRule.id,
                     cardId: card.id,
                     toId: to.id,
+                    fromId: (from ? from.id : -1),
                     index: index
                 };
                 batch.commands.push(moveCommand);
@@ -266,7 +270,7 @@ module Game {
             super.setup();
 
             var self = this;
-            var layoutElements = self.boardElem.querySelectorAll('deck-layout');
+            var layoutElements = self.boardElem.querySelectorAll('.deck-layout');
             [].forEach.call(layoutElements, function(element) {
                 var name = element.getAttribute('name');
                 var altName = self.applyVariables(name);
@@ -381,14 +385,12 @@ module Game {
                 var command = commands[i];
                 if (command.type === 'move' && showEvents) {
                     var moveCommand = < MoveCommand > command;
-                    var card: any = this.board.queryCards(moveCommand.cardId.toString());
-                    card = (card.length > 0 ? card[0] : null);
-                    var from = (card ? card.location : null);
-                    var to: any = this.board.queryLocations(moveCommand.toId.toString());
-                    to = (to.length > 0 ? to[0] : null);
+                    var card = this.board.queryFirstCard(moveCommand.cardId.toString());
+                    var from = this.board.queryFirstLocation(moveCommand.fromId.toString());
+                    var to = this.board.queryFirstLocation(moveCommand.toId.toString());
+                    var cardElem = (card ? this.cardElem[card.id] : null);
                     var fromElem = (from ? this.locationElem[from.id] : null);
                     var toElem = (to ? this.locationElem[to.id] : null);
-                    var cardElem = (card ? this.cardElem[card.id] : null);
 
                     if (fromElem) {
                         var event: CustomEvent = new( < any > CustomEvent)('removeCard', {
@@ -412,8 +414,14 @@ module Game {
                         toElem.dispatchEvent(event);
                     }
 
+                    if (to && toElem.hasAttribute('count'))
+                        toElem.setAttribute('count', to.getNumCards().toString());
+
+                    if (from && fromElem.hasAttribute('count'))
+                        fromElem.setAttribute('count', from.getNumCards().toString());
+
                     if (toElem && cardElem)
-                        toElem.appendChild(cardElem)
+                        toElem.appendChild(cardElem);
 
                     // have a global flag which tracks when any human client on this
                     // machine updates it's rule, so we don't dispatch the events multiple
