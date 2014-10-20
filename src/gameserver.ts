@@ -7,10 +7,10 @@ module Game {
         private rulesIter: any;
         private proxies: BaseServerProxy[] = [];
 
-        rulesGen: (board: Board) => {
+        rulesGen: (game: any, board: Board) => {
             next(...args: any[]): any
         };
-        newGameGen: (board: Board) => {
+        newGameGen: (game: any, board: Board) => {
             next(...args: any[]): any
         };
         setupFunc: (board: Board) => void;
@@ -49,12 +49,12 @@ module Game {
 
         newGame() {
             if (typeof this.newGameGen === 'function')
-                this.rulesIter = this.newGameGen(this.board);
+                this.rulesIter = this.newGameGen(Game, this.board);
 
             this.step(); // don't have user rules in the newGame!!!
 
             if (typeof this.rulesGen === 'function')
-                this.rulesIter = this.rulesGen(this.board);
+                this.rulesIter = this.rulesGen(Game, this.board);
 
             this.step();
         }

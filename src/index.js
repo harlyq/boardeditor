@@ -1,8 +1,9 @@
 // node server
 var Game = require('./finalgame');
 console.log(Game);
-var mancala = require('./mancala');
-console.log(mancala);
+var mancalaSetup = require('./mancala_setup');
+var mancalaGame = require('./mancala_game');
+console.log(mancalaSetup);
 
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -41,7 +42,6 @@ app.get('/moves', function(req, res) {
     console.log('/moves?userNames=' + userNames + '&afterId=' + afterId);
 
     var proxies = server.getProxies(userNames);
-    console.log(proxies.length);
     for (var i = 0; i < proxies.length; ++i)
         res.send(JSON.stringify(proxies[i].clientRequest(afterId)));
 });
@@ -70,5 +70,7 @@ var host = app.listen(3000, function() {
     console.log('Listening on port ' + host.address().port);
 });
 
-var server = new Game.createServer(mancala, config);
+var server = new Game.createServer(mancalaSetup, config);
+server.newGameGen = mancalaGame.newGameGen;
+server.rulesGen = mancalaGame.rulesGen;
 server.newGame();

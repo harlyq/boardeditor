@@ -2,5 +2,7 @@ src/*.js
 src/bootstrap-3.2.0-dist/*
 node_modules/*
 !src/mancala.js
-!src/boardx.js
+!src/mancala_game.js
+!src/mancala_setup.js
+!src/gamex.js
 !src/index.js

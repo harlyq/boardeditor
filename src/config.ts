@@ -162,11 +162,8 @@ module Game {
         bankClient.setup();
 
         server.setupFunc = game.setupFunc;
-        server.newGameGen = game.newGameGen;
-        server.rulesGen = game.rulesGen;
 
         server.setup();
-        // server.newGame();
 
         return server;
     }

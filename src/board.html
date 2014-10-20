@@ -2,10 +2,11 @@
 <html>
 
 <head>
+    <!--script src="http://192.168.2.18:8080/target/target-script-min.js"></script-->
     <!--script src="platform.js" type="text/javascript"></script-->
-    <script src="interact.js" type="text/javascript"></script>
+    <!--script src="interact.js" type="text/javascript"></script-->
     <script src="finalgame.js" type="text/javascript"></script>
-    <script src="mancala.js" type="text/javascript"></script>
+    <script src="mancala_setup.js" type="text/javascript"></script>
 
     <script>
     // $('#myTab a').click(function(e) {
@@ -102,7 +103,7 @@
     // var move2 = move("a", "b").user("you");
     // var move3 = move().from("first").to("second").user("them");
 
-    var myGame = mancala(); // for whereList and setup
+    var mySetup = mancalaSetup(); // for whereList and setup
     var myConfig = null;
 
     // TODO put this in config.ts
@@ -113,7 +114,7 @@
 
         switch (msg.type) {
             case 'mancala':
-                myConfig = Game.createClients('common', document.getElementById('board'), myGame, msg);
+                myConfig = Game.createClients('common', document.getElementById('board'), mySetup, msg);
                 break;
 
             case 'updateCommands':
@@ -151,7 +152,7 @@
         req.onload = function() {
             msg = JSON.parse(this.response);
             if ('type' in msg && msg.type === 'mancala')
-                myConfig = Game.createClients('common', document.getElementById('board'), myGame, msg);
+                myConfig = Game.createClients('common', document.getElementById('board'), mySetup, msg);
         };
         req.open('GET', 'config?screen=common'); // this board layout
         req.setRequestHeader('Content-Type', 'application/json');

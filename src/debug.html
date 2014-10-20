@@ -15,7 +15,8 @@
     <script src="proxy.js" type="text/javascript"></script>
     <script src="rule2.js" type="text/javascript"></script-->
     <script src="finalgame.js" type="text/javascript"></script>
-    <script src="mancala.js" type="text/javascript"></script>
+    <script src="mancala_setup.js" type="text/javascript"></script>
+    <script src="mancala_game.js" type="text/javascript"></script>
 
     <script>
     // will fail if generators not supported
@@ -24,7 +25,8 @@
     }
 
     window.addEventListener('load', function(e) {
-        var myGame = mancala(); // for whereList and setup
+        var mySetup = mancalaSetup();
+        var myGame = mancalaGame(mySetup); // for whereList and setup
 
         var config = {
             type: 'mancala',
