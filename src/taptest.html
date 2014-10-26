@@ -2,10 +2,21 @@
 <html>
 
 <head>
+    <script src="interact.js" type="text/javascript"></script>
     <script src="TweenMax.js" type="text/javascript"></script>
     <script>
     var values = {};
     var flipTimeline = null;
+
+    var logElem = null;
+
+    function log(msg) {
+        if (!logElem)
+            logElem = document.getElementById('log');
+
+        msg += "<br/>" + logElem.innerHTML;
+        logElem.innerHTML = msg.substr(0, 200);
+    }
 
     function loadSVG(e) {
         var file = e.target.files[0];
@@ -41,6 +52,7 @@
                 y = points[i + 1];
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
+
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
         }
@@ -52,8 +64,8 @@
         };
     }
 
-    var lineMoveRE = /^[lm] *(\d*\.?\d*)[ ,](\d*\.?\d*) */i;
-    var cornerRE = /^c *(\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,] */i;
+    var lineMoveRE = /^[lLmM] *(\d*\.?\d*)[ ,](\d*\.?\d*) */;
+    var cornerRE = /^[cC] *(\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,] */;
 
     function extractRectangles(svgElem) {
         var paths = svgElem.querySelectorAll("path");
@@ -61,9 +73,11 @@
         [].forEach.call(paths, function(pathElem) {
             var d = pathElem.getAttribute("d");
             //var commands = d.split(" ");
-            var lastX, lastY;
+            var lastX = 0,
+                lastY = 0;
             var points = [];
             var processing = true;
+
             while (processing && d) {
                 var result = d.match(lineMoveRE);
                 if (result) {
@@ -88,6 +102,14 @@
                     var y2 = parseFloat(result[4]);
                     var x = parseFloat(result[5]);
                     var y = parseFloat(result[6]);
+                    if (command === 'c') {
+                        x1 += lastX;
+                        y1 += lastY;
+                        x2 += lastX;
+                        y2 += lastY;
+                        x += lastX;
+                        y += lastY;
+                    }
                     points.push(x1, y1, x2, y2, x, y);
                     lastX = x;
                     lastY = y;
@@ -96,32 +118,6 @@
                 }
                 processing = false;
             }
-
-            // for (var i = 0; i < commands.length; ++i) {
-            //     var command = commands[i];
-
-            //     var coord = command.substr(1).split(',');
-            //     if (coord.length !== 2)
-            //         continue;
-
-            //     var x = parseFloat(coord[0]);
-            //     var y = parseFloat(coord[1]);
-
-            //     switch (command[0]) {
-            //         case 'M':
-            //         case 'L':
-            //             points.push(x, y);
-            //             lastX = x;
-            //             lastY = y;
-            //             break;
-            //         case 'm':
-            //         case 'l':
-            //             points.push(x + lastX, y + lastY);
-            //             lastX += x;
-            //             lastY += y;
-            //             break;
-            //     }
-            // }
 
             var bounds = getBounds(points);
             var div = document.createElement("div");
@@ -135,6 +131,10 @@
     }
 
     window.addEventListener("load", function(e) {
+        interact("#interact")
+            .on("tap doubletap hold swipe movestart moveend move", function(e) {
+                log(e.type);
+            });
         document.getElementById("loadSVG").addEventListener("change", loadSVG);
 
         document.getElementById("tap").addEventListener("click", function(e) {
@@ -220,7 +220,7 @@
 
             TweenMax.to(e.target, 0.25, {
                 css: {
-                    x: (i === -1 ? 20 : 0)
+                    y: (i === -1 ? 20 : 0)
                 }
             });
         };
@@ -241,6 +241,9 @@
         text-align: center;
         line-height: 140px;
         color: red;
+        display: inline-block;
+        user-select: none;
+        -webkit-user-select: none;
     }
     .facedown {
         background-color: lightBlue;
@@ -259,13 +262,18 @@
 <body>
     <input id="loadSVG" type="file"></input>
     <div id="svg"></div>
+    <div></div>
     <div id="tap" class="card">TAP</div>
     <div id="flip" class="card">FLIP</div>
     <div id="zoom" class="card">ZOOM</div>
     <div id="drag" class="card">DRAG</div>
+    <div></div>
     <div id="pick1" class="card">PICK</div>
     <div id="pick2" class="card">PICK</div>
     <div id="pick3" class="card">PICK</div>
+    <div></div>
+    <div id="interact" class="card">INTERACT</div>
+    <div id="log"></div>
     <!--img src="Love Letter.svg" alt="boardgame picture"-->
 </body>
 
