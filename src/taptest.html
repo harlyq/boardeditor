@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="TweenMax.js" type="text/javascript"></script>
+    <script>
+    var values = {};
+    var flipTimeline = null;
+
+    function loadSVG(e) {
+        var file = e.target.files[0];
+        e.target.value = "";
+        if (!file)
+            return;
+
+        var reader = new FileReader();
+        var picture = null;
+        reader.onloadend = function(e) {
+            var svgElem = document.getElementById("svg");
+            svgElem.innerHTML = reader.result;
+            // if (picture) {
+            //     picture.setSVG(reader.result);
+            //     return;
+            // }
+
+            // picture = pictureTool.addPicture(reader.result);
+            // if (reader.result.substr(0, 19) == 'data:image/svg+xml;')
+            //     reader.readAsText(file); // re-read the svg
+            extractRectangles(svgElem);
+        }
+        reader.readAsText(file);
+    }
+
+    function getBounds(points) {
+        var minX = 10e10,
+            minY = 10e10,
+            maxX = -10e10,
+            maxY = -10e10;
+        for (var i = 0; i < points.length; i += 2) {
+            var x = points[i],
+                y = points[i + 1];
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+        }
+        return {
+            minX: minX,
+            minY: minY,
+            maxX: maxX,
+            maxY: maxY
+        };
+    }
+
+    var lineMoveRE = /^[lm] *(\d*\.?\d*)[ ,](\d*\.?\d*) */i;
+    var cornerRE = /^c *(\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,](\d*\.?\d*)[ ,] */i;
+
+    function extractRectangles(svgElem) {
+        var paths = svgElem.querySelectorAll("path");
+
+        [].forEach.call(paths, function(pathElem) {
+            var d = pathElem.getAttribute("d");
+            //var commands = d.split(" ");
+            var lastX, lastY;
+            var points = [];
+            var processing = true;
+            while (processing && d) {
+                var result = d.match(lineMoveRE);
+                if (result) {
+                    var x = parseFloat(result[1]);
+                    var y = parseFloat(result[2]);
+                    var command = result[0][0];
+                    if (command === 'm' || command === 'l') {
+                        x += lastX;
+                        y += lastY;
+                    }
+                    points.push(x, y);
+                    lastX = x;
+                    lastY = y;
+                    d = d.substr(result[0].length);
+                    continue;
+                }
+                result = d.match(cornerRE);
+                if (result) {
+                    var x1 = parseFloat(result[1]);
+                    var y1 = parseFloat(result[2]);
+                    var x2 = parseFloat(result[3]);
+                    var y2 = parseFloat(result[4]);
+                    var x = parseFloat(result[5]);
+                    var y = parseFloat(result[6]);
+                    points.push(x1, y1, x2, y2, x, y);
+                    lastX = x;
+                    lastY = y;
+                    d = d.substr(result[0].length);
+                    continue;
+                }
+                processing = false;
+            }
+
+            // for (var i = 0; i < commands.length; ++i) {
+            //     var command = commands[i];
+
+            //     var coord = command.substr(1).split(',');
+            //     if (coord.length !== 2)
+            //         continue;
+
+            //     var x = parseFloat(coord[0]);
+            //     var y = parseFloat(coord[1]);
+
+            //     switch (command[0]) {
+            //         case 'M':
+            //         case 'L':
+            //             points.push(x, y);
+            //             lastX = x;
+            //             lastY = y;
+            //             break;
+            //         case 'm':
+            //         case 'l':
+            //             points.push(x + lastX, y + lastY);
+            //             lastX += x;
+            //             lastY += y;
+            //             break;
+            //     }
+            // }
+
+            var bounds = getBounds(points);
+            var div = document.createElement("div");
+            div.style.left = bounds.minX + "px";
+            div.style.top = bounds.minY + "px";
+            div.style.width = bounds.maxX - bounds.minX + "px";
+            div.style.height = bounds.maxY - bounds.minY + "px";
+            div.classList.add("bound");
+            svgElem.appendChild(div);
+        });
+    }
+
+    window.addEventListener("load", function(e) {
+        document.getElementById("loadSVG").addEventListener("change", loadSVG);
+
+        document.getElementById("tap").addEventListener("click", function(e) {
+            // toggle
+            values.tapped = !values.tapped;
+            TweenMax.to(e.target, 0.25, {
+                css: {
+                    rotation: (values.tapped ? 90 : 0)
+                }
+            });
+        });
+
+        document.getElementById("flip").addEventListener("click", function(e) {
+            // toggle
+            if (flipTimeline) {
+                flipTimeline.reversed(!flipTimeline.reversed());
+            } else {
+                flipTimeline = new TimelineMax()
+                    .to(e.target, 0.125, {
+                        css: {
+                            rotationY: 90
+                        },
+                        onComplete: function() {
+                            e.target.classList.add("facedown");
+                        }
+                    })
+                    .to(e.target, 0.125, {
+                        css: {
+                            rotationY: 180
+                        },
+                        onReverseComplete: function() {
+                            e.target.classList.remove("facedown");
+                        }
+                    });
+            }
+        });
+
+        document.getElementById("zoom").addEventListener("click", function(e) {
+            // toggle
+            values.zoomed = !values.zoomed;
+            TweenMax.to(e.target, 0.25, {
+                css: {
+                    scale: (values.zoomed ? 1.75 : 1)
+                }
+            })
+        });
+
+        var dragElem = document.getElementById("drag");
+        var oldX, oldY;
+        values.dx = 0;
+        values.dy = 0;
+        var dragDown = function(e) {
+            e.preventDefault();
+            oldX = e.clientX - values.dx;
+            oldY = e.clientY - values.dy;
+            document.addEventListener("mousemove", dragMove);
+            document.addEventListener("mouseup", dragUp);
+        };
+        var dragMove = function(e) {
+            e.preventDefault();
+            values.dx = e.clientX - oldX;
+            values.dy = e.clientY - oldY;
+            dragElem.style.transform = "translate(" + values.dx + "px, " + values.dy + "px)";
+        };
+        var dragUp = function(e) {
+            e.preventDefault();
+            document.removeEventListener("mousemove", dragMove);
+            document.removeEventListener("mouseup", dragUp);
+        }
+
+        dragElem.addEventListener("mousedown", dragDown);
+        values.picked = [];
+
+        var pickClick = function(e) {
+            e.preventDefault();
+
+            // toggle
+            var i = values.picked.indexOf(e.target);
+            if (i === -1)
+                values.picked.push(e.target);
+            else
+                values.picked.splice(i, 1);
+
+            TweenMax.to(e.target, 0.25, {
+                css: {
+                    x: (i === -1 ? 20 : 0)
+                }
+            });
+        };
+
+        document.getElementById("pick1").addEventListener("click", pickClick);
+        document.getElementById("pick2").addEventListener("click", pickClick);
+        document.getElementById("pick3").addEventListener("click", pickClick);
+    });
+    </script>
+
+    <style>
+    .card {
+        margin: 20px;
+        width: 100px;
+        height: 140px;
+        outline: 1px solid red;
+        cursor: pointer;
+        text-align: center;
+        line-height: 140px;
+        color: red;
+    }
+    .facedown {
+        background-color: lightBlue;
+    }
+    .bound {
+        position: absolute;
+        outline: 2px solid red;
+    }
+    #svg {
+        display: inline-block;
+        position: relative;
+    }
+    </style>
+</head>
+
+<body>
+    <input id="loadSVG" type="file"></input>
+    <div id="svg"></div>
+    <div id="tap" class="card">TAP</div>
+    <div id="flip" class="card">FLIP</div>
+    <div id="zoom" class="card">ZOOM</div>
+    <div id="drag" class="card">DRAG</div>
+    <div id="pick1" class="card">PICK</div>
+    <div id="pick2" class="card">PICK</div>
+    <div id="pick3" class="card">PICK</div>
+    <!--img src="Love Letter.svg" alt="boardgame picture"-->
+</body>
+
+</html>
