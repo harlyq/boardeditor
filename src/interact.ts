@@ -339,6 +339,8 @@ class Interact {
             clickInfo.moved = false;
             clickInfo.target.dispatchEvent(event);
         }
+
+        clickInfo.swiped = false;
     }
 
     private holdExpired(clickInfo) {
