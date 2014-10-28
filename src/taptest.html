@@ -159,6 +159,25 @@
             .on("tap doubletap hold swipe movestart moveend move", function(e) {
                 log(e.type);
             });
+
+        interact("#dropdrag")
+            .moveable(true)
+            .on("move", function(e) {
+                var target = e.target;
+                target.dx = (target.dx || 0) + e.detail.dx;
+                target.dy = (target.dy || 0) + e.detail.dy;
+
+                var translate = 'translate(' + target.dx + 'px, ' + target.dy + 'px)';
+                e.target.style.transform = translate;
+                e.target.style.webkitTransform = translate;
+            });
+
+        interact(".dropzone")
+            .dropzone("#dropdrag")
+            .on("drop dropover dropenter dropleave dropactivate dropdeactivate", function(e) {
+                log(e.type);
+            });
+
         document.getElementById("loadSVG").addEventListener("change", loadSVG);
 
         document.getElementById("tap").addEventListener("click", function(e) {
@@ -299,16 +318,21 @@
     <div id="flip" class="card">FLIP</div>
     <div id="zoom" class="card">ZOOM</div>
     <div id="drag" class="card">DRAG</div>
-    <div id="layout" class="layout" baseline="top" padding="-50">
+    <div id="layout" class="layout" baseline="middle" offset="-50">
         <div id="pick1" class="card">PICK</div>
         <div id="pick2" class="card">PICK</div>
         <div id="pick3" class="card">PICK</div>
     </div>
-    <div id="layout2" class="layout" align="centered" padding="-20">
+    <div id="layout2" class="layout" layout="random" align="left" offsetx="3" offsety="3" baseline="middle">
         <div class="card">CARD 1</div>
         <div class="card">CARD 2</div>
+        <div class="card">CARD 3</div>
+        <div class="card">CARD 4</div>
     </div>
     <div id="interact" class="card">INTERACT</div>
+    <div id="dropdrag" class="card">DROPDRAG</div>
+    <div class="dropzone card">DROPZONE</div>
+    <div class="dropzone card">DROPZONE 2</div>
     <div id="log"></div>
     <!--img src="Love Letter.svg" alt="boardgame picture"-->
 </body>

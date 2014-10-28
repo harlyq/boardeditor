@@ -2,7 +2,8 @@ interface LayoutOptions {
     layout ? : string;
     align ? : string;
     baseline ? : string;
-    padding ? : string;
+    offsetx ? : string;
+    offsety ? : string;
     positionWith ? : (target: HTMLElement, x: number, y: number) => void;
 }
 
@@ -11,9 +12,10 @@ class Layout {
     private _layout: string = 'fan';
     private _align: string = 'left';
     private _baseline: string = 'middle';
-    private _padding: string = '0';
+    private _offsetx: string = '0';
+    private _offsety: string = '0';
     private _positionWith: (target: HTMLElement, x: number, y: number) => void = Layout.topLeft;
-    private attributeList: string[] = ['layout', 'align', 'baseline', 'padding']
+    private attributeList: string[] = ['layout', 'align', 'baseline', 'offsetx', 'offsety'];
 
     static topLeft = function(target: HTMLElement, x: number, y: number) {
         target.style.position = 'absolute';
@@ -59,14 +61,18 @@ class Layout {
         return this;
     }
 
-    padding(value: string): Layout {
-        this._padding = value;
+    offsetx(value: string): Layout {
+        this._offsetx = value;
+        return this;
+    }
+
+    offsety(value: string): Layout {
+        this._offsety = value;
         return this;
     }
 
     positionWith(func: (target: HTMLElement, x: number, y: number) => void): Layout {
         this._positionWith = func;
-        this.refresh();
         return this;
     }
 
@@ -81,6 +87,15 @@ class Layout {
 
         if ('positionWith' in options)
             this._positionWith = options.positionWith;
+    }
+
+    refresh(elem ? : HTMLElement) {
+        if (typeof elem !== 'undefined') {
+            this.refresh(elem);
+        } else {
+            for (var i = 0; i < this.elems.length; ++i)
+                this.refreshElement(this.elems[i]);
+        }
     }
 
     private onMutate(mutations) {
@@ -113,16 +128,101 @@ class Layout {
         }
     }
 
-    refresh(elem ? : HTMLElement) {
-        if (typeof elem !== 'undefined') {
-            this.refresh(elem);
-        } else {
-            for (var i = 0; i < this.elems.length; ++i)
-                this.refreshElement(this.elems[i]);
+    private refreshElement(elem: HTMLElement) {
+        if (!elem || elem.children.length === 0)
+            return; // nothing to layout
+
+        switch (elem.getAttribute('layout') || this._layout) {
+            case 'fan':
+                this.refreshFan(elem);
+                break;
+
+            case 'stack':
+                this.refreshStack(elem);
+                break;
+
+            case 'random':
+                this.refreshRandom(elem);
+                break;
+
+            case 'grid':
+                this.refreshGrid(elem);
+                break;
         }
     }
 
-    private refreshElement(elem: HTMLElement) {
+    private getElementSize(elem: HTMLElement) {
+        var style = getComputedStyle(elem),
+            rect = elem.getBoundingClientRect();
+
+        return {
+            width: rect.width + parseInt(style.marginLeft) + parseInt(style.marginRight),
+            height: rect.height + parseInt(style.marginTop) + parseInt(style.marginBottom)
+        };
+    }
+
+    private refreshStack(elem: HTMLElement) {
+        var totalWidth = elem.offsetWidth,
+            totalHeight = elem.offsetHeight,
+            numChildren = elem.children.length;
+
+        var align = elem.getAttribute('align') || this._align,
+            offsetx = parseFloat(elem.getAttribute('offsetx') || this._offsetx),
+            offsety = parseFloat(elem.getAttribute('offsety') || this._offsety),
+            baseline = elem.getAttribute('baseline') || this._baseline;
+
+        for (var i = 0; i < numChildren; ++i) {
+            var child = < HTMLElement > elem.children[i],
+                x = 0,
+                y = 0,
+                dimensions = this.getElementSize(child),
+                dx = totalWidth - dimensions.width,
+                dy = totalHeight - dimensions.height;
+
+            switch (align) {
+                //case 'left':
+                case 'right':
+                    x = dx;
+                    break;
+                case 'centered':
+                case 'justified':
+                    x = dx / 2;
+                    break;
+            }
+            switch (baseline) {
+                //case 'top':
+                case 'bottom':
+                    y = dy;
+                    break;
+                case 'middle':
+                    y = dy / 2;
+                    break;
+            }
+            x += offsetx * i;
+            y += offsety * i;
+
+            this._positionWith.call(this, child, x, y);
+        }
+    }
+
+    private refreshGrid(elem: HTMLElement) {}
+
+    private refreshRandom(elem: HTMLElement) {
+        var totalWidth = elem.offsetWidth,
+            totalHeight = elem.offsetHeight,
+            numChildren = elem.children.length;
+
+        for (var i = 0; i < numChildren; ++i) {
+            var child = < HTMLElement > (elem.children[i]),
+                dimensions = this.getElementSize(child),
+                x = Math.random() * (totalWidth - dimensions.width),
+                y = Math.random() * (totalHeight - dimensions.height);
+
+            this._positionWith.call(this, child, x, y);
+        }
+    }
+
+    private refreshFan(elem: HTMLElement) {
         var totalWidth = elem.offsetWidth,
             totalHeight = elem.offsetHeight,
             childWidths: number[] = [],
@@ -131,24 +231,17 @@ class Layout {
             numChildren = elem.children.length;
 
         var align = elem.getAttribute('align') || this._align,
-            padding = elem.getAttribute('padding') || this._padding,
-            baseline = elem.getAttribute('baseline') || this._baseline,
-            layout = elem.getAttribute('layout') || this._layout;
-
-        if (numChildren === 0)
-            return; // nothing to layout
+            offsetx = elem.getAttribute('offsetx') || this._offsetx,
+            offsety = parseFloat(elem.getAttribute('offsety') || this._offsety),
+            baseline = elem.getAttribute('baseline') || this._baseline;
 
         for (var i = 0; i < numChildren; ++i) {
             var child = < HTMLElement > (elem.children[i]),
-                style = getComputedStyle(child),
-                rect = child.getBoundingClientRect();
+                dimensions = this.getElementSize(child);
 
-            var childWidth = rect.width + parseInt(style.marginLeft) + parseInt(style.marginRight),
-                childHeight = rect.height + parseInt(style.marginTop) + parseInt(style.marginBottom);
-
-            childHeights.push(childHeight);
-            childWidths.push(childWidth);
-            totalChildWidth += childWidth;
+            childHeights.push(dimensions.height);
+            childWidths.push(dimensions.width);
+            totalChildWidth += dimensions.width;
         }
 
         var delta = totalWidth - totalChildWidth,
@@ -159,7 +252,7 @@ class Layout {
             delta = delta / (numChildren - 1);
 
         if (align !== 'justified')
-            delta = Math.min(delta, parseFloat(padding));
+            delta = Math.min(delta, parseFloat(offsetx));
 
         switch (align) {
             // case 'left':
@@ -185,10 +278,16 @@ class Layout {
                     break;
             }
 
+            y += offsety * i;
+
             this._positionWith.call(this, child, x, y);
 
             x += childWidths[i] + delta;
         }
+    }
+
+    private positionRotated(target: HTMLElement, x: number, y: number) {
+
     }
 }
 
