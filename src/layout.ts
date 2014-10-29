@@ -19,8 +19,8 @@ class Layout {
 
     static topLeft = function(target: HTMLElement, x: number, y: number) {
         target.style.position = 'absolute';
-        target.style.left = x + 'px';
-        target.style.top = y + 'px';
+        target.style.left = ~~x + 'px';
+        target.style.top = ~~y + 'px';
     }
 
     constructor(selector: string, options ? : LayoutOptions);
@@ -98,9 +98,59 @@ class Layout {
         }
     }
 
+    // return the index of the child closest to the co-ordinates (relative to the top, left of the element)
+    static getIndex(elem: HTMLElement, x: number, y: number): number {
+        var numChildren = (elem ? elem.children.length : 0);
+        if (numChildren === 0)
+            return -1;
+
+        var indexLeft = -1,
+            diffLeft = 1e10,
+            indexTop = -1,
+            diffTop = 1e10,
+            deltaTop = 0,
+            deltaLeft = 0,
+            lastTop = 0,
+            lastLeft = 0;
+
+        var rect = elem.getBoundingClientRect();
+        x += rect.left;
+        y += rect.top;
+
+        // work backwards because the last child appears on top
+        for (var i = numChildren - 1; i >= 0; --i) {
+            var child = elem.children[i];
+
+            rect = child.getBoundingClientRect();
+            deltaTop = Math.abs(rect.top - lastTop);
+            deltaLeft = Math.abs(rect.left - lastLeft);
+            lastTop = rect.top;
+            lastLeft = rect.left;
+
+            // use the card mid point so index changes to the right/bottom of the midpoint
+            var top = y - (rect.top + rect.bottom) / 2,
+                left = x - (rect.left + rect.right) / 2;
+
+            if (left > 0 && left < diffLeft) {
+                diffLeft = left;
+                indexLeft = i;
+            }
+            if (top > 0 && top < diffTop) {
+                diffTop = top;
+                indexTop = i;
+            }
+        }
+
+        if (deltaTop > deltaLeft)
+            return indexTop; // cards are oriented top to bottom
+        else
+            return indexLeft; // cards are oriented left to right
+    }
+
     private onMutate(mutations) {
-        var dirty = false;
-        var targets = [];
+        var dirty = false,
+            targets = [],
+            self = this;
 
         mutations.forEach(function(mutation) {
             var dirtyMutant = false;
@@ -108,7 +158,7 @@ class Layout {
             switch (mutation.type) {
                 case 'attributes':
                     var attr = mutation.attributeName;
-                    dirtyMutant = this.attributeList.indexOf(attr) !== -1;
+                    dirtyMutant = self.attributeList.indexOf(attr) !== -1;
                     break;
 
                 case 'childList':

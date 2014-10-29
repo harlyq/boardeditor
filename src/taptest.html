@@ -72,19 +72,18 @@
         var paths = svgElem.querySelectorAll("path");
 
         [].forEach.call(paths, function(pathElem) {
-            var d = pathElem.getAttribute("d");
-            //var commands = d.split(" ");
-            var lastX = 0,
-                lastY = 0;
-            var points = [];
-            var processing = true;
+            var d = pathElem.getAttribute("d"),
+                lastX = 0,
+                lastY = 0,
+                points = [],
+                processing = true;
 
             while (processing && d) {
                 var result = d.match(lineMoveRE);
                 if (result) {
-                    var x = parseFloat(result[1]);
-                    var y = parseFloat(result[2]);
-                    var command = result[0][0];
+                    var x = parseFloat(result[1]),
+                        y = parseFloat(result[2]),
+                        command = result[0][0];
                     if (command === 'm' || command === 'l') {
                         x += lastX;
                         y += lastY;
@@ -97,12 +96,12 @@
                 }
                 result = d.match(cornerRE);
                 if (result) {
-                    var x1 = parseFloat(result[1]);
-                    var y1 = parseFloat(result[2]);
-                    var x2 = parseFloat(result[3]);
-                    var y2 = parseFloat(result[4]);
-                    var x = parseFloat(result[5]);
-                    var y = parseFloat(result[6]);
+                    var x1 = parseFloat(result[1]),
+                        y1 = parseFloat(result[2]),
+                        x2 = parseFloat(result[3]),
+                        y2 = parseFloat(result[4]),
+                        x = parseFloat(result[5]),
+                        y = parseFloat(result[6]);
                     if (command === 'c') {
                         x1 += lastX;
                         y1 += lastY;
@@ -120,8 +119,9 @@
                 processing = false;
             }
 
-            var bounds = getBounds(points);
-            var div = document.createElement("div");
+            var bounds = getBounds(points),
+                div = document.createElement("div");
+
             div.style.left = bounds.minX + "px";
             div.style.top = bounds.minY + "px";
             div.style.width = bounds.maxX - bounds.minX + "px";
@@ -143,9 +143,18 @@
         //     }
         // });
         TweenMax.to(target, 0.25, {
-            left: x,
-            top: y
+            left: ~~x,
+            top: ~~y
         });
+    }
+
+    function translate(target, dx, dy, absolute) {
+        target.dx = (absolute ? 0 : target.dx || 0) + dx;
+        target.dy = (absolute ? 0 : target.dy || 0) + dy;
+
+        var sTranslate = 'translate(' + target.dx + 'px, ' + target.dy + 'px)';
+        target.style.transform = sTranslate;
+        target.style.webkitTransform = sTranslate;
     }
 
     window.addEventListener("load", function(e) {
@@ -163,13 +172,60 @@
         interact("#dropdrag")
             .moveable(true)
             .on("move", function(e) {
-                var target = e.target;
-                target.dx = (target.dx || 0) + e.detail.dx;
-                target.dy = (target.dy || 0) + e.detail.dy;
+                translate(e.target, e.detail.dx, e.detail.dy);
+            });
 
-                var translate = 'translate(' + target.dx + 'px, ' + target.dy + 'px)';
-                e.target.style.transform = translate;
-                e.target.style.webkitTransform = translate;
+        var overIndex = 100,
+            indexLayout = document.getElementById("layout");
+
+        interact("#layout2 *")
+            .moveable(true)
+            .bubbles();
+
+        var dragCard = null;
+        document.querySelector("#layout2").addEventListener("move", function(e) {
+            dragCard = e.target;
+            translate(e.target, e.detail.dx, e.detail.dy);
+        });
+        // .on("movestart", function(e) {
+        //     console.log(e.currentTarget, e);
+        // });
+
+        var placeholder = document.querySelector("#placeholder");
+        interact("#layout")
+            .dropzone("#layout2 *")
+            .on("dropactivate", function(e) {
+                e.target.classList.add('highlight');
+            })
+            .on("dropdeactivate", function(e) {
+                e.target.classList.remove('highlight');
+            })
+            .on("dropover", function(e) {
+                var x = e.detail.x - e.target.offsetLeft,
+                    y = e.detail.y - e.target.offsetTop,
+                    index = Layout.getIndex(e.target, x, y);
+
+                if (index !== overIndex) {
+                    // will be null if the index was the last child
+                    var replaceChild = e.currentTarget.children[index + 1];
+
+                    if (replaceChild !== placeholder)
+                        e.currentTarget.insertBefore(placeholder, replaceChild);
+
+                    console.log(index);
+                    overIndex = index;
+                }
+            })
+            .on("drop", function(e) {
+                var dragTarget = e.detail.dragTarget;
+                translate(dragTarget, 0, 0, true);
+                e.currentTarget.insertBefore(dragTarget, placeholder);
+            })
+            .on("dropleave", function(e) {
+                if (placeholder.parentNode === e.currentTarget) {
+                    document.body.appendChild(placeholder);
+                    placeholder.style.position = 'relative';
+                }
             });
 
         interact(".dropzone")
@@ -225,10 +281,11 @@
             })
         });
 
-        var dragElem = document.getElementById("drag");
-        var oldX, oldY;
+        var dragElem = document.getElementById("drag"),
+            oldX, oldY;
         values.dx = 0;
         values.dy = 0;
+
         var dragDown = function(e) {
             e.preventDefault();
             oldX = e.clientX - values.dx;
@@ -307,6 +364,12 @@
         display: inline-block;
         position: relative;
     }
+    #placeholder {
+        background-color: red;
+    }
+    .layout.highlight {
+        outline: 3px solid purple;
+    }
     </style>
 </head>
 
@@ -334,6 +397,7 @@
     <div class="dropzone card">DROPZONE</div>
     <div class="dropzone card">DROPZONE 2</div>
     <div id="log"></div>
+    <div id="placeholder" class="card"></div>
     <!--img src="Love Letter.svg" alt="boardgame picture"-->
 </body>
 

@@ -26,12 +26,13 @@ interface TouchEvent extends Event {
 }
 
 interface ClickInfo {
-    target: EventTarget;
+    target: EventTarget; // element with interact listeners
     time: number;
     x: number;
     y: number;
     swiped: boolean;
     moved: boolean;
+    src: EventTarget; // original source
     holdTimer ? : number;
 }
 
@@ -237,8 +238,8 @@ class Interact {
 
     // mouse and touch
     private onMouseDown(e: MouseEvent) {
-        this.mouseTarget = e.target;
-        this.pointerStart(this.mouseTarget, e.pageX, e.pageY);
+        this.mouseTarget = e.currentTarget; // e.target;
+        this.pointerStart(this.mouseTarget, e.pageX, e.pageY, e.target);
         document.addEventListener('mousemove', this.mouseMoveHandler);
         document.addEventListener('mouseup', this.mouseUpHandler);
     }
@@ -247,11 +248,11 @@ class Interact {
         if (!this.mouseTarget)
             return;
 
-        this.pointerMove(this.mouseTarget, e.pageX, e.pageY);
+        this.pointerMove(this.mouseTarget, e.pageX, e.pageY, e.target);
     }
 
     private onMouseUp(e: MouseEvent) {
-        this.pointerEnd(this.mouseTarget, e.pageX, e.pageY);
+        this.pointerEnd(this.mouseTarget, e.pageX, e.pageY, e.target);
         this.mouseTarget = null;
         document.removeEventListener('mouseup', this.mouseUpHandler);
         document.removeEventListener('mousemove', this.mouseMoveHandler);
@@ -269,10 +270,10 @@ class Interact {
         if (!this.touchTarget) {
             document.addEventListener('touchmove', this.touchMoveHandler);
             document.addEventListener('touchend', this.touchEndHandler);
-            this.touchTarget = touch.target;
+            this.touchTarget = e.currentTarget; //touch.target;
         }
 
-        this.pointerStart(this.touchTarget, touch.pageX, touch.pageY);
+        this.pointerStart(this.touchTarget, touch.pageX, touch.pageY, touch.target);
     }
 
     private onTouchMove(e: TouchEvent) {
@@ -282,7 +283,7 @@ class Interact {
             return;
 
         var touch = e.changedTouches[0];
-        this.pointerMove(this.touchTarget, touch.pageX, touch.pageY);
+        this.pointerMove(this.touchTarget, touch.pageX, touch.pageY, touch.target);
     }
 
     private onTouchEnd(e: TouchEvent) {
@@ -292,7 +293,7 @@ class Interact {
             return;
 
         var touch = e.changedTouches[0];
-        this.pointerEnd(this.touchTarget, touch.pageX, touch.pageY);
+        this.pointerEnd(this.touchTarget, touch.pageX, touch.pageY, touch.target);
 
         if (e.touches.length === 0) {
             this.touchTarget = null;
@@ -302,9 +303,13 @@ class Interact {
     }
 
     // generalised pointer functions
-    private pointerStart(target, x, y) {
+    private pointerStart(target: EventTarget, x: number, y: number, src: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (clickInfo) {
+            // remove the event (holdTimer has already been disabled)
+            var i = this.clicks.indexOf(clickInfo);
+            this.clicks.splice(i, 1);
+
             var now = Date.now();
             if (this._doubletappable &&
                 clickInfo.time + this._doubleClickDelay > now &&
@@ -312,15 +317,11 @@ class Interact {
                 var event = this.newEvent('doubletap', {
                     x: clickInfo.x,
                     y: clickInfo.y,
-                    duration: now - clickInfo.time
+                    duration: now - clickInfo.time,
+                    src: src
                 });
                 target.dispatchEvent(event);
                 return;
-
-            } else {
-                // remove the event (holdTimer has already been disabled)
-                var i = this.clicks.indexOf(target);
-                this.clicks.splice(i, 1);
             }
         }
 
@@ -331,6 +332,7 @@ class Interact {
             y: y,
             swiped: false,
             moved: false,
+            src: src,
             holdTimer: -1
         }
         if (this._holdable)
@@ -341,7 +343,8 @@ class Interact {
         if (this._tappable) {
             var event = this.newEvent('tap', {
                 x: x,
-                y: y
+                y: y,
+                src: src
             });
             target.dispatchEvent(event);
         }
@@ -358,7 +361,7 @@ class Interact {
         this.lastY = y;
     }
 
-    private pointerMove(target: EventTarget, x: number, y: number) {
+    private pointerMove(target: EventTarget, x: number, y: number, src: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (!clickInfo)
             return;
@@ -386,7 +389,8 @@ class Interact {
                 y: y,
                 dx: dx,
                 dy: dy,
-                direction: direction
+                direction: direction,
+                src: clickInfo.src
             });
             clickInfo.swiped = true;
             clickInfo.target.dispatchEvent(event);
@@ -399,14 +403,16 @@ class Interact {
             if (firstMove)
                 event = this.newEvent('movestart', {
                     x: x,
-                    y: y
+                    y: y,
+                    src: clickInfo.src
                 });
             else
                 event = this.newEvent('move', {
                     x: x,
                     y: y,
                     dx: x - this.lastX,
-                    dy: y - this.lastY
+                    dy: y - this.lastY,
+                    src: clickInfo.src
                 });
             clickInfo.moved = true;
             clickInfo.target.dispatchEvent(event);
@@ -419,7 +425,7 @@ class Interact {
         this.lastY = y;
     }
 
-    private pointerEnd(target: EventTarget, x: number, y: number) {
+    private pointerEnd(target: EventTarget, x: number, y: number, src: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (!clickInfo)
             return;
@@ -492,8 +498,8 @@ class Interact {
         var overList: Element[] = [];
 
         // convert x,y to client co-ords
-        x -= document.body.scrollLeft; // + document.documentElement.scrollLeft;
-        y -= document.body.scrollTop; // + document.documentElement.scrollTop;
+        var cx = x - document.body.scrollLeft, // + document.documentElement.scrollLeft;
+            cy = y - document.body.scrollTop; // + document.documentElement.scrollTop;
 
         for (var i = 0; i < Interact.activeDropList.length; ++i) {
             var interact = Interact.activeDropList[i];
@@ -502,7 +508,7 @@ class Interact {
             for (var j = 0; j < interact.elems.length; ++j) {
                 var elem = interact.elems[j],
                     rect = elem.getBoundingClientRect(),
-                    overlap = x >= rect.left && x <= rect.right && y <= rect.bottom && y >= rect.top;
+                    overlap = cx >= rect.left && cx <= rect.right && cy <= rect.bottom && cy >= rect.top;
 
                 if (overlap)
                     overList.push(elem);
@@ -527,7 +533,9 @@ class Interact {
             over.dispatchEvent(event);
         } else if (over && this.dropzoneTarget === over) {
             var event = this.newEvent('dropover', {
-                dragTarget: target
+                dragTarget: target,
+                x: x,
+                y: y
             });
             over.dispatchEvent(event);
         }
@@ -563,7 +571,8 @@ class Interact {
     private holdExpired(clickInfo: ClickInfo) {
         var event = this.newEvent('hold', {
             x: clickInfo.x,
-            y: clickInfo.y
+            y: clickInfo.y,
+            src: clickInfo.src
         });
         clickInfo.target.dispatchEvent(event);
     }
