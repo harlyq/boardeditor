@@ -99,7 +99,7 @@ class Layout {
     }
 
     // return the index of the child closest to the co-ordinates (relative to the top, left of the element)
-    static getIndex(elem: HTMLElement, x: number, y: number): number {
+    static getIndex(elem: HTMLElement, x: number, y: number, ignoreChildren ? : HTMLElement[]): number {
         var numChildren = (elem ? elem.children.length : 0);
         if (numChildren === 0)
             return -1;
@@ -119,7 +119,9 @@ class Layout {
 
         // work backwards because the last child appears on top
         for (var i = numChildren - 1; i >= 0; --i) {
-            var child = elem.children[i];
+            var child = < HTMLElement > elem.children[i];
+            if (ignoreChildren && ignoreChildren.indexOf(child) !== -1)
+                continue;
 
             rect = child.getBoundingClientRect();
             deltaTop = Math.abs(rect.top - lastTop);
@@ -201,20 +203,48 @@ class Layout {
         }
     }
 
-    private getElementSize(elem: HTMLElement) {
-        var style = getComputedStyle(elem),
-            rect = elem.getBoundingClientRect();
+    // size
+    private getInnerSize(elem: HTMLElement) {
+        var style = window.getComputedStyle(elem);
+        return {
+            x: parseInt(style.paddingLeft),
+            y: parseInt(style.paddingTop),
+            width: parseInt(style.width),
+            height: parseInt(style.height)
+        };
+    }
+
+    // size +margin +border +padding
+    private getOuterSize(elem: HTMLElement) {
+        var style = window.getComputedStyle(elem),
+            rect = elem.getBoundingClientRect(),
+            marginLeft = parseInt(style.marginLeft),
+            marginTop = parseInt(style.marginTop);
 
         return {
-            width: rect.width + parseInt(style.marginLeft) + parseInt(style.marginRight),
-            height: rect.height + parseInt(style.marginTop) + parseInt(style.marginBottom)
+            x: -marginLeft,
+            y: -marginTop,
+            width: rect.width + marginLeft + parseInt(style.marginRight),
+            height: rect.height + marginTop + parseInt(style.marginBottom)
+        };
+    }
+
+    // size +border +padding
+    private getBorderSize(elem: HTMLElement) {
+        var rect = elem.getBoundingClientRect();
+        return {
+            x: 0,
+            y: 0,
+            width: rect.width,
+            height: rect.height
         };
     }
 
     private refreshStack(elem: HTMLElement) {
-        var totalWidth = elem.offsetWidth,
-            totalHeight = elem.offsetHeight,
-            numChildren = elem.children.length;
+        var numChildren = elem.children.length,
+            layoutSize = this.getInnerSize(elem),
+            totalWidth = layoutSize.width,
+            totalHeight = layoutSize.height;
 
         var align = elem.getAttribute('align') || this._align,
             offsetx = parseFloat(elem.getAttribute('offsetx') || this._offsetx),
@@ -225,7 +255,7 @@ class Layout {
             var child = < HTMLElement > elem.children[i],
                 x = 0,
                 y = 0,
-                dimensions = this.getElementSize(child),
+                dimensions = this.getOuterSize(child),
                 dx = totalWidth - dimensions.width,
                 dy = totalHeight - dimensions.height;
 
@@ -251,7 +281,7 @@ class Layout {
             x += offsetx * i;
             y += offsety * i;
 
-            this._positionWith.call(this, child, x, y);
+            this._positionWith.call(this, child, x + layoutSize.x, y + layoutSize.y);
         }
     }
 
@@ -264,7 +294,7 @@ class Layout {
 
         for (var i = 0; i < numChildren; ++i) {
             var child = < HTMLElement > (elem.children[i]),
-                dimensions = this.getElementSize(child),
+                dimensions = this.getOuterSize(child),
                 x = Math.random() * (totalWidth - dimensions.width),
                 y = Math.random() * (totalHeight - dimensions.height);
 
@@ -273,8 +303,9 @@ class Layout {
     }
 
     private refreshFan(elem: HTMLElement) {
-        var totalWidth = elem.offsetWidth,
-            totalHeight = elem.offsetHeight,
+        var layoutSize = this.getInnerSize(elem),
+            totalWidth = layoutSize.width,
+            totalHeight = layoutSize.height,
             childWidths: number[] = [],
             childHeights: number[] = [],
             totalChildWidth = 0,
@@ -287,7 +318,7 @@ class Layout {
 
         for (var i = 0; i < numChildren; ++i) {
             var child = < HTMLElement > (elem.children[i]),
-                dimensions = this.getElementSize(child);
+                dimensions = this.getOuterSize(child);
 
             childHeights.push(dimensions.height);
             childWidths.push(dimensions.width);
@@ -330,7 +361,7 @@ class Layout {
 
             y += offsety * i;
 
-            this._positionWith.call(this, child, x, y);
+            this._positionWith.call(this, child, x + layoutSize.x, y + layoutSize.y);
 
             x += childWidths[i] + delta;
         }

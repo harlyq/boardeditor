@@ -32,8 +32,23 @@ interface ClickInfo {
     y: number;
     swiped: boolean;
     moved: boolean;
-    src: EventTarget; // original source
+    originalTarget: EventTarget;
     holdTimer ? : number;
+}
+
+interface InteractOptions {
+    doubleClickDelay ? : number; // ms
+    doubleClickDistance ? : number; // pixels
+    swipeDistance ? : number; // pixels
+    holdDistance ? : number; // pixels
+    holdDelay ? : number; // ms
+    bubbles ? : boolean;
+    moveable ? : boolean;
+    swipeable ? : boolean;
+    tappable ? : boolean;
+    holdable ? : boolean;
+    doubletappable ? : boolean;
+    dropzone ? : string;
 }
 
 class Interact {
@@ -57,11 +72,11 @@ class Interact {
     private _holdDistance: number = 20; // pixels
     private _holdDelay: number = 1000; // ms
     private _bubbles: boolean = false;
-    private _moveable: boolean = true;
-    private _swipeable: boolean = true;
-    private _tappable: boolean = true;
-    private _holdable: boolean = true;
-    private _doubletappable: boolean = true;
+    private _moveable: boolean = false;
+    private _swipeable: boolean = false;
+    private _tappable: boolean = false;
+    private _holdable: boolean = false;
+    private _doubletappable: boolean = false;
     private _dropzone: string = '';
 
     private static INVALID_TIMER = -1;
@@ -69,11 +84,12 @@ class Interact {
     private static activeDropList: Interact[] = []; // all drop zones for the current dropTarget
 
     // public interfaces
-    constructor(selector: string);
-    constructor(elem: Element);
-    constructor(elems: NodeList);
-    constructor(elems: Element[]);
-    constructor(selectorOrElems: any) {
+    constructor(selector: string, options ? : InteractOptions);
+    constructor(elem: Element, options ? : InteractOptions);
+    constructor(elems: NodeList, options ? : InteractOptions);
+    constructor(elems: Element[], options ? : InteractOptions);
+    constructor(selectorOrElems: any, options ? : InteractOptions) {
+        this.setOptions(options);
         this.setElements(selectorOrElems);
         this.enable();
     }
@@ -179,6 +195,7 @@ class Interact {
             elem.removeEventListener('mousedown', this.mouseDownHandler);
             elem.removeEventListener('touchstart', this.touchStartHandler);
         }
+
         document.removeEventListener('mouseup', this.mouseUpHandler);
         document.removeEventListener('mousemove', this.mouseMoveHandler);
 
@@ -221,6 +238,19 @@ class Interact {
         return this;
     }
 
+    setOptions(options: InteractOptions): Interact {
+        if (typeof options !== 'object')
+            return this;
+
+        for (var i in options) {
+            var variable = '_' + i;
+            if (variable in this)
+                this[variable] = options[i];
+        }
+
+        return this;
+    }
+
     // events - space separated list of event names
     // func - callback, information is in the .details of the first parameter
     on(events: string, func: (e: any) => void): Interact {
@@ -238,6 +268,8 @@ class Interact {
 
     // mouse and touch
     private onMouseDown(e: MouseEvent) {
+        e.preventDefault();
+
         this.mouseTarget = e.currentTarget; // e.target;
         this.pointerStart(this.mouseTarget, e.pageX, e.pageY, e.target);
         document.addEventListener('mousemove', this.mouseMoveHandler);
@@ -245,6 +277,8 @@ class Interact {
     }
 
     private onMouseMove(e: MouseEvent) {
+        e.preventDefault();
+
         if (!this.mouseTarget)
             return;
 
@@ -252,13 +286,13 @@ class Interact {
     }
 
     private onMouseUp(e: MouseEvent) {
+        e.preventDefault();
+
         this.pointerEnd(this.mouseTarget, e.pageX, e.pageY, e.target);
         this.mouseTarget = null;
         document.removeEventListener('mouseup', this.mouseUpHandler);
         document.removeEventListener('mousemove', this.mouseMoveHandler);
     }
-
-    private onMouseOver(e: MouseEvent) {}
 
     private onTouchStart(e: TouchEvent) {
         e.preventDefault();
@@ -303,7 +337,7 @@ class Interact {
     }
 
     // generalised pointer functions
-    private pointerStart(target: EventTarget, x: number, y: number, src: EventTarget) {
+    private pointerStart(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (clickInfo) {
             // remove the event (holdTimer has already been disabled)
@@ -318,7 +352,8 @@ class Interact {
                     x: clickInfo.x,
                     y: clickInfo.y,
                     duration: now - clickInfo.time,
-                    src: src
+                    tapTarget: clickInfo.originalTarget,
+                    rawTarget: rawTarget
                 });
                 target.dispatchEvent(event);
                 return;
@@ -332,7 +367,7 @@ class Interact {
             y: y,
             swiped: false,
             moved: false,
-            src: src,
+            originalTarget: target,
             holdTimer: -1
         }
         if (this._holdable)
@@ -344,24 +379,33 @@ class Interact {
             var event = this.newEvent('tap', {
                 x: x,
                 y: y,
-                src: src
+                tapTarget: target,
+                rawTarget: rawTarget
             });
             target.dispatchEvent(event);
         }
 
         if (this._moveable) {
+            var event = this.newEvent('movestart', {
+                x: x,
+                y: y,
+                moveTarget: clickInfo.originalTarget,
+                rawTarget: rawTarget
+            });
+            target.dispatchEvent(event);
+
             for (var i = 0; i < Interact.dropList.length; ++i)
                 Interact.dropList[i].activateDropZone(target);
 
             // this will generate dropenter events, if we are already over a dropzone
-            this.evaluateDrag(target, x, y);
+            this.evaluateDrag(target, x, y, rawTarget);
         }
 
         this.lastX = x;
         this.lastY = y;
     }
 
-    private pointerMove(target: EventTarget, x: number, y: number, src: EventTarget) {
+    private pointerMove(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (!clickInfo)
             return;
@@ -390,42 +434,34 @@ class Interact {
                 dx: dx,
                 dy: dy,
                 direction: direction,
-                src: clickInfo.src
+                swipeTarget: clickInfo.originalTarget,
+                rawTarget: rawTarget
             });
             clickInfo.swiped = true;
             clickInfo.target.dispatchEvent(event);
         }
 
         if (this._moveable && (clickInfo.moved || distance > this._holdDistance)) {
-            var event: CustomEvent = null;
-            var firstMove = !clickInfo.moved;
-
-            if (firstMove)
-                event = this.newEvent('movestart', {
-                    x: x,
-                    y: y,
-                    src: clickInfo.src
-                });
-            else
-                event = this.newEvent('move', {
-                    x: x,
-                    y: y,
-                    dx: x - this.lastX,
-                    dy: y - this.lastY,
-                    src: clickInfo.src
-                });
+            var event = this.newEvent('move', {
+                x: x,
+                y: y,
+                dx: x - this.lastX,
+                dy: y - this.lastY,
+                moveTarget: clickInfo.originalTarget,
+                rawTarget: rawTarget
+            });
             clickInfo.moved = true;
             clickInfo.target.dispatchEvent(event);
         }
 
         if (this._moveable)
-            this.evaluateDrag(target, x, y);
+            this.evaluateDrag(target, x, y, rawTarget);
 
         this.lastX = x;
         this.lastY = y;
     }
 
-    private pointerEnd(target: EventTarget, x: number, y: number, src: EventTarget) {
+    private pointerEnd(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
         var clickInfo = this.getClickInfo(target);
         if (!clickInfo)
             return;
@@ -450,7 +486,7 @@ class Interact {
             window.clearTimeout(clickInfo.holdTimer);
             clickInfo.holdTimer = Interact.INVALID_TIMER;
         }
-        if (this._moveable && clickInfo.moved) {
+        if (this._moveable) {
             var event = this.newEvent('moveend', {});
             clickInfo.moved = false;
             clickInfo.target.dispatchEvent(event);
@@ -494,7 +530,7 @@ class Interact {
     }
 
     // processed by drag interact
-    private evaluateDrag(target: EventTarget, x: number, y: number) {
+    private evaluateDrag(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
         var overList: Element[] = [];
 
         // convert x,y to client co-ords
@@ -521,22 +557,20 @@ class Interact {
             over = overList[0];
         }
 
+        var details = {
+            dragTarget: target,
+            x: x,
+            y: y,
+            rawTarget: rawTarget
+        };
         if (this.dropzoneTarget && over !== this.dropzoneTarget) {
-            var event = this.newEvent('dropleave', {
-                dragTarget: target
-            });
+            var event = this.newEvent('dropleave', details);
             this.dropzoneTarget.dispatchEvent(event);
         } else if (over && !this.dropzoneTarget) {
-            var event = this.newEvent('dropenter', {
-                dragTarget: target
-            });
+            var event = this.newEvent('dropenter', details);
             over.dispatchEvent(event);
         } else if (over && this.dropzoneTarget === over) {
-            var event = this.newEvent('dropover', {
-                dragTarget: target,
-                x: x,
-                y: y
-            });
+            var event = this.newEvent('dropover', details);
             over.dispatchEvent(event);
         }
 
@@ -572,7 +606,7 @@ class Interact {
         var event = this.newEvent('hold', {
             x: clickInfo.x,
             y: clickInfo.y,
-            src: clickInfo.src
+            holdTarget: clickInfo.originalTarget
         });
         clickInfo.target.dispatchEvent(event);
     }
@@ -625,6 +659,6 @@ class Interact {
     }
 }
 
-var interact = function(selectorOrElems: any) {
-    return new Interact(selectorOrElems);
+var interact = function(selectorOrElems: any, options ? : InteractOptions) {
+    return new Interact(selectorOrElems, options);
 }
