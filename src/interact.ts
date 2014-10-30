@@ -66,6 +66,14 @@ class Interact {
     private dragTarget: EventTarget = null;
     private lastX: number = 0;
     private lastY: number = 0;
+    private parentObserver: MutationObserver = null;
+    private selector: string = '';
+    private reParent = /^(.+) *> *([A-Za-z0-9_#\.]+?)$/;
+    private reDescendant = /^(.+) +([A-Za-z0-9_#\.]+?)$/;
+    private onEvents: string[] = [];
+    private onFuncs: any[] = [];
+
+    private _autoRebuildElements: boolean = true; // if a child/descendant selector is used, then automatically rebuild when nodes are added/removed
     private _doubleClickDelay: number = 250; // ms
     private _doubleClickDistance: number = 20; // pixels
     private _swipeDistance: number = 100; // pixels
@@ -77,7 +85,9 @@ class Interact {
     private _tappable: boolean = false;
     private _holdable: boolean = false;
     private _doubletappable: boolean = false;
+    private _debug: boolean = false;
     private _dropzone: string = '';
+    private _enable: boolean = true; // enabled by default
 
     private static INVALID_TIMER = -1;
     private static dropList: Interact[] = [];
@@ -91,45 +101,42 @@ class Interact {
     constructor(selectorOrElems: any, options ? : InteractOptions) {
         this.setOptions(options);
         this.setElements(selectorOrElems);
-        this.enable();
     }
 
-    swipeable(value: boolean): Interact {
-        if (typeof value === 'undefined')
-            value = true;
+    autoRebuildElements(value: boolean = true): Interact {
+        this._autoRebuildElements = value;
+        if (!value && this.parentObserver)
+            this.parentObserver.disconnect();
 
+        return this;
+    }
+
+    debug(value: boolean = true): Interact {
+        this._debug = value;
+        return this;
+    }
+
+    swipeable(value: boolean = true): Interact {
         this._swipeable = value;
         return this;
     }
 
-    moveable(value: boolean): Interact {
-        if (typeof value === 'undefined')
-            value = true;
-
+    moveable(value: boolean = true): Interact {
         this._moveable = value;
         return this;
     }
 
-    tappable(value: boolean): Interact {
-        if (typeof value === 'undefined')
-            value = true;
-
+    tappable(value: boolean = true): Interact {
         this._tappable = value;
         return this;
     }
 
-    doubletappable(value: boolean): Interact {
-        if (typeof value === 'undefined')
-            value = true;
-
+    doubletappable(value: boolean = true): Interact {
         this._doubletappable = value;
         return this;
     }
 
-    holdable(value: boolean): Interact {
-        if (typeof value === 'undefined')
-            value = true;
-
+    holdable(value: boolean = true): Interact {
         this._holdable = value;
         return this;
     }
@@ -181,41 +188,76 @@ class Interact {
     }
 
     disable(): Interact {
+        if (!this._enable)
+            return;
+
         // should we send any end/deactivate/leave events?
 
-        this.dropzoneTarget = null;
-        this.touchTarget = null;
-        this.mouseTarget = null;
+        for (var i = 0; i < this.elems.length; ++i)
+            this.disableElement(this.elems[i]);
 
-        for (var i = 0; i < this.elems.length; ++i) {
-            var elem = this.elems[i];
-            if (!(elem instanceof Element))
-                continue;
-
-            elem.removeEventListener('mousedown', this.mouseDownHandler);
-            elem.removeEventListener('touchstart', this.touchStartHandler);
-        }
-
-        document.removeEventListener('mouseup', this.mouseUpHandler);
-        document.removeEventListener('mousemove', this.mouseMoveHandler);
+        document.body.removeEventListener('mouseup', this.mouseUpHandler);
+        document.body.removeEventListener('mousemove', this.mouseMoveHandler);
 
         document.removeEventListener('touchend', this.touchEndHandler);
         document.removeEventListener('touchmove', this.touchMoveHandler);
+
+        this.onEvents = [];
+        this.onFuncs = [];
+        this.selector = '';
+        this.dropzoneTarget = null;
+        this.touchTarget = null;
+        this.mouseTarget = null;
+        this._enable = false;
 
         return this;
     }
 
     enable(): Interact {
-        for (var i = 0; i < this.elems.length; ++i) {
-            var elem = this.elems[i];
-            if (!(elem instanceof Element))
-                continue;
+        if (this._enable)
+            return;
 
-            elem.addEventListener('mousedown', this.mouseDownHandler);
-            elem.addEventListener('touchstart', this.touchStartHandler);
-        }
+        for (var i = 0; i < this.elems.length; ++i)
+            this.enableElement(this.elems[i]);
 
+        this._enable = true;
         return this;
+    }
+
+    private disableElement(elem: Element) {
+        if (!this._enable)
+            return;
+
+        if (!(elem instanceof Element))
+            return;
+
+        elem.removeEventListener('mousedown', this.mouseDownHandler);
+        elem.removeEventListener('touchstart', this.touchStartHandler);
+
+        // disable events set by on(...)
+        for (var i = 0; i < this.onEvents.length; ++i) {
+            var eventList = this.onEvents[i].split(' ');
+            for (var j = 0; j < eventList.length; ++j)
+                elem.removeEventListener(eventList[j], this.onFuncs[i]);
+        }
+    }
+
+    private enableElement(elem: Element) {
+        if (!this._enable)
+            return;
+
+        if (!(elem instanceof Element))
+            return;
+
+        elem.addEventListener('mousedown', this.mouseDownHandler);
+        elem.addEventListener('touchstart', this.touchStartHandler);
+
+        // apply on(...) events
+        for (var i = 0; i < this.onEvents.length; ++i) {
+            var eventList = this.onEvents[i].split(' ');
+            for (var j = 0; j < eventList.length; ++j)
+                elem.addEventListener(eventList[j], this.onFuncs[i]);
+        }
     }
 
     setElements(selector: string): Interact;
@@ -223,18 +265,36 @@ class Interact {
     setElements(elems: NodeList): Interact;
     setElements(elems: Element[]): Interact;
     setElements(selectorOrElems: any): Interact {
-        this.disable();
-
+        var newElems: Element[] = [];
         if (typeof selectorOrElems === 'string')
-            this.elems = [].slice.call(document.querySelectorAll(selectorOrElems));
+            newElems = [].slice.call(document.querySelectorAll(selectorOrElems));
         else if (selectorOrElems instanceof Element)
-            this.elems = [selectorOrElems];
+            newElems = [selectorOrElems];
         else if ('length' in selectorOrElems)
-            this.elems = [].slice.call(selectorOrElems);
-        else if (!selectorOrElems)
-            this.elems = [];
+            newElems = [].slice.call(selectorOrElems);
 
-        this.enable();
+        if (this._autoRebuildElements)
+            this.watchReparenting(selectorOrElems);
+
+        if (this._debug)
+            console.log('# of matching elements: ' + newElems.length, selectorOrElems);
+
+        // listen to new elements
+        for (var i = 0; i < newElems.length; ++i) {
+            var elem = newElems[i];
+            if (this.elems.indexOf(elem) === -1)
+                this.enableElement(elem);
+        }
+
+        // stop listening to old elements
+        for (var i = 0; i < this.elems.length; ++i) {
+            var elem = this.elems[i];
+            if (newElems.indexOf(elem) === -1)
+                this.disableElement(elem);
+        }
+
+        this.elems = newElems;
+
         return this;
     }
 
@@ -254,6 +314,9 @@ class Interact {
     // events - space separated list of event names
     // func - callback, information is in the .details of the first parameter
     on(events: string, func: (e: any) => void): Interact {
+        this.onEvents.push(events);
+        this.onFuncs.push(func);
+
         var eventList = events.split(' ');
         for (var i = 0; i < this.elems.length; ++i) {
             var elem = this.elems[i];
@@ -272,8 +335,8 @@ class Interact {
 
         this.mouseTarget = e.currentTarget; // e.target;
         this.pointerStart(this.mouseTarget, e.pageX, e.pageY, e.target);
-        document.addEventListener('mousemove', this.mouseMoveHandler);
-        document.addEventListener('mouseup', this.mouseUpHandler);
+        document.body.addEventListener('mousemove', this.mouseMoveHandler);
+        document.body.addEventListener('mouseup', this.mouseUpHandler);
     }
 
     private onMouseMove(e: MouseEvent) {
@@ -290,8 +353,8 @@ class Interact {
 
         this.pointerEnd(this.mouseTarget, e.pageX, e.pageY, e.target);
         this.mouseTarget = null;
-        document.removeEventListener('mouseup', this.mouseUpHandler);
-        document.removeEventListener('mousemove', this.mouseMoveHandler);
+        document.body.removeEventListener('mouseup', this.mouseUpHandler);
+        document.body.removeEventListener('mousemove', this.mouseMoveHandler);
     }
 
     private onTouchStart(e: TouchEvent) {
@@ -563,6 +626,7 @@ class Interact {
             y: y,
             rawTarget: rawTarget
         };
+
         if (this.dropzoneTarget && over !== this.dropzoneTarget) {
             var event = this.newEvent('dropleave', details);
             this.dropzoneTarget.dispatchEvent(event);
@@ -579,6 +643,9 @@ class Interact {
 
     // helper
     private newEvent(name: string, detail: any): CustomEvent {
+        if (this._debug)
+            console.log('new event ' + name);
+
         return new( < any > CustomEvent)(name, {
             bubbles: this._bubbles,
             cancelable: this._bubbles,
@@ -613,10 +680,12 @@ class Interact {
 
     private static getLineage(child: HTMLElement): HTMLElement[] {
         var ancestors: HTMLElement[] = [child];
+
         do {
             ancestors.push(child);
             child = < HTMLElement > child.parentNode;
         } while (child && child !== document.body)
+
         return ancestors;
     }
 
@@ -656,6 +725,45 @@ class Interact {
             console.error('invalid hierarchy');
             return 0; // something went wrong
         }
+    }
+
+    private watchReparenting(selector: any) {
+        if (typeof selector !== 'string')
+            return;
+
+        // stop watching old parents
+        if (this.parentObserver)
+            this.parentObserver.disconnect();
+
+        this.selector = selector;
+        var selectors = selector.split(',');
+        for (var i = 0; i < selectors.length; ++i) {
+            var result = this.reParent.exec(selectors[i]);
+            if (!result)
+                result = this.reDescendant.exec(selectors[i]);
+            if (!result)
+                continue;
+
+            this.watchParent([].slice.call(document.querySelectorAll(result[1])));
+        }
+    }
+
+    private watchParent(elems: Element[]) {
+        if (!this.parentObserver)
+            this.parentObserver = new MutationObserver(this.onMutation.bind(this));
+
+        for (var i = 0; i < elems.length; ++i)
+            this.parentObserver.observe(elems[i], {
+                childList: true
+            });
+    }
+
+    private onMutation(mutations) {
+        if (this._debug)
+            console.log('parent of selector changed, rebuilding interact', this.selector);
+
+        // child was added or removed, rebuild the selector list
+        this.setElements(this.selector);
     }
 }
 

@@ -32,8 +32,12 @@ class Card {
         var observer = new MutationObserver(this.onMutate.bind(this));
         for (var i = 0; i < this.elems.length; ++i)
             observer.observe(this.elems[i], {
-                attributes: true
+                attributes: true,
             });
+    }
+
+    getElements(): HTMLElement[] {
+        return this.elems;
     }
 
 
@@ -52,13 +56,15 @@ class Card {
         return this;
     }
 
-    refresh(elem ? : HTMLElement) {
+    refresh(elem ? : HTMLElement): Card {
         if (elem) {
             this.refreshElement(elem);
         } else {
             for (var i = 0; i < this.elems.length; ++i)
                 this.refreshElement(this.elems[i]);
         }
+
+        return this;
     }
 
     private refreshElement(elem: HTMLElement) {
@@ -69,7 +75,19 @@ class Card {
         if (!canvas)
             return;
 
-        var facedown = elem.getAttribute('facedown') === 'true' || this._facedown;
+        var w = elem.offsetWidth,
+            h = elem.offsetHeight;
+        if (canvas.width !== w)
+            canvas.width = w;
+        if (canvas.height !== h)
+            canvas.height = h;
+
+        var facedown: any = elem.getAttribute('facedown');
+        if (facedown !== null)
+            facedown = facedown === 'true';
+        else
+            facedown = this._facedown;
+
         var selector = '';
 
         if (!facedown)

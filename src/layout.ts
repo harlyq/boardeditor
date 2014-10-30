@@ -203,40 +203,40 @@ class Layout {
         }
     }
 
+    // note: don't use getBoundingClientRect() as that will get the post-scaled size
+
     // size
     private getInnerSize(elem: HTMLElement) {
         var style = window.getComputedStyle(elem);
         return {
-            x: parseInt(style.paddingLeft),
-            y: parseInt(style.paddingTop),
-            width: parseInt(style.width),
-            height: parseInt(style.height)
+            x: parseFloat(style.paddingLeft),
+            y: parseFloat(style.paddingTop),
+            width: parseFloat(style.width),
+            height: parseFloat(style.height)
         };
     }
 
     // size +margin +border +padding
     private getOuterSize(elem: HTMLElement) {
         var style = window.getComputedStyle(elem),
-            rect = elem.getBoundingClientRect(),
-            marginLeft = parseInt(style.marginLeft),
-            marginTop = parseInt(style.marginTop);
+            marginLeft = parseFloat(style.marginLeft),
+            marginTop = parseFloat(style.marginTop);
 
         return {
             x: -marginLeft,
             y: -marginTop,
-            width: rect.width + marginLeft + parseInt(style.marginRight),
-            height: rect.height + marginTop + parseInt(style.marginBottom)
+            width: elem.offsetWidth + marginLeft + parseFloat(style.marginRight),
+            height: elem.offsetHeight + marginTop + parseFloat(style.marginBottom)
         };
     }
 
     // size +border +padding
     private getBorderSize(elem: HTMLElement) {
-        var rect = elem.getBoundingClientRect();
         return {
             x: 0,
             y: 0,
-            width: rect.width,
-            height: rect.height
+            width: elem.offsetWidth,
+            height: elem.offsetHeight
         };
     }
 

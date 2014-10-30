@@ -278,21 +278,22 @@
             if (flipTimeline) {
                 flipTimeline.reversed(!flipTimeline.reversed());
             } else {
+                var target = e.currentTarget;
                 flipTimeline = new TimelineMax()
-                    .to(e.currentTarget, 0.125, {
+                    .to(target, 0.125, {
                         css: {
                             rotationY: 90
                         },
                         onComplete: function() {
-                            e.currentTarget.classList.add("facedown");
+                            target.classList.add("facedown");
                         }
                     })
-                    .to(e.currentTarget, 0.125, {
+                    .to(target, 0.125, {
                         css: {
                             rotationY: 180
                         },
                         onReverseComplete: function() {
-                            e.currentTarget.classList.remove("facedown");
+                            target.classList.remove("facedown");
                         }
                     });
             }
