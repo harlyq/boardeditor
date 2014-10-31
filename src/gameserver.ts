@@ -6,6 +6,8 @@ module Game {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseServerProxy[] = [];
+        public config: GameConfig = null;
+        public gameId: number = -1;
 
         rulesGen: (game: any, board: Board) => {
             next(...args: any[]): any

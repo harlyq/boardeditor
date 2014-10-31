@@ -3,6 +3,14 @@ module Game {
     var LABEL_PREFIX = '.'
     var LABEL_PREFIX_LENGTH = LABEL_PREFIX.length;
 
+    export function _applyMixins(derived: any, bases: any[]) {
+        bases.forEach(base => {
+            Object.getOwnPropertyNames(base.prototype).forEach(name => {
+                derived.prototype[name] = base.prototype[name];
+            })
+        });
+    }
+
     export function _error(msg) {
         console.error(msg);
         debugger;
@@ -116,39 +124,19 @@ module Game {
     }
 
     //----------------------------------------------------------------
-    export class Location {
-        cards: Card[] = [];
-        labels: string[] = [];
-        fromPosition: Position = Position.Top;
-        toPosition: Position = Position.Top;
+    export class LabelMixin {
+        labels: string[];
 
-        constructor(public name: string, public id: number, public visibility ? : {
-            [userId: number]: Location.Visibility
-        }) {}
-
-        matches(query: string): boolean {
-            if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
-                return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
-            else if (isNumeric(query))
-                return this.id === parseInt(query);
-            else
-                return this.name === query;
-        }
-
-            addLabel(label: string): Location {
+        addLabel(label: string): void {
             var i = this.labels.indexOf(label);
             if (i === -1)
                 this.labels.push(label);
-
-            return this;
         }
 
-            removeLabel(label: string): Location {
+            removeLabel(label: string): void {
             var i = this.labels.indexOf(label);
             if (i !== -1)
                 this.labels.splice(i, 1);
-
-            return this;
         }
 
             containsLabel(label: string): boolean {
@@ -157,6 +145,98 @@ module Game {
                     return true;
             }
             return false;
+        }
+    }
+
+    //----------------------------------------------------------------
+    export class RegionMixin {
+        regions: Region[];
+
+        addRegion(region: Region): void {
+            var i = this.regions.indexOf(region);
+            if (i === -1)
+                this.regions.push(region);
+        }
+
+            removeRegion(region: Region): void {
+            var i = this.regions.indexOf(region);
+            if (i !== -1)
+                this.regions.splice(i, 1);
+        }
+
+            containsRegion(region: Region): boolean;
+        containsRegion(name: string): boolean;
+        containsRegion(regionOrName: any): boolean {
+            if (typeof regionOrName === 'string') {
+                for (var i = 0; i < this.regions.length; ++i) {
+                    if (this.regions[i].name === regionOrName)
+                        return true;
+                }
+            } else if (regionOrName instanceof Region) {
+                for (var i = 0; i < this.regions.length; ++i) {
+                    if (this.regions[i] === regionOrName)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        // // RegionMixin
+        // regions: Region[] = [];
+        // addRegion: (region: Region) => void;
+        // removeRegion: (region: Region) => void;
+        // containsRegion: (regionOrName: any) => boolean;
+    }
+
+    //----------------------------------------------------------------
+    export class Region implements LabelMixin {
+        constructor(public name: string) {}
+
+        // LabelMixin
+        labels: string[] = [];
+        addLabel: (label: string) => void;
+        removeLabel: (label: string) => void;
+        containsLabel: (label: string) => boolean;
+
+        matches(query: string): boolean {
+            if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
+                return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
+            else
+                return this.name === query;
+        }
+    }
+
+    _applyMixins(Region, [LabelMixin]);
+
+    //----------------------------------------------------------------
+    export class Location implements LabelMixin, RegionMixin {
+        cards: Card[] = [];
+        fromPosition: Position = Position.Top;
+        toPosition: Position = Position.Top;
+
+        constructor(public name: string, public id: number, public visibility ? : {
+            [userId: number]: Location.Visibility
+        }) {}
+
+        // LabelMixin
+        labels: string[] = [];
+        addLabel: (label: string) => void;
+        removeLabel: (label: string) => void;
+        containsLabel: (label: string) => boolean;
+
+        // RegionMixin
+        regions: Region[] = [];
+        addRegion: (region: Region) => void;
+        removeRegion: (region: Region) => void;
+        containsRegion: (regionOrName: any) => boolean;
+
+        matches(query: string): boolean {
+            if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
+                return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
+            else if (isNumeric(query))
+                return this.id === parseInt(query);
+            else
+                return this.name === query;
         }
 
             addCard(card: Card, toPosition: Position = Position.Default): number {
@@ -301,45 +381,28 @@ module Game {
         };
     }
 
+    _applyMixins(Location, [LabelMixin]);
+
     //----------------------------------------------------------------
-    export class Card {
+    export class Card implements LabelMixin {
         location: Location = null; // back pointer, do not dereference, used by Location
-        labels: string[] = [];
 
         static UNKNOWN = -1;
 
         // id may be -1, typically for cards that are facedown and cannot be flipped
         constructor(public id: number, public front: string, public back: string, public facedown: boolean) {}
 
+        // LabelMixin
+        labels: string[] = [];
+        addLabel: (label: string) => void;
+        removeLabel: (label: string) => void;
+        containsLabel: (label: string) => boolean;
+
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
                 return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
             else
                 return this.id === parseInt(query);
-        }
-
-            addLabel(label: string): Card {
-            var i = this.labels.indexOf(label);
-            if (i === -1)
-                this.labels.push(label);
-
-            return this;
-        }
-
-            removeLabel(label: string): Card {
-            var i = this.labels.indexOf(label);
-            if (i !== -1)
-                this.labels.splice(i, 1);
-
-            return this;
-        }
-
-            containsLabel(label: string): boolean {
-            for (var i = 0; i < this.labels.length; ++i) {
-                if (this.labels[i] === label)
-                    return true;
-            }
-            return false;
         }
 
             save(): any {
@@ -362,6 +425,8 @@ module Game {
             this.facedown = obj.facedown;
         }
     }
+
+    _applyMixins(Card, [LabelMixin]);
 
     //----------------------------------------------------------------
     export class User {
@@ -391,6 +456,7 @@ module Game {
         locations: Location[] = [];
         cards: Card[] = [];
         users: User[] = [];
+        regions: Region[] = [];
         variables: {
             [key: string]: any
         } = {};
@@ -414,6 +480,12 @@ module Game {
             var user = new User(name, userId);
             this.users.push(user);
             return user;
+        }
+
+            createRegion(name: string): Region {
+            var region = new Region(name);
+            this.regions.push(region);
+            return region;
         }
 
             getNumLocations(): number {
@@ -441,7 +513,7 @@ module Game {
             return locations;
         }
 
-            findLocation(locationId: number): Location {
+            findLocationById(locationId: number): Location {
             for (var i = 0; i < this.locations.length; ++i) {
                 if (this.locations[i].id === locationId)
                     return this.locations[i];
@@ -449,7 +521,7 @@ module Game {
             return null;
         }
 
-            findCard(cardId: number): Card {
+            findCardById(cardId: number): Card {
             for (var i = 0; i < this.cards.length; ++i) {
                 if (this.cards[i].id === cardId)
                     return this.cards[i];
@@ -457,7 +529,7 @@ module Game {
             return null;
         }
 
-            findUser(userId: number): User {
+            findUserById(userId: number): User {
             for (var i = 0; i < this.users.length; ++i) {
                 if (this.users[i].id === userId)
                     return this.users[i];
@@ -469,6 +541,14 @@ module Game {
             for (var i = 0; i < this.users.length; ++i) {
                 if (this.users[i].name === name)
                     return this.users[i];
+            }
+            return null;
+        }
+
+            findRegionByName(name: string): Region {
+            for (var i = 0; i < this.regions.length; ++i) {
+                if (this.regions[i].name === name)
+                    return this.regions[i];
             }
             return null;
         }
@@ -535,7 +615,7 @@ module Game {
             var ids = query.split(',');
             var users: User[] = [];
             for (var i = 0; i < ids.length; ++i)
-                users.push(this.findUser(parseInt(ids[i])));
+                users.push(this.findUserById(parseInt(ids[i])));
 
             return users;
         }
@@ -547,6 +627,14 @@ module Game {
                 users.push(this.findUserByName(names[i]));
 
             return users;
+        }
+
+            queryRegions(query: string): Region[] {
+            var names = query.split(',');
+            var regions: Region[] = [];
+            for (var i = 0; i < names.length; ++i)
+                regions.push(this.findRegionByName(names[i]));
+            return regions;
         }
 
             setLocalVariable(name: string, value: any) {
@@ -627,8 +715,8 @@ module Game {
             switch (command.type) {
                 case 'move':
                     var moveCommand = < MoveCommand > command;
-                    var to = this.findLocation(moveCommand.toId);
-                    var card = this.findCard(moveCommand.cardId);
+                    var to = this.findLocationById(moveCommand.toId);
+                    var card = this.findCardById(moveCommand.cardId);
                     to.insertCard(card, moveCommand.index);
                     break;
                 case 'pick':

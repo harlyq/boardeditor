@@ -64,7 +64,7 @@ function mancalaGame(mancala) {
                     user: playerName[currentPlayer]
                 });
             if (result.length === 0) {
-                alert('no more choices'); // DOES NOT WORK ON SERVER
+                //alert('no more choices'); // DOES NOT WORK ON SERVER
                 return false; // no more choices
             }
 
@@ -109,7 +109,7 @@ function mancalaGame(mancala) {
                 return prev + curr.getNumCards();
             }, 0);
             if (sum1 === 0 || sum2 === 0) {
-                alert('game over');
+                //alert('game over');
                 return;
             }
         }

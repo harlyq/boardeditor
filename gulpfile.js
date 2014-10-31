@@ -12,21 +12,21 @@ var concat = require('gulp-concat');
 //         .pipe(gulp.dest('src'));
 // });
 
-gulp.task('compile', function(cb) {
+gulp.task('typescript', function(cb) {
     run('tsc.cmd --target ES5 --out src/game.js src/game.ts').exec(cb).on('error', gutil.log);
 });
 
-gulp.task('merge', ['compile'], function() {
-    gulp.src(['src/game.js', 'src/gamex.js'])
-        .pipe(concat('finalgame.js'))
-        .pipe(gulp.dest('src'));
-});
+// gulp.task('merge', ['typescript'], function() {
+//     gulp.src(['src/game.js', 'src/gamex.js'])
+//         .pipe(concat('finalgame.js'))
+//         .pipe(gulp.dest('src'));
+// });
 
 gulp.task('watch', function() {
-    gulp.watch('src/*.ts', ['merge']);
+    gulp.watch('src/*.ts', ['typescript']);
     // gulp.watch('src/*.less', ['less']);
 });
 
 //gulp.task('typescript', ['compile', 'merge']);
 
-gulp.task('default', ['merge', 'watch']);
+gulp.task('default', ['typescript', 'watch']);

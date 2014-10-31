@@ -1,32 +1,6 @@
-/// <reference path="board.ts" />
-/// <reference path="proxy.ts" />
-/// <reference path="platform.js.d.ts" />
-/// <reference path="deckcard.ts" />
-/// <reference path="decklayout.ts" />
-/// <reference path="gameclient.ts" />
-/// <reference path="gameserver.ts" />
+/// <reference path="_dependencies.ts" />
 
 module Game {
-    export interface UserConfig {
-        name: string; // player1 (name of this user)
-        type: string; // human
-        client ? : Client;
-        me ? : string; // local alias for this user
-    }
-
-    export interface ScreenConfig {
-        screen ? : string; // board for this user
-        mode: string; // shared | networked | pass-n-play
-        proxy: string; // message
-        iframe ? : string; // iframe for message proxy
-        users: UserConfig[];
-    }
-
-    export interface GameConfig {
-        type: string; // GameConfig
-        screens: ScreenConfig[];
-    }
-
     export function getScreenConfig(config: GameConfig, screen: string): ScreenConfig {
         for (var i = 0; i < config.screens.length; ++i) {
             if (config.screens[i].screen === screen)
@@ -161,6 +135,7 @@ module Game {
         bankClient.setupFunc = game.setupFunc;
         bankClient.setup();
 
+        server.config = config;
         server.setupFunc = game.setupFunc;
 
         server.setup();
