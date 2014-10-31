@@ -25,15 +25,21 @@ interface TouchEvent extends Event {
     target: Element;
 }
 
-interface ClickInfo {
+// with multi-touch there can be multiple touches active at once
+interface TouchInfo {
+    id: number;
     target: EventTarget; // element with interact listeners
     time: number;
     x: number;
     y: number;
+    lastX: number;
+    lastY: number;
+    touchId: number; // id of the last touch
     swiped: boolean;
     moved: boolean;
     originalTarget: EventTarget;
-    holdTimer ? : number;
+    holdTimer: number;
+    dropzoneTarget: EventTarget;
 }
 
 interface InteractOptions {
@@ -51,9 +57,31 @@ interface InteractOptions {
     dropzone ? : string;
 }
 
+interface InteractTouch {
+    id: number;
+    target: EventTarget;
+}
+
+interface DragInfo {
+    dropZone: Interact;
+    dragTarget: EventTarget;
+}
+
+var logElem = null;
+var log = function(msg) {
+    if (!logElem) {
+        logElem = document.getElementById('log');
+        if (!logElem)
+            return;
+    }
+
+    msg += "<br/>" + logElem.innerHTML;
+    logElem.innerHTML = msg.substr(0, 1000);
+}
+
 class Interact {
     private elems: Element[] = [];
-    private clicks: ClickInfo[] = [];
+    private touches: TouchInfo[] = [];
     private mouseDownHandler = this.onMouseDown.bind(this);
     private mouseMoveHandler = this.onMouseMove.bind(this);
     private mouseUpHandler = this.onMouseUp.bind(this);
@@ -61,11 +89,8 @@ class Interact {
     private touchMoveHandler = this.onTouchMove.bind(this);
     private touchEndHandler = this.onTouchEnd.bind(this);
     private mouseTarget: EventTarget = null;
-    private touchTarget: EventTarget = null;
-    private dropzoneTarget: EventTarget = null;
+    private touchTargets: InteractTouch[] = [];
     private dragTarget: EventTarget = null;
-    private lastX: number = 0;
-    private lastY: number = 0;
     private parentObserver: MutationObserver = null;
     private selector: string = '';
     private reParent = /^(.+) *> *([A-Za-z0-9_#\.]+?)$/;
@@ -91,7 +116,8 @@ class Interact {
 
     private static INVALID_TIMER = -1;
     private static dropList: Interact[] = [];
-    private static activeDropList: Interact[] = []; // all drop zones for the current dropTarget
+    private static activeDropList: DragInfo[] = []; // all drop zones for the current dropTarget
+    private static uniqueId: number = 1;
 
     // public interfaces
     constructor(selector: string, options ? : InteractOptions);
@@ -202,11 +228,11 @@ class Interact {
         document.removeEventListener('touchend', this.touchEndHandler);
         document.removeEventListener('touchmove', this.touchMoveHandler);
 
+        this.touches = [];
         this.onEvents = [];
         this.onFuncs = [];
         this.selector = '';
-        this.dropzoneTarget = null;
-        this.touchTarget = null;
+        this.touchTargets = [];
         this.mouseTarget = null;
         this._enable = false;
 
@@ -334,7 +360,7 @@ class Interact {
         e.preventDefault();
 
         this.mouseTarget = e.currentTarget; // e.target;
-        this.pointerStart(this.mouseTarget, e.pageX, e.pageY, e.target);
+        this.pointerStart(0, this.mouseTarget, e.pageX, e.pageY, e.target);
         document.body.addEventListener('mousemove', this.mouseMoveHandler);
         document.body.addEventListener('mouseup', this.mouseUpHandler);
     }
@@ -345,13 +371,13 @@ class Interact {
         if (!this.mouseTarget)
             return;
 
-        this.pointerMove(this.mouseTarget, e.pageX, e.pageY, e.target);
+        this.pointerMove(0, this.mouseTarget, e.pageX, e.pageY, e.target);
     }
 
     private onMouseUp(e: MouseEvent) {
         e.preventDefault();
 
-        this.pointerEnd(this.mouseTarget, e.pageX, e.pageY, e.target);
+        this.pointerEnd(0, this.mouseTarget, e.pageX, e.pageY, e.target);
         this.mouseTarget = null;
         document.body.removeEventListener('mouseup', this.mouseUpHandler);
         document.body.removeEventListener('mousemove', this.mouseMoveHandler);
@@ -363,14 +389,23 @@ class Interact {
         if (e.changedTouches.length === 0)
             return;
 
-        var touch = e.changedTouches[0];
-        if (!this.touchTarget) {
+        if (this.touchTargets.length === 0) {
             document.addEventListener('touchmove', this.touchMoveHandler);
             document.addEventListener('touchend', this.touchEndHandler);
-            this.touchTarget = e.currentTarget; //touch.target;
         }
 
-        this.pointerStart(this.touchTarget, touch.pageX, touch.pageY, touch.target);
+        for (var i = 0; i < e.changedTouches.length; ++i) {
+            var touch = e.changedTouches[i],
+                touchTarget = this.getTouchById(touch.identifier);
+
+            this.pointerStart(touch.identifier, e.currentTarget, touch.pageX, touch.pageY, touch.target);
+
+            if (!touchTarget)
+                this.touchTargets.push({
+                    id: touch.identifier,
+                    target: e.currentTarget
+                });
+        }
     }
 
     private onTouchMove(e: TouchEvent) {
@@ -379,8 +414,14 @@ class Interact {
         if (e.changedTouches.length === 0)
             return;
 
-        var touch = e.changedTouches[0];
-        this.pointerMove(this.touchTarget, touch.pageX, touch.pageY, touch.target);
+        for (var i = 0; i < e.changedTouches.length; ++i) {
+            var touch = e.changedTouches[i],
+                touchTarget = this.getTouchById(touch.identifier);
+
+            if (touchTarget) {
+                this.pointerMove(touch.identifier, touchTarget.target, touch.pageX, touch.pageY, touch.target);
+            }
+        }
     }
 
     private onTouchEnd(e: TouchEvent) {
@@ -389,33 +430,52 @@ class Interact {
         if (e.changedTouches.length === 0)
             return;
 
-        var touch = e.changedTouches[0];
-        this.pointerEnd(this.touchTarget, touch.pageX, touch.pageY, touch.target);
+        for (var i = 0; i < e.changedTouches.length; ++i) {
+            var touch = e.changedTouches[i],
+                touchTarget = this.getTouchById(touch.identifier);
 
-        if (e.touches.length === 0) {
-            this.touchTarget = null;
+            if (touchTarget) {
+                this.pointerEnd(touch.identifier, touchTarget.target, touch.pageX, touch.pageY, touch.target);
+
+                var j = this.touchTargets.indexOf(touchTarget);
+                if (j !== -1)
+                    this.touchTargets.splice(j, 1);
+            }
+        }
+
+        if (this.touchTargets.length === 0) {
             document.removeEventListener('touchend', this.touchEndHandler);
             document.removeEventListener('touchmove', this.touchMoveHandler);
         }
     }
 
     // generalised pointer functions
-    private pointerStart(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
-        var clickInfo = this.getClickInfo(target);
-        if (clickInfo) {
+    private pointerStart(id: number, target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
+        var touchInfo = this.getTouchInfo(target);
+        if (touchInfo) {
+            var wasTouched = (touchInfo.touchId !== -1);
+            touchInfo.touchId = id;
+            touchInfo.lastX = x;
+            touchInfo.lastY = y;
+
+            if (wasTouched)
+                return; // further touches on the same target, don't re-start
+        }
+
+        if (touchInfo) {
             // remove the event (holdTimer has already been disabled)
-            var i = this.clicks.indexOf(clickInfo);
-            this.clicks.splice(i, 1);
+            var i = this.touches.indexOf(touchInfo);
+            this.touches.splice(i, 1);
 
             var now = Date.now();
             if (this._doubletappable &&
-                clickInfo.time + this._doubleClickDelay > now &&
-                this.getDistance(clickInfo.x, clickInfo.y, x, y) < this._doubleClickDistance) {
+                touchInfo.time + this._doubleClickDelay > now &&
+                this.getDistance(touchInfo.x, touchInfo.y, x, y) < this._doubleClickDistance) {
                 var event = this.newEvent('doubletap', {
-                    x: clickInfo.x,
-                    y: clickInfo.y,
-                    duration: now - clickInfo.time,
-                    tapTarget: clickInfo.originalTarget,
+                    x: touchInfo.x,
+                    y: touchInfo.y,
+                    duration: now - touchInfo.time,
+                    tapTarget: touchInfo.originalTarget,
                     rawTarget: rawTarget
                 });
                 target.dispatchEvent(event);
@@ -423,20 +483,25 @@ class Interact {
             }
         }
 
-        clickInfo = {
+        touchInfo = {
+            id: Interact.uniqueId++,
             target: target,
             time: Date.now(),
             x: x,
             y: y,
+            lastX: x,
+            lastY: y,
+            touchId: id,
             swiped: false,
             moved: false,
             originalTarget: target,
+            dropzoneTarget: null,
             holdTimer: -1
         }
         if (this._holdable)
-            clickInfo.holdTimer = window.setTimeout(this.holdExpired.bind(this), this._holdDelay, clickInfo);
+            touchInfo.holdTimer = window.setTimeout(this.holdExpired.bind(this), this._holdDelay, touchInfo);
 
-        this.clicks.push(clickInfo);
+        this.touches.push(touchInfo);
 
         if (this._tappable) {
             var event = this.newEvent('tap', {
@@ -452,7 +517,7 @@ class Interact {
             var event = this.newEvent('movestart', {
                 x: x,
                 y: y,
-                moveTarget: clickInfo.originalTarget,
+                moveTarget: touchInfo.originalTarget,
                 rawTarget: rawTarget
             });
             target.dispatchEvent(event);
@@ -461,28 +526,28 @@ class Interact {
                 Interact.dropList[i].activateDropZone(target);
 
             // this will generate dropenter events, if we are already over a dropzone
-            this.evaluateDrag(target, x, y, rawTarget);
+            this.evaluateDrag(touchInfo, target, x, y, rawTarget);
         }
-
-        this.lastX = x;
-        this.lastY = y;
     }
 
-    private pointerMove(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
-        var clickInfo = this.getClickInfo(target);
-        if (!clickInfo)
+    private pointerMove(id: number, target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
+        var touchInfo = this.getTouchInfo(target);
+        if (!touchInfo)
             return;
 
-        var distance = this.getDistance(clickInfo.x, clickInfo.y, x, y);
-        if (clickInfo.holdTimer !== Interact.INVALID_TIMER && distance > this._holdDistance) {
+        if (id !== touchInfo.touchId)
+            return; // another touch is controlling this target
 
-            window.clearTimeout(clickInfo.holdTimer);
-            clickInfo.holdTimer = Interact.INVALID_TIMER;
+        var distance = this.getDistance(touchInfo.x, touchInfo.y, x, y);
+        if (touchInfo.holdTimer !== Interact.INVALID_TIMER && distance > this._holdDistance) {
+
+            window.clearTimeout(touchInfo.holdTimer);
+            touchInfo.holdTimer = Interact.INVALID_TIMER;
         }
 
-        if (this._swipeable && !clickInfo.swiped && distance > this._swipeDistance) {
-            var dx = clickInfo.x - x;
-            var dy = clickInfo.y - y;
+        if (this._swipeable && !touchInfo.swiped && distance > this._swipeDistance) {
+            var dx = touchInfo.x - x;
+            var dy = touchInfo.y - y;
             var direction = "up";
             if (dx > dy && dx > 0)
                 direction = "right";
@@ -497,78 +562,115 @@ class Interact {
                 dx: dx,
                 dy: dy,
                 direction: direction,
-                swipeTarget: clickInfo.originalTarget,
+                swipeTarget: touchInfo.originalTarget,
                 rawTarget: rawTarget
             });
-            clickInfo.swiped = true;
-            clickInfo.target.dispatchEvent(event);
+            touchInfo.swiped = true;
+            touchInfo.target.dispatchEvent(event);
         }
 
-        if (this._moveable && (clickInfo.moved || distance > this._holdDistance)) {
+        if (this._moveable && (touchInfo.moved || distance > this._holdDistance)) {
             var event = this.newEvent('move', {
                 x: x,
                 y: y,
-                dx: x - this.lastX,
-                dy: y - this.lastY,
-                moveTarget: clickInfo.originalTarget,
+                dx: x - touchInfo.lastX,
+                dy: y - touchInfo.lastY,
+                moveTarget: touchInfo.originalTarget,
                 rawTarget: rawTarget
             });
-            clickInfo.moved = true;
-            clickInfo.target.dispatchEvent(event);
+            touchInfo.moved = true;
+            touchInfo.target.dispatchEvent(event);
         }
 
         if (this._moveable)
-            this.evaluateDrag(target, x, y, rawTarget);
+            this.evaluateDrag(touchInfo, target, x, y, rawTarget);
 
-        this.lastX = x;
-        this.lastY = y;
+        touchInfo.lastX = x;
+        touchInfo.lastY = y;
     }
 
-    private pointerEnd(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
-        var clickInfo = this.getClickInfo(target);
-        if (!clickInfo)
+    private pointerEnd(id: number, target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
+        var touchInfo = this.getTouchInfo(target);
+        if (!touchInfo)
             return;
 
-        if (this.dropzoneTarget) {
+        if (touchInfo.touchId !== id)
+            return; // another touch is controlling this target
+
+        if (touchInfo.dropzoneTarget) {
             var event = this.newEvent('drop', {
                 dragTarget: target
             });
-            this.dropzoneTarget.dispatchEvent(event);
+            touchInfo.dropzoneTarget.dispatchEvent(event);
 
             var event = this.newEvent('dropleave', {
                 dragTarget: target
             });
-            this.dropzoneTarget.dispatchEvent(event);
-            this.dropzoneTarget = null;
+            touchInfo.dropzoneTarget.dispatchEvent(event);
+            touchInfo.dropzoneTarget = null;
         }
 
         for (var i = 0; i < Interact.activeDropList.length; ++i)
-            Interact.dropList[i].deactivateDropZone(target);
+            Interact.activeDropList[i].dropZone.deactivateDropZone(target);
 
-        if (clickInfo.holdTimer !== Interact.INVALID_TIMER) {
-            window.clearTimeout(clickInfo.holdTimer);
-            clickInfo.holdTimer = Interact.INVALID_TIMER;
+        if (touchInfo.holdTimer !== Interact.INVALID_TIMER) {
+            window.clearTimeout(touchInfo.holdTimer);
+            touchInfo.holdTimer = Interact.INVALID_TIMER;
         }
         if (this._moveable) {
             var event = this.newEvent('moveend', {});
-            clickInfo.moved = false;
-            clickInfo.target.dispatchEvent(event);
+            touchInfo.moved = false;
+            touchInfo.target.dispatchEvent(event);
         }
 
-        clickInfo.swiped = false;
+        touchInfo.swiped = false;
+        touchInfo.touchId = -1;
     }
 
     // drag and drop
 
-    // processed by dropzone interact
+    // processed by dropzone interact, can be activated multiple times
     private activateDropZone(target: EventTarget) {
         var parent = ( < Element > ( < Element > target).parentNode);
         var matchList = parent.querySelectorAll(this._dropzone);
 
         if ([].indexOf.call(matchList, target) !== -1) {
-            Interact.activeDropList.push(this);
+            var alreadyActivated = (Interact.getActiveDrop(this) !== null);
 
-            var event = this.newEvent('dropactivate', {
+            Interact.activeDropList.push({
+                dropZone: this,
+                dragTarget: target
+            });
+
+            // a drop list can be activated multiple times, only send
+            // the event on the first activate
+            if (!alreadyActivated) {
+                var event = this.newEvent('dropactivate', {
+                    dragTarget: target
+                });
+
+                for (var i = 0; i < this.elems.length; ++i)
+                    this.elems[i].dispatchEvent(event);
+            }
+        }
+    }
+
+    // processed by dropzone interact
+    private deactivateDropZone(target: EventTarget) {
+        for (var i = 0; i < Interact.activeDropList.length; ++i) {
+            var active = Interact.activeDropList[i];
+            if (active.dropZone === this && active.dragTarget === target) {
+                Interact.activeDropList.splice(i, 1);
+                break;
+            }
+        }
+
+        // a drop list can be de-activated multiple times, only send
+        // and event on the last de-activate
+        if (Interact.getActiveDrop(this) === null) {
+
+            this.dragTarget = null;
+            var event = this.newEvent('dropdeactivate', {
                 dragTarget: target
             });
 
@@ -577,23 +679,8 @@ class Interact {
         }
     }
 
-    // processed by dropzone interact
-    private deactivateDropZone(target: EventTarget) {
-        var i = Interact.activeDropList.indexOf(this);
-        if (i !== -1)
-            Interact.activeDropList.splice(i);
-
-        this.dragTarget = null;
-        var event = this.newEvent('dropdeactivate', {
-            dragTarget: target
-        });
-
-        for (var i = 0; i < this.elems.length; ++i)
-            this.elems[i].dispatchEvent(event);
-    }
-
     // processed by drag interact
-    private evaluateDrag(target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
+    private evaluateDrag(touchInfo: TouchInfo, target: EventTarget, x: number, y: number, rawTarget: EventTarget) {
         var overList: Element[] = [];
 
         // convert x,y to client co-ords
@@ -601,11 +688,12 @@ class Interact {
             cy = y - document.body.scrollTop; // + document.documentElement.scrollTop;
 
         for (var i = 0; i < Interact.activeDropList.length; ++i) {
-            var interact = Interact.activeDropList[i];
-            var overlap = false;
+            var active = Interact.activeDropList[i],
+                dropZone = active.dropZone,
+                overlap = false;
 
-            for (var j = 0; j < interact.elems.length; ++j) {
-                var elem = interact.elems[j],
+            for (var j = 0; j < dropZone.elems.length; ++j) {
+                var elem = dropZone.elems[j],
                     rect = elem.getBoundingClientRect(),
                     overlap = cx >= rect.left && cx <= rect.right && cy <= rect.bottom && cy >= rect.top;
 
@@ -627,18 +715,18 @@ class Interact {
             rawTarget: rawTarget
         };
 
-        if (this.dropzoneTarget && over !== this.dropzoneTarget) {
+        if (touchInfo.dropzoneTarget && over !== touchInfo.dropzoneTarget) {
             var event = this.newEvent('dropleave', details);
-            this.dropzoneTarget.dispatchEvent(event);
-        } else if (over && !this.dropzoneTarget) {
+            touchInfo.dropzoneTarget.dispatchEvent(event);
+        } else if (over && !touchInfo.dropzoneTarget) {
             var event = this.newEvent('dropenter', details);
             over.dispatchEvent(event);
-        } else if (over && this.dropzoneTarget === over) {
+        } else if (over && touchInfo.dropzoneTarget === over) {
             var event = this.newEvent('dropover', details);
             over.dispatchEvent(event);
         }
 
-        this.dropzoneTarget = over;
+        touchInfo.dropzoneTarget = over;
     }
 
     // helper
@@ -659,9 +747,9 @@ class Interact {
         return Math.sqrt(x2 * x2 + y2 * y2);
     }
 
-    private getClickInfo(target) {
-        for (var i = 0; i < this.clicks.length; ++i) {
-            var click = this.clicks[i];
+    private getTouchInfo(target) {
+        for (var i = 0; i < this.touches.length; ++i) {
+            var click = this.touches[i];
             if (click.target === target) {
                 return click;
             }
@@ -669,13 +757,13 @@ class Interact {
         return null;
     }
 
-    private holdExpired(clickInfo: ClickInfo) {
+    private holdExpired(touchInfo: TouchInfo) {
         var event = this.newEvent('hold', {
-            x: clickInfo.x,
-            y: clickInfo.y,
-            holdTarget: clickInfo.originalTarget
+            x: touchInfo.x,
+            y: touchInfo.y,
+            holdTarget: touchInfo.originalTarget
         });
-        clickInfo.target.dispatchEvent(event);
+        touchInfo.target.dispatchEvent(event);
     }
 
     private static getLineage(child: HTMLElement): HTMLElement[] {
@@ -764,6 +852,25 @@ class Interact {
 
         // child was added or removed, rebuild the selector list
         this.setElements(this.selector);
+    }
+
+    private getTouchById(id: number): InteractTouch {
+        for (var i = 0; i < this.touchTargets.length; ++i) {
+            var touchTarget = this.touchTargets[i];
+            if (touchTarget.id === id)
+                return touchTarget;
+
+        }
+        return null;
+    }
+
+    private static getActiveDrop(dropZone: Interact): DragInfo {
+        for (var i = 0; i < Interact.activeDropList.length; ++i) {
+            var active = Interact.activeDropList[i];
+            if (active.dropZone === dropZone)
+                return active;
+        }
+        return null;
     }
 }
 

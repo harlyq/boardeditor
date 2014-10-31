@@ -15,7 +15,9 @@
     }
     #pieces {
         position: relative;
-        /*opacity: 0;*/
+        width: 0px;
+        height: 0px;
+        opacity: 0;
         /* display:none; hides everything, use opactiy: 0; instead */
     }
     .layout {
@@ -37,16 +39,27 @@
     </style>
 
     <script type="text/javascript">
+    var logElem = null;
+    var log = function(msg) {
+        if (!logElem) {
+            logElem = document.getElementById('log');
+            if (!logElem)
+                return;
+        }
+
+        msg += "<br/>" + logElem.innerHTML;
+        logElem.innerHTML = msg.substr(0, 1000);
+    }
+
+    var transformStyle = 'transform';
+
     function translate(target, dx, dy, absolute) {
         target['dx'] = (absolute ? 0 : target['dx'] || 0) + dx;
         target['dy'] = (absolute ? 0 : target['dy'] || 0) + dy;
 
         var sTranslate = 'translate(' + target['dx'] + 'px, ' + target['dy'] + 'px)';
 
-        if ('transform' in target.style)
-            target.style['transform'] = sTranslate;
-        else if ('webkitTransform' in target.style)
-            target.style['webkitTransform'] = sTranslate;
+        target.style[transformStyle] = sTranslate;
     }
 
     var zoomTarget = null;
@@ -55,7 +68,7 @@
 
     function toggleZoom(target) {
         if (zoomTarget) {
-            zoomTarget.style.transform = 'scale(1.0, 1.0)';
+            zoomTarget.style[transformStyle] = 'scale(1.0, 1.0)';
             zoomTarget.style.zIndex = "0";
             cards.refresh(zoomTarget);
         }
@@ -68,13 +81,19 @@
         zoomTarget = target;
 
         if (zoomTarget) {
-            zoomTarget.style.transform = 'scale(2.0, 2.0)';
+            zoomTarget.style[transformStyle] = 'scale(2.0, 2.0)';
             target.style.zIndex = "1";
             cards.refresh(zoomTarget);
         }
     }
 
     window.addEventListener("load", function() {
+        var style = document.getElementById('board').style;
+        if ('transform' in style)
+            transformStyle = 'transform';
+        else if ('webkitTransform' in style)
+            transformStyle = 'webkitTransform';
+
         cards = card(".card").facedown().refresh();
         layouts = layout(".layout");
 
@@ -85,7 +104,7 @@
                 toggleZoom(e.currentTarget);
             });
 
-        var moved = false;
+        var moving = [];
         interact("#discard > .card", {
                 debug: false
             })
@@ -94,13 +113,17 @@
                 e.currentTarget.style.zIndex = '1';
                 translate(e.currentTarget, e.detail.dx, e.detail.dy);
                 toggleZoom(null);
-                moved = true;
+
+                var i = moving.indexOf(e.currentTarget);
+                if (i === -1)
+                    moving.push(e.currentTarget);
             })
             .on("moveend", function(e) {
-                if (moved) {
+                var i = moving.indexOf(e.currentTarget);
+                if (i !== -1) {
+                    moving.splice(i, 1);
                     translate(e.currentTarget, 0, 0, true);
                     e.currentTarget.style.zIndex = '';
-                    moved = false;
                 }
             })
 
@@ -132,22 +155,22 @@
     <div id="board">
         <div id="discard" class="layout" layout="stack" style="left: 10px; top: 10px; width: 100px; height: 140px; padding: 10px"></div>
         <div id="hand" class="layout" layout="fan" style="left: 200px; top: 10px; width: 500px; height: 140px; padding: 10px"></div>
-        <div class="card" front="#f1" back="#back"></div>
-        <div class="card" front="#f1" back="#back"></div>
-        <div class="card" front="#f1" back="#back"></div>
-        <div class="card" front="#f1" back="#back"></div>
-        <div class="card" front="#f1" back="#back"></div>
-        <div class="card" front="#f2" back="#back"></div>
-        <div class="card" front="#f2" back="#back"></div>
-        <div class="card" front="#f3" back="#back"></div>
-        <div class="card" front="#f3" back="#back"></div>
-        <div class="card" front="#f4" back="#back"></div>
-        <div class="card" front="#f4" back="#back"></div>
-        <div class="card" front="#f5" back="#back"></div>
-        <div class="card" front="#f5" back="#back"></div>
-        <div class="card" front="#f6" back="#back"></div>
-        <div class="card" front="#f7" back="#back"></div>
-        <div class="card" front="#f8" back="#back"></div>
+        <div id="c1" class="card" front="#f1" back="#back"></div>
+        <div id="c2" class="card" front="#f1" back="#back"></div>
+        <div id="c3" class="card" front="#f1" back="#back"></div>
+        <div id="c4" class="card" front="#f1" back="#back"></div>
+        <div id="c5" class="card" front="#f1" back="#back"></div>
+        <div id="c6" class="card" front="#f2" back="#back"></div>
+        <div id="c7" class="card" front="#f2" back="#back"></div>
+        <div id="c8" class="card" front="#f3" back="#back"></div>
+        <div id="c9" class="card" front="#f3" back="#back"></div>
+        <div id="c10" class="card" front="#f4" back="#back"></div>
+        <div id="c11" class="card" front="#f4" back="#back"></div>
+        <div id="c12" class="card" front="#f5" back="#back"></div>
+        <div id="c13" class="card" front="#f5" back="#back"></div>
+        <div id="c14" class="card" front="#f6" back="#back"></div>
+        <div id="c15" class="card" front="#f7" back="#back"></div>
+        <div id="c16" class="card" front="#f8" back="#back"></div>
     </div>
     <div id="pieces">
         <img src="Love-Letter-Cards.jpg"></img>
@@ -161,6 +184,7 @@
         <div id="f8" class="cutout" style="width:205px; height:288px; top: 675px; left: 267px"></div>
         <div id="back" class="cutout" style="width:205px; height:288px; top: 676px; left: 501px"></div>
     </div>
+    <div id="log"></div>
 </body>
 
 </html>
