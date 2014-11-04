@@ -215,7 +215,7 @@ class Interact {
 
     disable(): Interact {
         if (!this._enable)
-            return;
+            return this;
 
         // should we send any end/deactivate/leave events?
 
@@ -229,24 +229,26 @@ class Interact {
         document.removeEventListener('touchmove', this.touchMoveHandler);
 
         this.touches = [];
-        this.onEvents = [];
-        this.onFuncs = [];
         this.selector = '';
         this.touchTargets = [];
         this.mouseTarget = null;
         this._enable = false;
+
+        // keep the events, they will be re-applied when enabled
+        // this.onEvents = [];
+        // this.onFuncs = [];
 
         return this;
     }
 
     enable(): Interact {
         if (this._enable)
-            return;
+            return this;
+        this._enable = true;
 
         for (var i = 0; i < this.elems.length; ++i)
             this.enableElement(this.elems[i]);
 
-        this._enable = true;
         return this;
     }
 
@@ -292,12 +294,15 @@ class Interact {
     setElements(elems: Element[]): Interact;
     setElements(selectorOrElems: any): Interact {
         var newElems: Element[] = [];
-        if (typeof selectorOrElems === 'string')
-            newElems = [].slice.call(document.querySelectorAll(selectorOrElems));
-        else if (selectorOrElems instanceof Element)
-            newElems = [selectorOrElems];
-        else if ('length' in selectorOrElems)
-            newElems = [].slice.call(selectorOrElems);
+
+        if (selectorOrElems) {
+            if (typeof selectorOrElems === 'string')
+                newElems = [].slice.call(document.querySelectorAll(selectorOrElems));
+            else if (selectorOrElems instanceof Element)
+                newElems = [selectorOrElems];
+            else if (typeof selectorOrElems === 'object' && 'length' in selectorOrElems)
+                newElems = [].slice.call(selectorOrElems);
+        }
 
         if (this._autoRebuildElements)
             this.watchReparenting(selectorOrElems);
@@ -352,6 +357,31 @@ class Interact {
             for (var j = 0; j < eventList.length; ++j)
                 elem.addEventListener(eventList[j], func);
         }
+        return this;
+    }
+
+    off(events: string, func ? : (e: any) => void): Interact {
+        var allFunc = !func;
+        var eventList = events.split(' ');
+        for (var i = 0; i < this.elems.length; ++i) {
+            var elem = this.elems[i];
+            if (!(elem instanceof Element))
+                continue;
+
+            for (var j = 0; j < eventList.length; ++j) {
+                var event = eventList[j];
+
+                // loop backwards for removal
+                for (var k = this.onEvents.length - 1; k >= 0; --k) {
+                    if (this.onEvents[k] === event && (allFunc || func === this.onFuncs[k])) {
+                        elem.removeEventListener(event, func);
+                        this.onEvents.splice(k, 1);
+                        this.onFuncs.splice(k, 1);
+                    }
+                }
+            }
+        }
+
         return this;
     }
 
@@ -874,6 +904,14 @@ class Interact {
     }
 }
 
-var interact = function(selectorOrElems: any, options ? : InteractOptions) {
+function interact(selector: string, options ? : InteractOptions);
+
+function interact(elem: Element, options ? : InteractOptions);
+
+function interact(elems: NodeList, options ? : InteractOptions);
+
+function interact(elems: Element[], options ? : InteractOptions);
+
+function interact(selectorOrElems: any, options ? : InteractOptions) {
     return new Interact(selectorOrElems, options);
 }

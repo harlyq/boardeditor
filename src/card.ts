@@ -181,6 +181,14 @@ class Card {
     }
 }
 
-var card = function(selectorOrElem: any, options ? : CardOptions) {
-    return new Card(selectorOrElem, options);
+function card(selector: string, options ? : CardOptions);
+
+function card(elem: Element, options ? : CardOptions);
+
+function card(elems: NodeList, options ? : CardOptions);
+
+function card(elems: Element[], options ? : CardOptions);
+
+function card(selectorOrElems: any, options ? : CardOptions) {
+    return new Card(selectorOrElems, options);
 }

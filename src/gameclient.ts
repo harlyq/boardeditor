@@ -1,8 +1,6 @@
 /// <reference path="_dependencies.ts" />
 
 module Game {
-    var CLASS_HIGHLIGHT = 'highlight';
-
     var getRandom = function < T > (list: T[]): T {
         return list[~~(Math.random() * list.length)];
     }
@@ -10,7 +8,6 @@ module Game {
     //-------------------------------
     export class Client implements ProxyListener {
         showMoves: boolean = true;
-        setupFunc: (board: Board) => void;
         whereList: any[];
         localVariables: {
             [name: string]: any
@@ -22,9 +19,7 @@ module Game {
             return this.proxy;
         }
 
-            setup() {
-            this.setupFunc(this.board);
-        }
+            setup() {}
 
             setLocalVariable(name: string, value: any) {
             this.localVariables[name] = value;
@@ -38,10 +33,12 @@ module Game {
             switch (rule.type) {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);
+
                 case 'pick':
                 case 'pickLocation':
                 case 'pickCard':
                     return this.resolvePick( < PickRule > rule);
+
                 case 'setVariable':
                     var setRule = < SetRule > rule;
                     batch.commands.push({
@@ -50,6 +47,15 @@ module Game {
                         value: setRule.value
                     });
                     return batch;
+
+                case 'shuffle':
+                    var shuffleRule = < ShuffleRule > rule;
+                    var location = this.board.queryFirstLocation(shuffleRule.location);
+                    batch.commands.push({
+                        type: 'shuffle',
+                        locationId: (location ? location.id : -1),
+                        seed: shuffleRule.seed
+                    });
             }
 
             return batch;
@@ -135,7 +141,7 @@ module Game {
                 if (from) {
                     card = from.getCard(moveRule.fromPosition);
                 } else {
-                    var k = ~~(Math.random() * cards.length);
+                    var k = 0; // in order ~~(Math.random() * cards.length);
                     card = cards[k];
                     cards.splice(k, 1);
                 }
@@ -224,230 +230,6 @@ module Game {
             };
         }
 
-    }
-
-    //-------------------------------
-    var thisComputerRuleId = -1;
-
-    export class HumanClient extends Client {
-        pickList: any[] = [];
-        lastRuleId: number = -1;
-        pauseEvents: boolean = false;
-
-        locationElem: {
-            [key: number]: HTMLElement;
-        } = {};
-        cardElem: {
-            [key: number]: HTMLElement;
-        } = {};
-
-        constructor(user: string, proxy: BaseClientProxy, board: Board, public boardElem: HTMLElement) {
-            super(user, proxy, board);
-        }
-
-        private onClickLocation(location: Location) {
-            if (this.board.getVariable('currentPlayer') !== this.user)
-                return;
-
-            var i = this.pickList.indexOf(location);
-            if (i === -1)
-                return;
-
-            this.pickList = [];
-            this.clearHighlights();
-
-            this.proxy.sendCommands({
-                ruleId: this.lastRuleId,
-                commands: [{
-                    type: 'pickLocation',
-                    values: [location.name]
-                }]
-            });
-        }
-
-        setup() {
-            // setup the board
-            super.setup();
-
-            var self = this;
-            var layoutElements = self.boardElem.querySelectorAll('.deck-layout');
-            [].forEach.call(layoutElements, function(element) {
-                var name = element.getAttribute('name');
-                var altName = self.applyVariables(name);
-
-                var location = self.board.queryFirstLocation(altName);
-                if (location) {
-                    self.locationElem[location.id] = element;
-                    element.addEventListener('click', self.onClickLocation.bind(self, location));
-                    self.applyLabels(element, location);
-                } else {
-                    _error('could not find deck-layout "' + name + '" alias "' + altName + '"');
-                }
-            });
-
-            this.board.getCards().forEach(function(card) {
-                self.cardElem[card.id] = < HTMLElement > (self.boardElem.querySelector('[id="' + card.id + '"]'));
-            });
-        }
-
-        private applyLabels(element: HTMLElement, location: Location) {
-            for (var i = 0; i < location.labels.length; ++i) {
-                var label = location.labels[i];
-                element.classList.add(label);
-            }
-        }
-
-        private applyVariables(value: string): string {
-            // apply local variables first
-            var parts = value.split('.');
-            for (var i = 0; i < parts.length; ++i) {
-                var part = parts[i];
-                if (typeof part === 'string' && part[0] === '$') {
-                    var alias = part.substr(1);
-                    if (alias in this.localVariables)
-                        parts[i] = this.localVariables[alias];
-                }
-            }
-
-            // then global variables
-            return this.board.applyVariables(parts.join('.'));
-        }
-
-            resolvePick(pickRule: PickRule): BatchCommand {
-            var nullBatch = {
-                ruleId: pickRule.id,
-                commands: []
-            };
-            var where: any = pickRule.where || function() {
-                return true;
-            }
-
-            var list = [];
-            var rawList: any = pickRule.list;
-            if (typeof pickRule.list === 'string')
-                rawList = ( < string > pickRule.list).split(',');
-            if (!Array.isArray(rawList))
-                rawList = [rawList];
-
-            switch (pickRule.type) {
-                case 'pick':
-                    list = rawList;
-                    break;
-                case 'pickLocation':
-                    list = this.board.queryLocations(rawList.join(','));
-                    break;
-                case 'pickCard':
-                    list = this.board.queryCards(rawList.join(','));
-                    break;
-            }
-
-            this.clearHighlights();
-
-            this.pickList = list.filter(where);
-            if (this.pickList.length === 0) {
-                _error('no items in ' + pickRule.type + ' list - ' + pickRule.list + ', rule - ' + pickRule.where);
-                return nullBatch;
-            }
-
-            for (var i = 0; i < this.pickList.length; ++i) {
-                var pick = this.pickList[i];
-
-                switch (pickRule.type) {
-                    case 'pick':
-                        break;
-
-                    case 'pickLocation':
-                        var element = this.locationElem[pick.id];
-                        if (element)
-                            element.classList.add(CLASS_HIGHLIGHT);
-                        break;
-                    case 'pickCard':
-                        var element = this.locationElem[pick.id];
-                        if (element)
-                            element.classList.add(CLASS_HIGHLIGHT);
-                        break;
-                }
-            }
-
-            this.lastRuleId = pickRule.id;
-
-            return nullBatch;
-        }
-
-            onUpdateCommands(batch: BatchCommand) {
-            if (!batch || batch.commands.length === 0)
-                return;
-
-            var commands = batch.commands;
-            var showEvents = !this.pauseEvents && batch.ruleId > thisComputerRuleId;
-
-            for (var i = 0; i < commands.length; ++i) {
-                var command = commands[i];
-                if (command.type === 'move' && showEvents) {
-                    var moveCommand = < MoveCommand > command;
-                    var card = this.board.queryFirstCard(moveCommand.cardId.toString());
-                    var from = this.board.queryFirstLocation(moveCommand.fromId.toString());
-                    var to = this.board.queryFirstLocation(moveCommand.toId.toString());
-                    var cardElem = (card ? this.cardElem[card.id] : null);
-                    var fromElem = (from ? this.locationElem[from.id] : null);
-                    var toElem = (to ? this.locationElem[to.id] : null);
-
-                    if (fromElem) {
-                        var event: CustomEvent = new( < any > CustomEvent)('removeCard', {
-                            bubbles: true,
-                            cancelable: true,
-                            detail: {
-                                card: card
-                            }
-                        });
-                        fromElem.dispatchEvent(event);
-                    }
-
-                    if (toElem) {
-                        var event: CustomEvent = new( < any > CustomEvent)('addCard', {
-                            bubbles: true,
-                            cancelable: true,
-                            detail: {
-                                card: card
-                            }
-                        });
-                        toElem.dispatchEvent(event);
-                    }
-
-                    if (to && toElem.hasAttribute('count'))
-                        toElem.setAttribute('count', to.getNumCards().toString());
-
-                    if (from && fromElem.hasAttribute('count'))
-                        fromElem.setAttribute('count', from.getNumCards().toString());
-
-                    if (toElem && cardElem)
-                        toElem.appendChild(cardElem);
-
-                    // have a global flag which tracks when any human client on this
-                    // machine updates it's rule, so we don't dispatch the events multiple
-                    // times
-                    thisComputerRuleId = batch.ruleId;
-                }
-            }
-        }
-
-            private clearHighlights() {
-            for (var i in this.locationElem) {
-                var element = this.locationElem[i];
-                if (element)
-                    element.classList.remove(CLASS_HIGHLIGHT);
-            }
-
-            for (var i in this.cardElem) {
-                var element = this.cardElem[i];
-                if (element)
-                    element.classList.remove(CLASS_HIGHLIGHT);
-            }
-        }
-
-            pollServer() {
-            this.proxy.pollServer();
-        }
     }
 
     //-------------------------------

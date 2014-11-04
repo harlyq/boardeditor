@@ -24,8 +24,12 @@ module Game {
     export function extend(base: any, ...others: any[]): any {
         for (var i = 0; i < others.length; ++i) {
             var other = others[i];
-            for (var j in other)
+            for (var j in other) {
+                if (!other.hasOwnProperty(j))
+                    continue;
+
                 base[j] = other[j];
+            }
         }
         return base;
     }
@@ -58,7 +62,7 @@ module Game {
         to: any;
         toPosition ? : Position;
         cards ? : string;
-        where ? : number;
+        where ? : (from: Location, to: Location) => boolean;
         whereIndex ? : number; // internal, use where instead
         hint ? : string;
         user ? : string;
@@ -121,6 +125,16 @@ module Game {
     export interface BatchCommand {
         ruleId: number;
         commands: BaseCommand[];
+    }
+
+    export interface ShuffleRule extends BaseRule {
+        seed ? : string;
+        location: string;
+    }
+
+    export interface ShuffleCommand extends BaseCommand {
+        seed: string;
+        locationId: number;
     }
 
     //----------------------------------------------------------------
@@ -186,6 +200,42 @@ module Game {
         // addRegion: (region: Region) => void;
         // removeRegion: (region: Region) => void;
         // containsRegion: (regionOrName: any) => boolean;
+    }
+
+    //----------------------------------------------------------------
+    export class VariableMixin {
+        variables: {
+            [key: string]: any
+        };
+
+        setVariable(name: string, value: any) {
+            this.variables[name] = value;
+        }
+
+        getAlias(value: string): string {
+            var parts = value.split('.');
+            for (var i = 0; i < parts.length; ++i) {
+                var part = parts[i];
+                if (typeof part === 'string' && part[0] === '$') {
+                    var alias = part.substr(1);
+                    if (alias in this.variables)
+                        parts[i] = this.variables[alias];
+                }
+            }
+            return parts.join('.');
+        }
+
+            getVariable(name: string): any {
+            return this.variables[name];
+        }
+
+        // // VariableMixin
+        // variables: {
+        //     [key: string]: any
+        // } = {};
+        // setVariable: (name: string, value: any) => void;
+        // getAlias: (value: string) => string;
+        // getVariable: (name: string) => any;
     }
 
     //----------------------------------------------------------------
@@ -280,8 +330,22 @@ module Game {
         }
 
             insertCard(card: Card, i: number) {
-            if (i < 0)
-                i = 0;
+            if (i < 0) {
+                var numCards = this.cards.length;
+
+                switch (this.toPosition) {
+                    case Position.Default:
+                    case Position.Top:
+                        i = numCards;
+                        break;
+                    case Position.Bottom:
+                        i = 0;
+                        break;
+                    case Position.Random:
+                        i = ~~(Math.random() * numCards);
+                        break;
+                }
+            }
 
             if (card.location !== null)
                 card.location.removeCard(card);
@@ -344,6 +408,17 @@ module Game {
             return visibility;
         }
 
+            shuffle() {
+            var numCards = this.cards.length;
+            for (var i = 0; i < numCards; ++i) {
+                var card = this.cards[i];
+                var j = ~~(Math.random() * numCards);
+                var other = this.cards[j];
+                this.cards[i] = other;
+                this.cards[j] = card;
+            }
+        }
+
             save(): any {
             var obj = {
                 type: 'Location',
@@ -367,7 +442,7 @@ module Game {
             this.cards = [];
 
             for (var i = 0; i < obj.cards.length; ++i) {
-                var card = new Card(0, '', '', false);
+                var card = new Card('', 0);
                 card.load(obj.cards[i]);
                 this.cards.push(card);
             }
@@ -384,19 +459,86 @@ module Game {
     _applyMixins(Location, [LabelMixin]);
 
     //----------------------------------------------------------------
+    export class Deck {
+        cards: Card[] = [];
+
+        constructor(public name: string, public id: number, variables ? : {
+            [key: string]: any
+        }) {
+            if (variables) {
+                for (var i in variables)
+                    this.variables[i] = variables[i];
+            }
+        }
+
+        // VariableMixin
+        variables: {
+            [key: string]: any
+        } = {};
+        setVariable: (name: string, value: any) => void;
+        getAlias: (value: string) => string;
+        getVariable: (name: string) => any;
+
+        addCard(card: Card): Deck {
+            this.cards.push(card);
+            return this;
+        }
+
+            matches(query: string): boolean {
+            return this.id === parseInt(query);
+        }
+
+            save(): any {
+            return {
+                type: 'Deck',
+                name: this.name,
+                id: this.id,
+                variables: this.variables
+            };
+        }
+
+        // TODO work how how to bind cards to decks
+            load(obj: any) {
+            if (obj.type !== 'Deck')
+                return;
+
+            this.name = obj.name;
+            this.id = obj.id;
+            this.variables = obj.variables;
+        }
+    }
+
+    _applyMixins(Deck, [VariableMixin]);
+
+    //----------------------------------------------------------------
     export class Card implements LabelMixin {
         location: Location = null; // back pointer, do not dereference, used by Location
 
         static UNKNOWN = -1;
 
         // id may be -1, typically for cards that are facedown and cannot be flipped
-        constructor(public id: number, public front: string, public back: string, public facedown: boolean) {}
+        constructor(public name: string, public id: number, variables ? : {
+            [key: string]: any
+        }) {
+            if (variables) {
+                for (var i in variables)
+                    this.variables[i] = variables[i];
+            }
+        }
 
         // LabelMixin
         labels: string[] = [];
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
+
+        // VariableMixin
+        variables: {
+            [key: string]: any
+        } = {};
+        setVariable: (name: string, value: any) => void;
+        getAlias: (value: string) => string;
+        getVariable: (name: string) => any;
 
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
@@ -408,10 +550,9 @@ module Game {
             save(): any {
             return {
                 type: 'Card',
+                name: this.name,
                 id: this.id,
-                front: this.front,
-                back: this.back,
-                facedown: this.facedown
+                variables: this.variables
             };
         }
 
@@ -419,14 +560,13 @@ module Game {
             if (obj.type !== 'Card')
                 return;
 
+            this.name = obj.name;
             this.id = obj.id;
-            this.front = obj.front;
-            this.back = obj.back;
-            this.facedown = obj.facedown;
+            this.variables = obj.variables;
         }
     }
 
-    _applyMixins(Card, [LabelMixin]);
+    _applyMixins(Card, [LabelMixin, VariableMixin]);
 
     //----------------------------------------------------------------
     export class User {
@@ -454,12 +594,10 @@ module Game {
     //----------------------------------------------------------------
     export class Board {
         locations: Location[] = [];
+        decks: Deck[] = [];
         cards: Card[] = [];
         users: User[] = [];
         regions: Region[] = [];
-        variables: {
-            [key: string]: any
-        } = {};
         uniqueId: number = 0;
 
         createLocation(name: string, locationId: number, visibility ? : {
@@ -470,9 +608,23 @@ module Game {
             return location;
         }
 
-            createCard(cardId: number, front: string, back: string, facedown: boolean): Card {
-            var card = new Card(cardId, front, back, facedown);
+            createDeck(name: string, deckId: number, variables ? : {
+            [key: string]: any
+        }): Deck {
+            var deck = new Deck(name, deckId, variables);
+            this.decks.push(deck);
+            return deck;
+        }
+
+            createCard(name: string, cardId: number, deck: Deck, variables ? : {
+            [key: string]: any
+        }): Card {
+            var card = new Card(name, cardId, variables);
             this.cards.push(card);
+
+            if (deck)
+                deck.addCard(card);
+
             return card;
         }
 
@@ -521,6 +673,30 @@ module Game {
             return null;
         }
 
+            findDeckById(deckId: number): Deck {
+            // decks are often represented by a negative id
+            if (deckId < 0)
+                deckId = -deckId;
+
+            for (var i = 0; i < this.decks.length; ++i) {
+                if (this.decks[i].id === deckId)
+                    return this.decks[i];
+            }
+            return null;
+        }
+
+            findDeckByCardId(cardId: number): Deck {
+            for (var i = 0; i < this.decks.length; ++i) {
+                var deck = this.decks[i];
+                for (var j = 0; j < deck.cards.length; ++j) {
+                    var card = deck.cards[j];
+                    if (card.id === cardId)
+                        return deck;
+                }
+            }
+            return null;
+        }
+
             findCardById(cardId: number): Card {
             for (var i = 0; i < this.cards.length; ++i) {
                 if (this.cards[i].id === cardId)
@@ -551,6 +727,35 @@ module Game {
                     return this.regions[i];
             }
             return null;
+        }
+
+            queryFirstDeck(query: string): Deck {
+            var decks = this.queryDecks(query, true);
+            if (decks.length === 0)
+                return null;
+            return decks[0];
+        }
+
+            queryDecks(query: string, quitOnFirst: boolean = false): Deck[] {
+            var tags = query.split(',');
+            var decks: Deck[] = [];
+
+            for (var j = 0; j < this.decks.length; ++j) {
+                var deck = this.decks[j];
+
+                for (var i = 0; i < tags.length; ++i) {
+                    var tag = tags[i].trim();
+                    if (deck.matches(tag)) {
+                        decks.push(deck);
+                        if (quitOnFirst)
+                            return decks;
+
+                        break;
+                    }
+                }
+            }
+
+            return decks;
         }
 
             queryFirstCard(query: string): Card {
@@ -637,27 +842,10 @@ module Game {
             return regions;
         }
 
-            setLocalVariable(name: string, value: any) {
-            this.variables[name] = value;
-        }
-
-            applyVariables(value: string): string {
-            var parts = value.split('.');
-            for (var i = 0; i < parts.length; ++i) {
-                var part = parts[i];
-                if (typeof part === 'string' && part[0] === '$') {
-                    var alias = part.substr(1);
-                    if (alias in this.variables)
-                        parts[i] = this.variables[alias];
-                }
-            }
-            return parts.join('.');
-        }
-
         // typescript doesn't understand the yield keyword, so these functions are in boardx.js
             waitMove(rule: MoveRule): MoveRule {
-            rule.from = this.convertLocation(rule.from);
-            rule.to = this.convertLocation(rule.to);
+            rule.from = this.convertLocationsToString(rule.from);
+            rule.to = this.convertLocationsToString(rule.to);
             if (!rule.to)
                 _error('to location is empty - ' + rule.to);
             if (!rule.from && !rule.cards)
@@ -680,7 +868,7 @@ module Game {
         }
 
             waitPickLocation(rule: PickRule): PickRule {
-            rule.list = this.convertLocation(rule.list);
+            rule.list = this.convertLocationsToString(rule.list);
             if (!rule.list)
                 _error('pick location is empty - ' + rule.list);
 
@@ -691,7 +879,7 @@ module Game {
         }
 
             waitPickCard(rule: PickRule): PickRule {
-            rule.list = this.convertCard(rule.list);
+            rule.list = this.convertCardsToString(rule.list);
             if (!rule.list)
                 _error('pick card is empty - ' + rule.list);
 
@@ -707,6 +895,16 @@ module Game {
                 id: this.uniqueId++,
                 name: name,
                 value: value,
+                user: 'BANK'
+            };
+        }
+
+            waitShuffle(rule: ShuffleRule): ShuffleRule {
+            return {
+                type: 'shuffle',
+                id: this.uniqueId++,
+                location: this.convertLocationsToString(rule.location),
+                seed: (rule.seed ? rule.seed : Math.seedrandom()),
                 user: 'BANK'
             };
         }
@@ -735,12 +933,15 @@ module Game {
                     var setCommand = < SetCommand > command;
                     this.variables[setCommand.name] = setCommand.value;
                     return setCommand.value;
+                case 'shuffle':
+                    var shuffleCommand = < ShuffleCommand > command;
+                    var location = this.findLocationById(shuffleCommand.locationId);
+                    Math.seedrandom(shuffleCommand.seed);
+                    if (location)
+                        location.shuffle();
+                    break;
             }
             return null;
-        }
-
-            getVariable(name: string): any {
-            return this.variables[name];
         }
 
             next < T > (value: T, list: T[], loop: boolean = false): T {
@@ -772,7 +973,7 @@ module Game {
             return list[i];
         }
 
-            convertLocation(other: any): string {
+            convertLocationsToString(other: any): string {
             var str = '';
             if (other instanceof Game.Location)
                 str = other.id.toString();
@@ -794,7 +995,7 @@ module Game {
             return str;
         }
 
-            convertCard(other: any): string {
+            convertCardsToString(other: any): string {
             var str = '';
             if (other instanceof Game.Card)
                 str = other.id.toString();
@@ -831,6 +1032,10 @@ module Game {
             }
         }
 
+            getDecks(): Deck[] {
+            return this.decks;
+        }
+
             getLocations(): Location[] {
             return this.locations;
         }
@@ -843,12 +1048,16 @@ module Game {
             var obj = {
                 type: 'Board',
                 locations: [],
+                decks: [],
                 cards: [],
                 users: []
             };
 
             for (var i = 0; i < this.locations.length; ++i)
                 obj.locations.push(this.locations[i].save());
+
+            for (var i = 0; i < this.decks.length; ++i)
+                obj.decks.push(this.decks[i].save());
 
             for (var i = 0; i < this.cards.length; ++i)
                 obj.cards.push(this.locations[i].save());
@@ -863,6 +1072,7 @@ module Game {
                 return;
 
             this.locations = [];
+            this.decks = [];
             this.cards = [];
             this.users = [];
 
@@ -872,8 +1082,14 @@ module Game {
                 this.locations.push(location);
             }
 
+            for (var i = 0; i < obj.decks.length; ++i) {
+                var deck = new Deck('', 0);
+                deck.load(obj.decks[i]);
+                this.decks.push(deck);
+            }
+
             for (var i = 0; i < obj.cards.length; ++i) {
-                var card = new Card(0, '', '', false);
+                var card = new Card('', 0);
                 card.load(obj.cards[i]);
                 this.cards.push(card);
             }
@@ -884,5 +1100,15 @@ module Game {
                 this.users.push(user);
             }
         }
+
+        // VariableMixin
+            variables: {
+            [key: string]: any
+        } = {};
+        setVariable: (name: string, value: any) => void;
+        getAlias: (value: string) => string;
+        getVariable: (name: string) => any;
     }
+
+    _applyMixins(Board, [VariableMixin]);
 }

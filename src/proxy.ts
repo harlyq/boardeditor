@@ -56,6 +56,10 @@ module Game {
 
         constructor(public userNames: string) {}
 
+        setup(setupFunc: (board: Board) => void) {
+            setupFunc(this.board);
+        }
+
         addListener(listener: ProxyListener) {
             this.listeners.push(listener);
         }
@@ -131,8 +135,6 @@ module Game {
         }
 
         resolveRule(rule: BaseRule): BatchCommand {
-            this.lastRuleId = rule.id;
-
             return this.onResolveRule(rule);
         }
 
@@ -141,6 +143,7 @@ module Game {
                 return;
 
             this.onUpdateCommands(batch);
+            this.lastRuleId = batch.ruleId;
         }
 
             sendCommands(batch: BatchCommand) {
@@ -163,8 +166,6 @@ module Game {
         }
 
         resolveRule(rule: BaseRule): BatchCommand {
-            this.lastRuleId = rule.id;
-
             return this.clientPair.resolveRule(rule);
         }
 
@@ -329,7 +330,7 @@ module Game {
                 batch: batch
             };
 
-            console.log('SEND updateCommands to:' + msg.userNames + ' id:' + msg.batch.ruleId);
+            console.log('SEND updateCommands (' + batch.commands.length + ') to:' + msg.userNames + ' id:' + batch.ruleId);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
             return [];
         }
@@ -371,7 +372,7 @@ module Game {
 
         // when debugging, messages from the server can be received out of order
         // so only process the commands once we receive all of them in order 
-        private onServerMessage(msg: any): boolean {
+        onServerMessage(msg: any): boolean {
             if (!msg || typeof msg !== 'object') {
                 _error('client (' + this.userNames + ') received invalid message');
                 return;

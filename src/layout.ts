@@ -4,6 +4,7 @@ interface LayoutOptions {
     baseline ? : string;
     offsetx ? : string;
     offsety ? : string;
+    facedown ? : string;
     positionWith ? : (target: HTMLElement, x: number, y: number) => void;
 }
 
@@ -14,6 +15,7 @@ class Layout {
     private _baseline: string = 'middle';
     private _offsetx: string = '0';
     private _offsety: string = '0';
+    private _facedown: string = 'any';
     private _positionWith: (target: HTMLElement, x: number, y: number) => void = Layout.topLeft;
     private attributeList: string[] = ['layout', 'align', 'baseline', 'offsetx', 'offsety'];
 
@@ -73,6 +75,11 @@ class Layout {
 
     positionWith(func: (target: HTMLElement, x: number, y: number) => void): Layout {
         this._positionWith = func;
+        return this;
+    }
+
+    facedown(value: string): Layout {
+        this._facedown = value;
         return this;
     }
 
@@ -201,6 +208,8 @@ class Layout {
                 this.refreshGrid(elem);
                 break;
         }
+
+        this.refreshFaceDown(elem);
     }
 
     // note: don't use getBoundingClientRect() as that will get the post-scaled size
@@ -367,11 +376,29 @@ class Layout {
         }
     }
 
-    private positionRotated(target: HTMLElement, x: number, y: number) {
+    private refreshFaceDown(elem: HTMLElement) {
+        var numChildren = elem.children.length,
+            facedown = elem.getAttribute('facedown') || this._facedown;
 
+        if (facedown === 'any')
+            return;
+
+        for (var i = 0; i < numChildren; ++i) {
+            var child = < HTMLElement > (elem.children[i]);
+            if (!child.hasAttribute('facedown') || child.getAttribute('facedown') !== facedown)
+                child.setAttribute('facedown', facedown);
+        }
     }
 }
 
-var layout = function(elem: HTMLElement, options: LayoutOptions) {
-    return new Layout(elem, options);
+function layout(selector: string, options ? : LayoutOptions);
+
+function layout(elem: Element, options ? : LayoutOptions);
+
+function layout(elems: NodeList, options ? : LayoutOptions);
+
+function layout(elems: Element[], options ? : LayoutOptions);
+
+function layout(selectorOrElems: any, options ? : LayoutOptions) {
+    return new Layout(selectorOrElems, options);
 }

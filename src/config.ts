@@ -18,7 +18,15 @@ module Game {
         return userNames.join(',');
     }
 
-    export function createClients(screen: string, boardElem: HTMLElement, game: any, config: GameConfig): GameConfig {
+    var createClientFunc: {
+        [key: string]: (userName: string, proxy: BaseClientProxy, board: Board) => Client
+    } = {};
+
+    export function registerClient(clientName: string, createFunc: (userName: string, proxy: BaseClientProxy, board: Board) => Client) {
+        createClientFunc[clientName] = createFunc;
+    }
+
+    export function createClients(screen: string, game: any, config: GameConfig): GameConfig {
         var screenConfig = getScreenConfig(config, screen);
         if (!screenConfig)
             return null;
@@ -42,20 +50,14 @@ module Game {
         if (!proxy)
             return config;
 
+        proxy.setup(game.setupFunc);
+
         for (var i = 0; i < numPlayers; ++i) {
             var user = users[i];
             var client: Client = null;
 
-            switch (user.type) {
-                case 'human':
-                    client = new HumanClient(user.name, proxy, proxy.board, boardElem);
-                    break;
-                case 'ai':
-                    client = new AIClient(user.name, proxy, proxy.board);
-                    break;
-                case 'none':
-                    break;
-            }
+            if (user.type in createClientFunc)
+                client = createClientFunc[user.type](user.name, proxy, proxy.board);
 
             user.client = client;
 
@@ -91,7 +93,6 @@ module Game {
                 }
             }
 
-            client.setupFunc = game.setupFunc;
             client.setup();
         }
 
@@ -132,7 +133,7 @@ module Game {
         var bankClient = new Game.BankClient('BANK', bankClientProxy, bankClientProxy.board);
         bankClientProxy.addListener(bankClient);
         server.addProxy(bankServerProxy);
-        bankClient.setupFunc = game.setupFunc;
+        bankClientProxy.setup(game.setupFunc);
         bankClient.setup();
 
         server.config = config;
@@ -157,5 +158,33 @@ module Game {
                 return user.client.getProxy();
         }
         return null;
+    }
+
+    export function queryServer(setup: any, screen: string) {
+        var config: any;
+
+        registerClient('AI', function(userName: string, proxy: BaseClientProxy, board: Board) {
+            return new AIClient(userName, proxy, board);
+        });
+
+        window.addEventListener('message', function(e) {
+            var msg = JSON.parse(e.data);
+            if (!('type' in msg))
+                return; // unknown message
+
+            switch (msg.type) {
+                case 'config':
+                    config = msg;
+                    createClients(screen, setup, config);
+                    break;
+
+                case 'updateCommands':
+                case 'resolveRule':
+                    var proxy = < MessageClientProxy > getClientProxy(config, screen, msg.userNames);
+                    if (proxy && typeof proxy.onServerMessage === 'function')
+                        proxy.onServerMessage(msg);
+                    break;
+            }
+        });
     }
 }
