@@ -1,5 +1,5 @@
 // node server
-var Game = require('./finalgame');
+var Game = require('./game');
 console.log(Game);
 var mancalaSetup = require('./mancala_setup');
 var mancalaGame = require('./mancala_game');

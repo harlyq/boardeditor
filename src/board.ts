@@ -46,6 +46,10 @@ module Game {
         Default, Top, Bottom, Random
     }
 
+    export interface RuleRegistration {
+        registerRule: (name: string, pluginName: string) => void;
+    }
+
     export interface BaseCommand {
         type: string;
     }
@@ -113,12 +117,12 @@ module Game {
     }
 
     export interface SetRule extends BaseRule {
-        name: string;
+        key: string;
         value: any;
     }
 
     export interface SetCommand extends BaseCommand {
-        name: string;
+        key: string;
         value: any;
     }
 
@@ -160,6 +164,17 @@ module Game {
             }
             return false;
         }
+
+            getLabels(): string[] {
+            return this.labels;
+        }
+
+        // // LabelMixin
+        // labels: string[] = [];
+        // addLabel: (label: string) => void;
+        // removeLabel: (label: string) => void;
+        // containsLabel: (label: string) => boolean;
+        // getLabels: () => string[];
     }
 
     //----------------------------------------------------------------
@@ -208,6 +223,13 @@ module Game {
             [key: string]: any
         };
 
+        setVariables(variables: {
+            [key: string]: any
+        }) {
+            for (var i in variables)
+                this.variables[i] = variables[i];
+        }
+
         setVariable(name: string, value: any) {
             this.variables[name] = value;
         }
@@ -229,13 +251,19 @@ module Game {
             return this.variables[name];
         }
 
+            getVariables(): any {
+            return this.variables;
+        }
+
         // // VariableMixin
         // variables: {
         //     [key: string]: any
         // } = {};
+        // setVariables: (variables: {[key: string]: any}) => void;
         // setVariable: (name: string, value: any) => void;
         // getAlias: (value: string) => string;
         // getVariable: (name: string) => any;
+        // getVariables: () => any;
     }
 
     //----------------------------------------------------------------
@@ -247,6 +275,7 @@ module Game {
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
+        getLabels: () => string[];
 
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
@@ -273,6 +302,7 @@ module Game {
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
+        getLabels: () => string[];
 
         // RegionMixin
         regions: Region[] = [];
@@ -396,6 +426,10 @@ module Game {
             return this.cards[i];
         }
 
+            getCards(): Card[] {
+            return this.cards.slice(); // copy
+        }
+
             getNumCards(): number {
             return this.cards.length;
         }
@@ -459,7 +493,7 @@ module Game {
     _applyMixins(Location, [LabelMixin]);
 
     //----------------------------------------------------------------
-    export class Deck {
+    export class Deck implements VariableMixin {
         cards: Card[] = [];
 
         constructor(public name: string, public id: number, variables ? : {
@@ -475,9 +509,13 @@ module Game {
         variables: {
             [key: string]: any
         } = {};
+        setVariables: (variables: {
+            [key: string]: any
+        }) => void;
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;
+        getVariables: () => any;
 
         addCard(card: Card): Deck {
             this.cards.push(card);
@@ -511,7 +549,7 @@ module Game {
     _applyMixins(Deck, [VariableMixin]);
 
     //----------------------------------------------------------------
-    export class Card implements LabelMixin {
+    export class Card implements LabelMixin, VariableMixin {
         location: Location = null; // back pointer, do not dereference, used by Location
 
         static UNKNOWN = -1;
@@ -531,14 +569,19 @@ module Game {
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
+        getLabels: () => string[];
 
         // VariableMixin
         variables: {
             [key: string]: any
         } = {};
+        setVariables: (variables: {
+            [key: string]: any
+        }) => void;
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;
+        getVariables: () => any;
 
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
@@ -592,15 +635,24 @@ module Game {
     }
 
     //----------------------------------------------------------------
-    export class Board {
+    export class Board implements VariableMixin {
         locations: Location[] = [];
         decks: Deck[] = [];
         cards: Card[] = [];
         users: User[] = [];
         regions: Region[] = [];
         uniqueId: number = 0;
+        lastRuleId: number = 0;
 
-        createLocation(name: string, locationId: number, visibility ? : {
+        createRule(type: string): BaseRule {
+            return {
+                id: this.uniqueId++,
+                type: type,
+                user: 'BANK'
+            };
+        }
+
+            createLocation(name: string, locationId: number, visibility ? : {
             [userId: number]: Location.Visibility
         }): Location {
             var location = new Location(name, locationId, visibility);
@@ -857,46 +909,56 @@ module Game {
             }, Game.default_MoveRule, rule);
         }
 
-            waitPick(rule: PickRule): PickRule {
-            if (!rule.list)
-                _error('pick is empty - ' + rule.list);
+        //     waitPick(rule: PickRule): PickRule {
+        //     if (!rule.list)
+        //         _error('pick is empty - ' + rule.list);
 
-            return Game.extend({
-                type: 'pick',
-                id: this.uniqueId++
-            }, Game.default_PickRule, rule);
-        }
+        //     return Game.extend({
+        //         type: 'pick',
+        //         id: this.uniqueId++
+        //     }, Game.default_PickRule, rule);
+        // }
 
-            waitPickLocation(rule: PickRule): PickRule {
-            rule.list = this.convertLocationsToString(rule.list);
-            if (!rule.list)
-                _error('pick location is empty - ' + rule.list);
+        //     waitPickLocation(rule: PickRule): PickRule {
+        //     rule.list = this.convertLocationsToString(rule.list);
+        //     if (!rule.list)
+        //         _error('pick location is empty - ' + rule.list);
 
-            return Game.extend({
-                type: 'pickLocation',
-                id: this.uniqueId++
-            }, Game.default_PickRule, rule);
-        }
+        //     return Game.extend({
+        //         type: 'pickLocation',
+        //         id: this.uniqueId++
+        //     }, Game.default_PickRule, rule);
+        // }
 
-            waitPickCard(rule: PickRule): PickRule {
-            rule.list = this.convertCardsToString(rule.list);
-            if (!rule.list)
-                _error('pick card is empty - ' + rule.list);
+        //     waitPickCard(rule: PickRule): PickRule {
+        //     rule.list = this.convertCardsToString(rule.list);
+        //     if (!rule.list)
+        //         _error('pick card is empty - ' + rule.list);
 
-            return Game.extend({
-                type: 'pickCard',
-                id: this.uniqueId++
-            }, Game.default_PickRule, rule);
-        }
+        //     return Game.extend({
+        //         type: 'pickCard',
+        //         id: this.uniqueId++
+        //     }, Game.default_PickRule, rule);
+        // }
 
             waitSetVariable(name: string, value: any): SetRule {
             return {
                 type: 'setVariable',
                 id: this.uniqueId++,
-                name: name,
+                key: name,
                 value: value,
                 user: 'BANK'
             };
+        }
+
+            waitSetCardVariable(rule: SetRule): SetRule {
+            return {
+                type: 'setCardVariable',
+                id: this.uniqueId++,
+                key: rule.key,
+                value: rule.value,
+                user: rule.user
+            }
         }
 
             waitShuffle(rule: ShuffleRule): ShuffleRule {
@@ -913,26 +975,31 @@ module Game {
             switch (command.type) {
                 case 'move':
                     var moveCommand = < MoveCommand > command;
+                    var from = this.findLocationById(moveCommand.fromId);
                     var to = this.findLocationById(moveCommand.toId);
                     var card = this.findCardById(moveCommand.cardId);
                     to.insertCard(card, moveCommand.index);
-                    break;
-                case 'pick':
-                    var pickCommand = < PickCommand > command;
-                    return pickCommand.values;
-                    break;
-                case 'pickLocation':
-                    var pickCommand = < PickCommand > command;
-                    return this.queryLocations(pickCommand.values.join(','));
-                    break;
-                case 'pickCard':
-                    var pickCommand = < PickCommand > command;
-                    return this.queryCards(pickCommand.values.join(','));
-                    break;
+                    return {
+                        from: from,
+                        to: to,
+                        card: card,
+                        index: moveCommand.index
+                    };
+
                 case 'setVariable':
                     var setCommand = < SetCommand > command;
-                    this.variables[setCommand.name] = setCommand.value;
+                    this.variables[setCommand.key] = setCommand.value;
                     return setCommand.value;
+
+                case 'setCardVariable':
+                    var setCommand = < SetCommand > command;
+                    var cards = this.queryCards(setCommand.key);
+
+                    for (var i = 0; i < cards.length; ++i)
+                        cards[i].setVariables(setCommand.value);
+
+                    return setCommand.value;
+
                 case 'shuffle':
                     var shuffleCommand = < ShuffleCommand > command;
                     var location = this.findLocationById(shuffleCommand.locationId);
@@ -1105,9 +1172,13 @@ module Game {
             variables: {
             [key: string]: any
         } = {};
+        setVariables: (variables: {
+            [key: string]: any
+        }) => void;
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;
+        getVariables: () => any;
     }
 
     _applyMixins(Board, [VariableMixin]);

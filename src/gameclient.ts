@@ -9,27 +9,44 @@ module Game {
     export class Client implements ProxyListener {
         showMoves: boolean = true;
         whereList: any[];
-        localVariables: {
+        private localVariables: {
             [name: string]: any
         } = {};
+        plugins: BasePlugin[] = [];
 
-        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {}
+        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {
+            this.applyProxyModules();
+        }
 
         getProxy(): BaseClientProxy {
             return this.proxy;
         }
 
-            setup() {}
+            getBoard(): Board {
+            return this.board;
+        }
+
+            getUser(): string {
+            return this.user;
+        }
+
+            setup() {
+            for (var i in plugins) {
+                var createPlugin = plugins[i].createPlugin;
+                if (typeof createPlugin === 'function')
+                    this.plugins.push(createPlugin(this));
+            }
+
+            this.onSetup();
+        }
+
+            onSetup() {}
 
             setLocalVariable(name: string, value: any) {
             this.localVariables[name] = value;
         }
 
             onResolveRule(rule: BaseRule): BatchCommand {
-            var batch = {
-                ruleId: rule.id,
-                commands: []
-            };
             switch (rule.type) {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);
@@ -40,39 +57,44 @@ module Game {
                     return this.resolvePick( < PickRule > rule);
 
                 case 'setVariable':
-                    var setRule = < SetRule > rule;
-                    batch.commands.push({
-                        type: 'setVariable',
-                        name: setRule.name,
-                        value: setRule.value
-                    });
-                    return batch;
+                case 'setCardVariable':
+                    return this.resolveSetVariable( < SetRule > rule);
 
                 case 'shuffle':
                     var shuffleRule = < ShuffleRule > rule;
                     var location = this.board.queryFirstLocation(shuffleRule.location);
-                    batch.commands.push({
-                        type: 'shuffle',
-                        locationId: (location ? location.id : -1),
-                        seed: shuffleRule.seed
-                    });
+                    return {
+                        ruleId: rule.id,
+                        commands: [{
+                            type: 'shuffle',
+                            locationId: (location ? location.id : -1),
+                            seed: shuffleRule.seed
+                        }]
+                    };
             }
 
-            return batch;
+            return null;
         }
 
             resolveMove(rule: MoveRule): BatchCommand {
             return {
                 ruleId: rule.id,
                 commands: []
-            };;
+            };
         }
 
             resolvePick(rule: PickRule): BatchCommand {
             return {
                 ruleId: rule.id,
                 commands: []
-            };;
+            };
+        }
+
+            resolveSetVariable(rule: SetRule): BatchCommand {
+            return {
+                ruleId: rule.id,
+                commands: [ < SetCommand > rule]
+            };
         }
 
             isCountComplete(quantity: Quantity, count: number, value: number): boolean {
@@ -95,14 +117,24 @@ module Game {
 
             onUpdateCommands(batch: BatchCommand) {}
 
-            getUser(): string {
-            return this.user;
+            applyProxyModules() {
+
         }
     }
 
 
     //-------------------------------
     export class BankClient extends Client {
+
+        onResolveRule(rule: BaseRule): BatchCommand {
+            var results = []
+            for (var i = 0; i < this.plugins.length; ++i) {
+                if (this.plugins[i].performRule(rule, results))
+                    return results[~~(Math.random() * results.length)]; // return a random option
+            }
+
+            return super.onResolveRule(rule);
+        }
 
         resolveMove(moveRule: MoveRule): BatchCommand {
             var where: any = moveRule.where || function() {

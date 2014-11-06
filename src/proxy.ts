@@ -49,16 +49,19 @@ module Game {
         return new MessageClientProxy(userNames, whereList);
     }
 
-    export class BaseClientProxy {
+    export class BaseClientProxy implements RuleRegistration {
+        modules: any[];
         lastRuleId: number = -1;
         listeners: ProxyListener[] = [];
         board: Board = new Board();
 
         constructor(public userNames: string) {}
 
-        setup(setupFunc: (board: Board) => void) {
-            setupFunc(this.board);
+        setup(setupFunc: (owner: RuleRegistration, board: Board) => void) {
+            setupFunc(this, this.board);
         }
+
+        registerRule(name: string, pluginName: string) {}
 
         addListener(listener: ProxyListener) {
             this.listeners.push(listener);
@@ -79,7 +82,8 @@ module Game {
                 var listener = this.listeners[i];
                 if (listener && typeof listener.onResolveRule === 'function' && rule.user.indexOf(listener.getUser()) !== -1) {
                     var batch = listener.onResolveRule(rule);
-                    [].push.apply(response.commands, batch.commands);
+                    if (batch)
+                        [].push.apply(response.commands, batch.commands);
                 }
             }
             return response;
@@ -87,8 +91,18 @@ module Game {
 
             onUpdateCommands(batch: BatchCommand): void {
             for (var i = 0; i < batch.commands.length; ++i) {
-                var command = batch.commands[i];
-                this.board.performCommand(command);
+                var command = batch.commands[i],
+                    result = undefined;
+
+                for (var j in plugins) {
+                    result = plugins[j].performCommand(this.board, command);
+                    if (typeof result !== 'undefined')
+                        break;
+                }
+
+                // legacy support
+                if (typeof result === 'undefined')
+                    this.board.performCommand(command);
             }
 
             for (var i = 0; i < this.listeners.length; ++i) {
@@ -101,6 +115,10 @@ module Game {
             sendCommands(batch: BatchCommand) {}
 
             pollServer() {}
+
+            register(module: any) {
+            this.modules.push(module);
+        }
     }
 
     export class BaseServerProxy {

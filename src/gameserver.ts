@@ -2,7 +2,7 @@
 module Game {
 
     // server has perfect knowledge of the game.  validates all moves.
-    export class GameServer implements ProxyListener {
+    export class GameServer implements ProxyListener, RuleRegistration {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseServerProxy[] = [];
@@ -15,7 +15,7 @@ module Game {
         newGameGen: (game: any, board: Board) => {
             next(...args: any[]): any
         };
-        setupFunc: (board: Board) => void;
+        setupFunc: (owner: RuleRegistration, board: Board) => void;
         whereList: any[] = [];
 
         addProxy(proxy: BaseServerProxy) {
@@ -44,9 +44,13 @@ module Game {
 
         setup() {
             if (typeof this.setupFunc === 'function')
-                this.setupFunc(this.board);
+                this.setupFunc(this, this.board);
 
             this.board.print();
+        }
+
+        registerRule(name: string, pluginName: string) {
+            this.board[name] = plugins[pluginName].createRule;
         }
 
         newGame() {
@@ -61,7 +65,7 @@ module Game {
             this.step();
         }
 
-        step(nextValue ? : any): boolean {
+        step(nextValue ? : any[]): boolean {
             if (!('next' in this.rulesIter))
                 return;
 
@@ -97,14 +101,27 @@ module Game {
             return true;
         }
 
-        private handleCommands(batch: BatchCommand): any {
+        private handleCommands(batch: BatchCommand): any[] {
             if (!batch || batch.commands.length === 0)
                 return undefined;
 
             var commands = batch.commands;
-            var nextValue = undefined;
-            for (var i = 0; i < commands.length; ++i)
-                nextValue = this.board.performCommand(commands[i]);
+            var nextValue = [];
+            for (var i = 0; i < commands.length; ++i) {
+                var result = undefined;
+
+                for (var j in plugins) {
+                    result = plugins[j].performCommand(this.board, commands[i]);
+                    if (typeof result !== 'undefined') {
+                        nextValue.push(result);
+                        break;
+                    }
+                }
+
+                // legacy support
+                if (typeof result === 'undefined')
+                    nextValue.push(this.board.performCommand(commands[i]));
+            }
 
             for (var i = 0; i < this.proxies.length; ++i)
                 this.proxies[i].updateCommands(batch);

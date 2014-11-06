@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="770" height="704" viewBox="0, 0, 770, 704">
+  <g id="Layer1">
+    <path d="M132.784,459.509 L239.124,459.509 L239.124,607.456 L132.784,607.456 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Deck"/>
+    <path d="M273.415,459.51 L494.417,459.51 L494.417,607.456 L273.415,607.456 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Hand"/>
+    <path d="M273.415,295.43 L494.417,295.43 L494.417,442.831 L273.415,442.831 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Discard1"/>
+    <path d="M18.122,43.776 L239.125,43.776 L239.125,191.722 L18.122,191.722 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Discard2"/>
+    <path d="M273.415,43.776 L494.417,43.776 L494.417,191.722 L273.415,191.722 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Discard3"/>
+    <path d="M528.707,43.776 L749.71,43.776 L749.71,191.722 L528.707,191.722 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Discard4"/>
+    <path d="M18.122,542.962 L101.176,542.962 L101.176,607.456 L18.122,607.456 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Tokens"/>
+    <path d="M274.631,626.323 L495.634,626.323 L495.634,654.907 L274.631,654.907 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Score1"/>
+    <path d="M18.122,208.672 L239.125,208.672 L239.125,237.257 L18.122,237.257 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Score2"/>
+    <path d="M274.631,208.672 L495.634,208.672 L495.634,237.257 L274.631,237.257 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Score3"/>
+    <path d="M528.707,208.672 L749.71,208.672 L749.71,237.257 L528.707,237.257 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Score4"/>
+    <path d="M239.125,295.43 L18.122,295.43 L18.122,442.831 L239.125,442.831 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="NominateCard"/>
+    <path d="M528.707,295.43 L591.548,295.43 L591.548,394.831 L528.707,394.831 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Show2"/>
+    <path d="M607.788,295.43 L670.629,295.43 L670.629,394.831 L607.788,394.831 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="From2"/>
+    <path d="M528.707,401.742 L591.548,401.742 L591.548,501.144 L528.707,501.144 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Show3"/>
+    <path d="M607.788,401.742 L670.629,401.742 L670.629,501.144 L607.788,501.144 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="From3"/>
+    <path d="M528.707,508.055 L591.548,508.055 L591.548,607.456 L528.707,607.456 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="Show4"/>
+    <path d="M607.788,508.055 L670.629,508.055 L670.629,607.456 L607.788,607.456 z" fill-opacity="0" stroke="#000000" stroke-width="0.5" id="From4"/>
+    <text transform="matrix(1, 0, 0, 1, 559.628, 344.631)">
+      <tspan x="-22.513" y="-5" font-family="ArialMT" font-size="18" fill="#000000">Show</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">2</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 559.628, 450.943)">
+      <tspan x="-22.513" y="-5" font-family="ArialMT" font-size="18" fill="#000000">Show</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">3</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 559.628, 557.255)">
+      <tspan x="-22.513" y="-5" font-family="ArialMT" font-size="18" fill="#000000">Show</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">4</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 638.708, 344.631)">
+      <tspan x="-20.997" y="-5" font-family="ArialMT" font-size="18" fill="#000000">From</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">2</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 638.708, 450.943)">
+      <tspan x="-20.997" y="-5" font-family="ArialMT" font-size="18" fill="#000000">From</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">3</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 638.709, 557.255)">
+      <tspan x="-20.997" y="-5" font-family="ArialMT" font-size="18" fill="#000000">From</tspan>
+      <tspan x="-5.005" y="16" font-family="ArialMT" font-size="18" fill="#000000">4</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 124.379, 23.035)" id="Name2">
+      <tspan x="-33.016" y="2" font-family="ArialMT" font-size="18" fill="#000000">Player 2</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 383.416, 23.035)" id="Name3">
+      <tspan x="-33.016" y="2" font-family="ArialMT" font-size="18" fill="#000000">Player 3</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 638.708, 23.035)" id="Name4">
+      <tspan x="-33.016" y="2" font-family="ArialMT" font-size="18" fill="#000000">Player 4</tspan>
+    </text>
+    <text transform="matrix(1, 0, 0, 1, 383.416, 680.965)" id="Name1">
+      <tspan x="-33.016" y="2" font-family="ArialMT" font-size="18" fill="#000000">Player 1</tspan>
+    </text>
+  </g>
+</svg>

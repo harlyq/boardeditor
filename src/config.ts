@@ -134,7 +134,7 @@ module Game {
         bankClientProxy.addListener(bankClient);
         server.addProxy(bankServerProxy);
         bankClientProxy.setup(game.setupFunc);
-        bankClient.setup();
+        bankClient.setup(); // must occur after the proxy is setup
 
         server.config = config;
         server.setupFunc = game.setupFunc;
