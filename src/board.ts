@@ -11,14 +11,16 @@ module Game {
         });
     }
 
-    export function _error(msg) {
+    export function _error(msg): boolean {
         console.error(msg);
         debugger;
+        return false;
     }
 
-    export function _assert(cond, msg ? ) {
+    export function _assert(cond, msg ? ): boolean {
         console.assert(cond, msg);
         debugger;
+        return false;
     }
 
     export function extend(base: any, ...others: any[]): any {
@@ -54,51 +56,6 @@ module Game {
         id ? : number;
         type ? : string;
         user ? : string; // maybe this should be an array
-    }
-
-    export interface MoveRule extends BaseRule {
-        from: any;
-        fromPosition ? : Position;
-        to: any;
-        toPosition ? : Position;
-        cards ? : string;
-        where ? : (from: Location, to: Location) => boolean;
-        whereIndex ? : number; // internal, use where instead
-        hint ? : string;
-        user ? : string;
-        quantity ? : Quantity;
-        count ? : number;
-    }
-
-    export var default_MoveRule = {
-        from: '',
-        fromPosition: Position.Default,
-        to: '',
-        toPosition: Position.Default,
-        cards: '',
-        where: null,
-        whereIndex: -1,
-        hint: '',
-        user: 'BANK',
-        quantity: Quantity.Exactly,
-        count: 1
-    };
-
-    export interface MoveCommand extends BaseCommand {
-        cardId: number;
-        fromId: number;
-        toId: number;
-        index: number;
-    }
-
-    export interface SetRule extends BaseRule {
-        key: string;
-        value: any;
-    }
-
-    export interface SetCommand extends BaseCommand {
-        key: string;
-        value: any;
     }
 
     export interface BatchCommand {
@@ -857,39 +814,6 @@ module Game {
             for (var i = 0; i < names.length; ++i)
                 regions.push(this.findRegionByName(names[i]));
             return regions;
-        }
-
-        // typescript doesn't understand the yield keyword, so these functions are in boardx.js
-            waitMove(rule: MoveRule): MoveRule {
-            rule.from = this.convertLocationsToString(rule.from);
-            rule.to = this.convertLocationsToString(rule.to);
-            if (!rule.to)
-                _error('to location is empty - ' + rule.to);
-            if (!rule.from && !rule.cards)
-                _error('from location is empty and no cards - ' + rule.from + ', ' + rule.cards);
-
-            return Game.extend({
-                type: 'move',
-                id: this.uniqueId++
-            }, Game.default_MoveRule, rule);
-        }
-
-            performCommand(command: BaseCommand): any {
-            switch (command.type) {
-                case 'move':
-                    var moveCommand = < MoveCommand > command;
-                    var from = this.findLocationById(moveCommand.fromId);
-                    var to = this.findLocationById(moveCommand.toId);
-                    var card = this.findCardById(moveCommand.cardId);
-                    to.insertCard(card, moveCommand.index);
-                    return {
-                        from: from,
-                        to: to,
-                        card: card,
-                        index: moveCommand.index
-                    };
-            }
-            return null;
         }
 
             next < T > (value: T, list: T[], loop: boolean = false): T {

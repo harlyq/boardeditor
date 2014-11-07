@@ -91,19 +91,11 @@ module Game {
 
             onUpdateCommands(batch: BatchCommand): void {
             for (var i = 0; i < batch.commands.length; ++i) {
-                var command = batch.commands[i],
-                    found = false;
-
+                var command = batch.commands[i];
                 for (var j in plugins) {
-                    if (plugins[j].performCommand(this.board, command, [])) {
-                        found = true;
+                    if (plugins[j].performCommand(this.board, command, []))
                         break;
-                    }
                 }
-
-                // legacy support
-                if (!found)
-                    this.board.performCommand(command);
             }
 
             for (var i = 0; i < this.listeners.length; ++i) {

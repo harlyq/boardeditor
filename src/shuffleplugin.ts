@@ -1,4 +1,4 @@
-/// <reference path="_dependencies.ts" />
+/// <reference path='_dependencies.ts' />
 /// <reference path="seedrandom.d.ts" />
 interface ShuffleRule extends Game.BaseRule {
     seed ? : string;
@@ -43,7 +43,7 @@ Game.registerPlugin('shuffle', {
             commands: [{
                 type: 'shuffle',
                 seed: shuffleRule.seed,
-                location: location ? location.id : 0
+                locationId: location ? location.id : 0
             }]
         });
 

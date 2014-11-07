@@ -104,18 +104,10 @@ module Game {
             var commands = batch.commands;
             var nextValue = [];
             for (var i = 0; i < commands.length; ++i) {
-                var found = false;
-
                 for (var j in plugins) {
-                    if (plugins[j].performCommand(this.board, commands[i], nextValue)) {
-                        found = true;
+                    if (plugins[j].performCommand(this.board, commands[i], nextValue))
                         break;
-                    }
                 }
-
-                // legacy support
-                if (!found)
-                    nextValue.push(this.board.performCommand(commands[i]));
             }
 
             for (var i = 0; i < this.proxies.length; ++i)

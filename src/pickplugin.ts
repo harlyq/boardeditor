@@ -1,6 +1,7 @@
-/// <reference path="_dependencies.ts" />
+/// <reference path='_dependencies.ts' />
 /// <reference path="htmlmapping.ts" />
 /// <reference path="humanclient.ts" />
+/// <reference path="pluginhelper.ts" />
 
 interface PickRule extends Game.BaseRule {
     list: any;
@@ -104,12 +105,16 @@ module PickPlugin {
             numPickList = pickList.length;
 
         for (var i = 0; i < numPickList; ++i) {
-            if (!isCountComplete(pickRule.quantity, pickRule.count, i))
+            if (!PluginHelper.isCountComplete(pickRule.quantity, pickRule.count, i))
                 continue;
 
-            var indices = []
+            var indices = [];
             for (var j = 0; j < i; ++j)
                 indices.push(j);
+
+            var possibles = [];
+            for (var j = 0; j < numPickList; ++j)
+                possibles.push(j);
 
             do {
                 var values = [];
@@ -140,7 +145,7 @@ module PickPlugin {
                     }]
                 });
 
-            } while (nextCombination(indices, numPickList - 1));
+            } while (PluginHelper.nextCombination(indices, possibles));
         }
     }
 
@@ -172,45 +177,6 @@ module PickPlugin {
         return list.filter(where);
     }
 
-    // return false if no remaining combinations
-    export function nextCombination(list: number[], max: number): boolean {
-        if (list.length === 0)
-            return false; // nothing to iterate
-
-        // sequence for 3 entries, max of 4
-        // 0,1,2 (original) => 0,1,3 => 0,1,4 => 0,2,3 => 0,2,4 => 0,3,4 => 1,2,3 ...
-        var k = 0;
-        for (var i = list.length - 1; i >= 0; --i, ++k) {
-            if (list[i] === max - k)
-                continue;
-
-            list[i] = list[i] + 1;
-            for (var j = i + 1; j < list.length; ++j)
-                list[j] = list[i] + j - i; // will always be <= max - k
-            return true;
-        }
-
-        return false; // list contains the final iteration
-    }
-
-    function isCountComplete(quantity: Game.Quantity, count: number, value: number): boolean {
-        switch (quantity) {
-            case Game.Quantity.All:
-                return false; // all must be accounted for elsewhere
-            case Game.Quantity.Exactly:
-                return value === count;
-            case Game.Quantity.AtMost:
-                return value <= count;
-            case Game.Quantity.AtLeast:
-                return value >= count;
-            case Game.Quantity.MoreThan:
-                return value > count;
-            case Game.Quantity.LessThan:
-                return value < count;
-        }
-        return false;
-    }
-
     export class HTMLPick {
         private pickList: any[] = [];
         private lastRuleId: number = 0;
@@ -229,15 +195,6 @@ module PickPlugin {
 
             this.showHTMLPick(pickRule);
         }
-
-        private destroy() {
-            this.pickList = [];
-            this.board = null;
-            this.highlightElems = [];
-            this.proxy = null;
-            this.mapping = null;
-        }
-
 
         private createPickCommand(type: string, values: any): PickCommand {
             return Game.extend({
@@ -263,8 +220,6 @@ module PickPlugin {
                 ruleId: this.lastRuleId,
                 commands: [this.createPickCommand('pickLocation', [location.name])] // should this be a Location????
             });
-
-            this.destroy();
         }
 
         private showHTMLPick(pickRule: PickRule) {

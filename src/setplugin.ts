@@ -1,4 +1,4 @@
-/// <reference path="_dependencies.ts"/>
+/// <reference path='_dependencies.ts' />
 /// <reference path="humanclient.ts"/>
 
 interface SetRule extends Game.BaseRule {
