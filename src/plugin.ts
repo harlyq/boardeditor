@@ -12,8 +12,8 @@ module Game {
 
     export interface PluginInfo {
         createRule: (...args: any[]) => BaseRule;
-        createPlugin: (client: Client) => BasePlugin;
-        performCommand: (board: Board, command: BaseCommand) => any;
+        performRule: (client: Client, rule: BaseRule, results: Game.BatchCommand[]) => boolean;
+        performCommand: (board: Board, command: BaseCommand, results: any[]) => any;
     };
 
     export var plugins: {
@@ -28,42 +28,14 @@ module Game {
         return plugins[name];
     }
 
-    export class BasePlugin {
+    export function setPlugin(board: Board, name: string, pluginName: string) {
+        if (!(pluginName in plugins))
+            Game._error('plugin - ' + pluginName + ' - not loaded.');
 
-        // returns true if the rule is accepted by this plugin and all valid
-        // BatchCommands are placed into the results list
-        performRule(rule: BaseRule, results: BatchCommand[]): boolean {
-            return false;
-        }
-
-        // returns any valid result if this command is recognized by the 
-        // plugin, or undefined if the command is not recognized.
-        performCommand(command: BaseCommand): any {
-            return undefined;
-        }
-
-        createCommand(type: string): BaseCommand {
-            return {
-                type: type
-            };
-        }
-
-        isCountComplete(quantity: Quantity, count: number, value: number): boolean {
-            switch (quantity) {
-                case Quantity.All:
-                    return false; // all must be accounted for elsewhere
-                case Quantity.Exactly:
-                    return value === count;
-                case Quantity.AtMost:
-                    return value <= count;
-                case Quantity.AtLeast:
-                    return value >= count;
-                case Quantity.MoreThan:
-                    return value > count;
-                case Quantity.LessThan:
-                    return value < count;
-            }
-            return false;
+        // add the create function to the current board
+        board[name] = function(...args: any[]) {
+            args.splice(0, 0, this); // board as 1st argument
+            return plugins[pluginName].createRule.apply(this, args);
         }
     }
 }

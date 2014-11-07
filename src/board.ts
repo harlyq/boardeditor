@@ -46,10 +46,6 @@ module Game {
         Default, Top, Bottom, Random
     }
 
-    export interface RuleRegistration {
-        registerRule: (name: string, pluginName: string) => void;
-    }
-
     export interface BaseCommand {
         type: string;
     }
@@ -95,27 +91,6 @@ module Game {
         index: number;
     }
 
-    export interface PickRule extends BaseRule {
-        list: any;
-        quantity ? : Quantity;
-        count ? : number;
-        where ? : number;
-        whereIndex ? : number; // internal, use where instead
-    }
-
-    export var default_PickRule = {
-        list: '',
-        quantity: Quantity.Exactly,
-        count: 1,
-        where: null,
-        whereIndex: -1,
-        user: 'BANK'
-    };
-
-    export interface PickCommand extends BaseCommand {
-        values: any[]; // picked items
-    }
-
     export interface SetRule extends BaseRule {
         key: string;
         value: any;
@@ -129,16 +104,6 @@ module Game {
     export interface BatchCommand {
         ruleId: number;
         commands: BaseCommand[];
-    }
-
-    export interface ShuffleRule extends BaseRule {
-        seed ? : string;
-        location: string;
-    }
-
-    export interface ShuffleCommand extends BaseCommand {
-        seed: string;
-        locationId: number;
     }
 
     //----------------------------------------------------------------
@@ -909,68 +874,6 @@ module Game {
             }, Game.default_MoveRule, rule);
         }
 
-        //     waitPick(rule: PickRule): PickRule {
-        //     if (!rule.list)
-        //         _error('pick is empty - ' + rule.list);
-
-        //     return Game.extend({
-        //         type: 'pick',
-        //         id: this.uniqueId++
-        //     }, Game.default_PickRule, rule);
-        // }
-
-        //     waitPickLocation(rule: PickRule): PickRule {
-        //     rule.list = this.convertLocationsToString(rule.list);
-        //     if (!rule.list)
-        //         _error('pick location is empty - ' + rule.list);
-
-        //     return Game.extend({
-        //         type: 'pickLocation',
-        //         id: this.uniqueId++
-        //     }, Game.default_PickRule, rule);
-        // }
-
-        //     waitPickCard(rule: PickRule): PickRule {
-        //     rule.list = this.convertCardsToString(rule.list);
-        //     if (!rule.list)
-        //         _error('pick card is empty - ' + rule.list);
-
-        //     return Game.extend({
-        //         type: 'pickCard',
-        //         id: this.uniqueId++
-        //     }, Game.default_PickRule, rule);
-        // }
-
-            waitSetVariable(name: string, value: any): SetRule {
-            return {
-                type: 'setVariable',
-                id: this.uniqueId++,
-                key: name,
-                value: value,
-                user: 'BANK'
-            };
-        }
-
-            waitSetCardVariable(rule: SetRule): SetRule {
-            return {
-                type: 'setCardVariable',
-                id: this.uniqueId++,
-                key: rule.key,
-                value: rule.value,
-                user: rule.user
-            }
-        }
-
-            waitShuffle(rule: ShuffleRule): ShuffleRule {
-            return {
-                type: 'shuffle',
-                id: this.uniqueId++,
-                location: this.convertLocationsToString(rule.location),
-                seed: (rule.seed ? rule.seed : Math.seedrandom()),
-                user: 'BANK'
-            };
-        }
-
             performCommand(command: BaseCommand): any {
             switch (command.type) {
                 case 'move':
@@ -985,28 +888,6 @@ module Game {
                         card: card,
                         index: moveCommand.index
                     };
-
-                case 'setVariable':
-                    var setCommand = < SetCommand > command;
-                    this.variables[setCommand.key] = setCommand.value;
-                    return setCommand.value;
-
-                case 'setCardVariable':
-                    var setCommand = < SetCommand > command;
-                    var cards = this.queryCards(setCommand.key);
-
-                    for (var i = 0; i < cards.length; ++i)
-                        cards[i].setVariables(setCommand.value);
-
-                    return setCommand.value;
-
-                case 'shuffle':
-                    var shuffleCommand = < ShuffleCommand > command;
-                    var location = this.findLocationById(shuffleCommand.locationId);
-                    Math.seedrandom(shuffleCommand.seed);
-                    if (location)
-                        location.shuffle();
-                    break;
             }
             return null;
         }

@@ -12,7 +12,6 @@ module Game {
         private localVariables: {
             [name: string]: any
         } = {};
-        plugins: BasePlugin[] = [];
 
         constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {
             this.applyProxyModules();
@@ -31,12 +30,6 @@ module Game {
         }
 
             setup() {
-            for (var i in plugins) {
-                var createPlugin = plugins[i].createPlugin;
-                if (typeof createPlugin === 'function')
-                    this.plugins.push(createPlugin(this));
-            }
-
             this.onSetup();
         }
 
@@ -50,27 +43,6 @@ module Game {
             switch (rule.type) {
                 case 'move':
                     return this.resolveMove( < MoveRule > rule);
-
-                case 'pick':
-                case 'pickLocation':
-                case 'pickCard':
-                    return this.resolvePick( < PickRule > rule);
-
-                case 'setVariable':
-                case 'setCardVariable':
-                    return this.resolveSetVariable( < SetRule > rule);
-
-                case 'shuffle':
-                    var shuffleRule = < ShuffleRule > rule;
-                    var location = this.board.queryFirstLocation(shuffleRule.location);
-                    return {
-                        ruleId: rule.id,
-                        commands: [{
-                            type: 'shuffle',
-                            locationId: (location ? location.id : -1),
-                            seed: shuffleRule.seed
-                        }]
-                    };
             }
 
             return null;
@@ -80,20 +52,6 @@ module Game {
             return {
                 ruleId: rule.id,
                 commands: []
-            };
-        }
-
-            resolvePick(rule: PickRule): BatchCommand {
-            return {
-                ruleId: rule.id,
-                commands: []
-            };
-        }
-
-            resolveSetVariable(rule: SetRule): BatchCommand {
-            return {
-                ruleId: rule.id,
-                commands: [ < SetCommand > rule]
             };
         }
 
@@ -128,8 +86,8 @@ module Game {
 
         onResolveRule(rule: BaseRule): BatchCommand {
             var results = []
-            for (var i = 0; i < this.plugins.length; ++i) {
-                if (this.plugins[i].performRule(rule, results))
+            for (var i in plugins) {
+                if (plugins[i].performRule(this, rule, results))
                     return results[~~(Math.random() * results.length)]; // return a random option
             }
 
@@ -205,62 +163,6 @@ module Game {
             return batch;
         }
 
-
-        resolvePick(pickRule: PickRule): BatchCommand {
-            var where: any = pickRule.where || function() {
-                return true;
-            }
-
-            var list = [];
-            var rawList: any = pickRule.list;
-            if (typeof pickRule.list === 'string')
-                rawList = ( < string > pickRule.list).split(',');
-            if (!Array.isArray(rawList))
-                rawList = [rawList];
-
-            switch (pickRule.type) {
-                case 'pick':
-                    list = rawList;
-                    break;
-                case 'pickLocation':
-                    list = this.board.queryLocations(rawList.join(','));
-                    break;
-                case 'pickCard':
-                    list = this.board.queryCards(rawList.join(','));
-                    break;
-            }
-
-            var pickList = list.filter(where);
-            var values = [];
-
-            while (pickList.length > 0 && !this.isCountComplete(pickRule.quantity, pickRule.count, values.length)) {
-                var k = ~~(Math.random() * pickList.length);
-                var pick = pickList[k];
-                pickList.splice(k, 1); // if no duplicates
-
-                // use name and id because the location structures on this client will be
-                // different from the location structurs on other clients, or on the server
-                switch (pickRule.type) {
-                    case 'pick':
-                        values.push(pick);
-                        break;
-                    case 'pickLocation':
-                        values.push(pick.name);
-                        break;
-                    case 'pickCard':
-                        values.push(pick.id);
-                        break;
-                }
-            }
-
-            return {
-                ruleId: pickRule.id,
-                commands: [{
-                    type: pickRule.type,
-                    values: values
-                }]
-            };
-        }
 
     }
 

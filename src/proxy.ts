@@ -49,7 +49,7 @@ module Game {
         return new MessageClientProxy(userNames, whereList);
     }
 
-    export class BaseClientProxy implements RuleRegistration {
+    export class BaseClientProxy {
         modules: any[];
         lastRuleId: number = -1;
         listeners: ProxyListener[] = [];
@@ -57,8 +57,8 @@ module Game {
 
         constructor(public userNames: string) {}
 
-        setup(setupFunc: (owner: RuleRegistration, board: Board) => void) {
-            setupFunc(this, this.board);
+        setup(setupFunc: (board: Board) => void) {
+            setupFunc(this.board);
         }
 
         registerRule(name: string, pluginName: string) {}
@@ -92,16 +92,17 @@ module Game {
             onUpdateCommands(batch: BatchCommand): void {
             for (var i = 0; i < batch.commands.length; ++i) {
                 var command = batch.commands[i],
-                    result = undefined;
+                    found = false;
 
                 for (var j in plugins) {
-                    result = plugins[j].performCommand(this.board, command);
-                    if (typeof result !== 'undefined')
+                    if (plugins[j].performCommand(this.board, command, [])) {
+                        found = true;
                         break;
+                    }
                 }
 
                 // legacy support
-                if (typeof result === 'undefined')
+                if (!found)
                     this.board.performCommand(command);
             }
 

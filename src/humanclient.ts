@@ -108,8 +108,8 @@ class HumanClient extends Game.Client {
 
     onResolveRule(rule: Game.BaseRule): Game.BatchCommand {
         var results = []
-        for (var i = 0; i < this.plugins.length; ++i) {
-            if (this.plugins[i].performRule(rule, results)) {
+        for (var i in Game.plugins) {
+            if (Game.plugins[i].performRule(this, rule, results)) {
                 if (results.length > 0)
                     return results[0]; // return the first option
                 else
@@ -173,36 +173,6 @@ class HumanClient extends Game.Client {
             });
 
         return nullBatch; // filled batch will be sent when the user interacts
-    }
-
-    resolveSetVariable(rule: Game.SetRule): Game.BatchCommand {
-        var setBatch = {
-                ruleId: rule.id,
-                commands: [ < Game.SetCommand > rule]
-            },
-            nullBatch = {
-                ruleId: rule.id,
-                commands: []
-            },
-            proxy = this.proxy;
-
-        switch (rule.type) {
-            case 'setVariable':
-                proxy.sendCommands(setBatch);
-                break;
-
-            case 'setCardVariable':
-                var cards = this.board.queryCards(rule.key);
-
-                for (var i = 0; i < cards.length; ++i)
-                    this.applyVariables(this.mapping.getElemFromCard(cards[i]), rule.value);
-
-                window.setTimeout(function() {
-                    proxy.sendCommands(setBatch);
-                }, 2000);
-
-                return nullBatch;
-        }
     }
 
     onUpdateCommands(batch: Game.BatchCommand) {

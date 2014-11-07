@@ -2,7 +2,7 @@
 module Game {
 
     // server has perfect knowledge of the game.  validates all moves.
-    export class GameServer implements ProxyListener, RuleRegistration {
+    export class GameServer implements ProxyListener {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseServerProxy[] = [];
@@ -15,7 +15,7 @@ module Game {
         newGameGen: (game: any, board: Board) => {
             next(...args: any[]): any
         };
-        setupFunc: (owner: RuleRegistration, board: Board) => void;
+        setupFunc: (board: Board) => void;
         whereList: any[] = [];
 
         addProxy(proxy: BaseServerProxy) {
@@ -44,13 +44,9 @@ module Game {
 
         setup() {
             if (typeof this.setupFunc === 'function')
-                this.setupFunc(this, this.board);
+                this.setupFunc(this.board);
 
             this.board.print();
-        }
-
-        registerRule(name: string, pluginName: string) {
-            this.board[name] = plugins[pluginName].createRule;
         }
 
         newGame() {
@@ -108,18 +104,17 @@ module Game {
             var commands = batch.commands;
             var nextValue = [];
             for (var i = 0; i < commands.length; ++i) {
-                var result = undefined;
+                var found = false;
 
                 for (var j in plugins) {
-                    result = plugins[j].performCommand(this.board, commands[i]);
-                    if (typeof result !== 'undefined') {
-                        nextValue.push(result);
+                    if (plugins[j].performCommand(this.board, commands[i], nextValue)) {
+                        found = true;
                         break;
                     }
                 }
 
                 // legacy support
-                if (typeof result === 'undefined')
+                if (!found)
                     nextValue.push(this.board.performCommand(commands[i]));
             }
 
