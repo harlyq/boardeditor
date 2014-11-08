@@ -65,7 +65,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class LabelMixin {
-        labels: string[];
+        public labels: string[];
 
         addLabel(label: string): void {
             var i = this.labels.indexOf(label);
@@ -73,13 +73,13 @@ module Game {
                 this.labels.push(label);
         }
 
-            removeLabel(label: string): void {
+        removeLabel(label: string): void {
             var i = this.labels.indexOf(label);
             if (i !== -1)
                 this.labels.splice(i, 1);
         }
 
-            containsLabel(label: string): boolean {
+        containsLabel(label: string): boolean {
             for (var i = 0; i < this.labels.length; ++i) {
                 if (this.labels[i] === label)
                     return true;
@@ -87,12 +87,12 @@ module Game {
             return false;
         }
 
-            getLabels(): string[] {
+        getLabels(): string[] {
             return this.labels;
         }
 
         // // LabelMixin
-        // labels: string[] = [];
+        // public labels: string[] = [];
         // addLabel: (label: string) => void;
         // removeLabel: (label: string) => void;
         // containsLabel: (label: string) => boolean;
@@ -101,7 +101,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class RegionMixin {
-        regions: Region[];
+        public regions: Region[];
 
         addRegion(region: Region): void {
             var i = this.regions.indexOf(region);
@@ -109,13 +109,13 @@ module Game {
                 this.regions.push(region);
         }
 
-            removeRegion(region: Region): void {
+        removeRegion(region: Region): void {
             var i = this.regions.indexOf(region);
             if (i !== -1)
                 this.regions.splice(i, 1);
         }
 
-            containsRegion(region: Region): boolean;
+        containsRegion(region: Region): boolean;
         containsRegion(name: string): boolean;
         containsRegion(regionOrName: any): boolean {
             if (typeof regionOrName === 'string') {
@@ -133,7 +133,7 @@ module Game {
         }
 
         // // RegionMixin
-        // regions: Region[] = [];
+        // public regions: Region[] = [];
         // addRegion: (region: Region) => void;
         // removeRegion: (region: Region) => void;
         // containsRegion: (regionOrName: any) => boolean;
@@ -141,7 +141,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class VariableMixin {
-        variables: {
+        public variables: {
             [key: string]: any
         };
 
@@ -169,16 +169,16 @@ module Game {
             return parts.join('.');
         }
 
-            getVariable(name: string): any {
+        getVariable(name: string): any {
             return this.variables[name];
         }
 
-            getVariables(): any {
+        getVariables(): any {
             return this.variables;
         }
 
         // // VariableMixin
-        // variables: {
+        // public variables: {
         //     [key: string]: any
         // } = {};
         // setVariables: (variables: {[key: string]: any}) => void;
@@ -193,7 +193,7 @@ module Game {
         constructor(public name: string) {}
 
         // LabelMixin
-        labels: string[] = [];
+        public labels: string[] = [];
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
@@ -211,23 +211,23 @@ module Game {
 
     //----------------------------------------------------------------
     export class Location implements LabelMixin, RegionMixin {
-        cards: Card[] = [];
-        fromPosition: Position = Position.Top;
-        toPosition: Position = Position.Top;
+        private cards: Card[] = [];
+        private fromPosition: Position = Position.Top;
+        private toPosition: Position = Position.Top;
 
         constructor(public name: string, public id: number, public visibility ? : {
             [userId: number]: Location.Visibility
         }) {}
 
         // LabelMixin
-        labels: string[] = [];
+        public labels: string[] = [];
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
         getLabels: () => string[];
 
         // RegionMixin
-        regions: Region[] = [];
+        public regions: Region[] = [];
         addRegion: (region: Region) => void;
         removeRegion: (region: Region) => void;
         containsRegion: (regionOrName: any) => boolean;
@@ -241,7 +241,7 @@ module Game {
                 return this.name === query;
         }
 
-            addCard(card: Card, toPosition: Position = Position.Default): number {
+        addCard(card: Card, toPosition: Position = Position.Default): number {
             if (toPosition === Position.Default)
                 toPosition = this.toPosition;
 
@@ -269,7 +269,7 @@ module Game {
             return index;
         }
 
-            removeCard(card: Card) {
+        removeCard(card: Card) {
             if (card.location !== this)
                 return; // card not in the correct location
 
@@ -281,7 +281,7 @@ module Game {
             card.location = null;
         }
 
-            insertCard(card: Card, i: number) {
+        insertCard(card: Card, i: number) {
             if (i < 0) {
                 var numCards = this.cards.length;
 
@@ -306,11 +306,11 @@ module Game {
             card.location = this;
         }
 
-            containsCard(card: Card) {
+        containsCard(card: Card) {
             return this.cards.indexOf(card) !== -1;
         }
 
-            findCard(cardId: number): Card {
+        findCard(cardId: number): Card {
             for (var i = 0; i < this.cards.length; ++i) {
                 if (this.cards[i].id === cardId)
                     return this.cards[i];
@@ -319,7 +319,7 @@ module Game {
             return null;
         }
 
-            getCard(fromPosition: Position = Position.Default): Card {
+        getCard(fromPosition: Position = Position.Default): Card {
             var numCards = this.cards.length;
             if (numCards === 0)
                 return null;
@@ -341,22 +341,22 @@ module Game {
             }
         }
 
-            getCardByIndex(i: number): Card {
+        getCardByIndex(i: number): Card {
             if (i < 0 || i >= this.cards.length)
                 return null;
 
             return this.cards[i];
         }
 
-            getCards(): Card[] {
-            return this.cards.slice(); // copy
+        getCards(): Card[] {
+            return this.cards;
         }
 
-            getNumCards(): number {
+        getNumCards(): number {
             return this.cards.length;
         }
 
-            getVisibility(userId: number): Location.Visibility {
+        getVisibility(userId: number): Location.Visibility {
             var visibility = this.visibility[userId];
             if (typeof visibility == 'undefined')
                 visibility = Location.Visibility.None;
@@ -364,7 +364,7 @@ module Game {
             return visibility;
         }
 
-            shuffle() {
+        shuffle() {
             var numCards = this.cards.length;
             for (var i = 0; i < numCards; ++i) {
                 var card = this.cards[i];
@@ -375,7 +375,7 @@ module Game {
             }
         }
 
-            save(): any {
+        save(): any {
             var obj = {
                 type: 'Location',
                 name: this.name,
@@ -388,7 +388,7 @@ module Game {
                 obj.cards.push(this.cards[i].save());
         }
 
-            load(obj: any) {
+        load(obj: any) {
             if (obj.type !== 'Location')
                 return;
 
@@ -416,7 +416,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class Deck implements VariableMixin {
-        cards: Card[] = [];
+        private cards: Card[] = [];
 
         constructor(public name: string, public id: number, variables ? : {
             [key: string]: any
@@ -428,7 +428,7 @@ module Game {
         }
 
         // VariableMixin
-        variables: {
+        public variables: {
             [key: string]: any
         } = {};
         setVariables: (variables: {
@@ -444,11 +444,15 @@ module Game {
             return this;
         }
 
-            matches(query: string): boolean {
+        getCards(): Card[] {
+            return this.cards;
+        }
+
+        matches(query: string): boolean {
             return this.id === parseInt(query);
         }
 
-            save(): any {
+        save(): any {
             return {
                 type: 'Deck',
                 name: this.name,
@@ -458,7 +462,7 @@ module Game {
         }
 
         // TODO work how how to bind cards to decks
-            load(obj: any) {
+        load(obj: any) {
             if (obj.type !== 'Deck')
                 return;
 
@@ -487,14 +491,14 @@ module Game {
         }
 
         // LabelMixin
-        labels: string[] = [];
+        public labels: string[] = [];
         addLabel: (label: string) => void;
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
         getLabels: () => string[];
 
         // VariableMixin
-        variables: {
+        public variables: {
             [key: string]: any
         } = {};
         setVariables: (variables: {
@@ -558,13 +562,13 @@ module Game {
 
     //----------------------------------------------------------------
     export class Board implements VariableMixin {
-        locations: Location[] = [];
-        decks: Deck[] = [];
-        cards: Card[] = [];
-        users: User[] = [];
-        regions: Region[] = [];
-        uniqueId: number = 0;
-        lastRuleId: number = 0;
+        private locations: Location[] = [];
+        private decks: Deck[] = [];
+        private cards: Card[] = [];
+        private users: User[] = [];
+        private regions: Region[] = [];
+        private uniqueId: number = 0;
+        private lastRuleId: number = 0;
 
         createRule(type: string): BaseRule {
             return {
@@ -574,7 +578,7 @@ module Game {
             };
         }
 
-            createLocation(name: string, locationId: number, visibility ? : {
+        createLocation(name: string, locationId: number, visibility ? : {
             [userId: number]: Location.Visibility
         }): Location {
             var location = new Location(name, locationId, visibility);
@@ -582,7 +586,7 @@ module Game {
             return location;
         }
 
-            createDeck(name: string, deckId: number, variables ? : {
+        createDeck(name: string, deckId: number, variables ? : {
             [key: string]: any
         }): Deck {
             var deck = new Deck(name, deckId, variables);
@@ -590,7 +594,7 @@ module Game {
             return deck;
         }
 
-            createCard(name: string, cardId: number, deck: Deck, variables ? : {
+        createCard(name: string, cardId: number, deck: Deck, variables ? : {
             [key: string]: any
         }): Card {
             var card = new Card(name, cardId, variables);
@@ -602,27 +606,27 @@ module Game {
             return card;
         }
 
-            createUser(name: string, userId: number): User {
+        createUser(name: string, userId: number): User {
             var user = new User(name, userId);
             this.users.push(user);
             return user;
         }
 
-            createRegion(name: string): Region {
+        createRegion(name: string): Region {
             var region = new Region(name);
             this.regions.push(region);
             return region;
         }
 
-            getNumLocations(): number {
+        getNumLocations(): number {
             return this.locations.length;
         }
 
-            getNumCards(): number {
+        getNumCards(): number {
             return this.cards.length;
         }
 
-            findLocationByName(name: string): Location {
+        findLocationByName(name: string): Location {
             for (var i = 0; i < this.locations.length; ++i) {
                 if (this.locations[i].name === name)
                     return this.locations[i];
@@ -630,7 +634,7 @@ module Game {
             return null;
         }
 
-            findLocationsByLabel(label: string): Location[] {
+        findLocationsByLabel(label: string): Location[] {
             var locations: Location[] = [];
             for (var i = 0; i < this.locations.length; ++i) {
                 if (this.locations[i].containsLabel(label))
@@ -639,7 +643,7 @@ module Game {
             return locations;
         }
 
-            findLocationById(locationId: number): Location {
+        findLocationById(locationId: number): Location {
             for (var i = 0; i < this.locations.length; ++i) {
                 if (this.locations[i].id === locationId)
                     return this.locations[i];
@@ -647,7 +651,7 @@ module Game {
             return null;
         }
 
-            findDeckById(deckId: number): Deck {
+        findDeckById(deckId: number): Deck {
             // decks are often represented by a negative id
             if (deckId < 0)
                 deckId = -deckId;
@@ -659,11 +663,11 @@ module Game {
             return null;
         }
 
-            findDeckByCardId(cardId: number): Deck {
+        findDeckByCardId(cardId: number): Deck {
             for (var i = 0; i < this.decks.length; ++i) {
                 var deck = this.decks[i];
-                for (var j = 0; j < deck.cards.length; ++j) {
-                    var card = deck.cards[j];
+                for (var j = 0; j < deck.getCards().length; ++j) {
+                    var card = deck.getCards()[j];
                     if (card.id === cardId)
                         return deck;
                 }
@@ -671,7 +675,7 @@ module Game {
             return null;
         }
 
-            findCardById(cardId: number): Card {
+        findCardById(cardId: number): Card {
             for (var i = 0; i < this.cards.length; ++i) {
                 if (this.cards[i].id === cardId)
                     return this.cards[i];
@@ -679,7 +683,7 @@ module Game {
             return null;
         }
 
-            findUserById(userId: number): User {
+        findUserById(userId: number): User {
             for (var i = 0; i < this.users.length; ++i) {
                 if (this.users[i].id === userId)
                     return this.users[i];
@@ -687,7 +691,7 @@ module Game {
             return null;
         }
 
-            findUserByName(name: string): User {
+        findUserByName(name: string): User {
             for (var i = 0; i < this.users.length; ++i) {
                 if (this.users[i].name === name)
                     return this.users[i];
@@ -695,7 +699,7 @@ module Game {
             return null;
         }
 
-            findRegionByName(name: string): Region {
+        findRegionByName(name: string): Region {
             for (var i = 0; i < this.regions.length; ++i) {
                 if (this.regions[i].name === name)
                     return this.regions[i];
@@ -703,14 +707,14 @@ module Game {
             return null;
         }
 
-            queryFirstDeck(query: string): Deck {
+        queryFirstDeck(query: string): Deck {
             var decks = this.queryDecks(query, true);
             if (decks.length === 0)
                 return null;
             return decks[0];
         }
 
-            queryDecks(query: string, quitOnFirst: boolean = false): Deck[] {
+        queryDecks(query: string, quitOnFirst: boolean = false): Deck[] {
             var tags = query.split(',');
             var decks: Deck[] = [];
 
@@ -732,14 +736,14 @@ module Game {
             return decks;
         }
 
-            queryFirstCard(query: string): Card {
+        queryFirstCard(query: string): Card {
             var cards = this.queryCards(query, true);
             if (cards.length === 0)
                 return null;
             return cards[0];
         }
 
-            queryCards(query: string, quitOnFirst: boolean = false): Card[] {
+        queryCards(query: string, quitOnFirst: boolean = false): Card[] {
             var tags = query.split(',');
             var cards: Card[] = [];
 
@@ -761,14 +765,14 @@ module Game {
             return cards;
         }
 
-            queryFirstLocation(query: string): Location {
+        queryFirstLocation(query: string): Location {
             var locations = this.queryLocations(query, true);
             if (locations.length === 0)
                 return null;
             return locations[0];
         }
 
-            queryLocations(query: string, quitOnFirst: boolean = false): Location[] {
+        queryLocations(query: string, quitOnFirst: boolean = false): Location[] {
             var tags = query.split(',');
             var locations: Location[] = [];
 
@@ -790,7 +794,7 @@ module Game {
             return locations;
         }
 
-            getUsersById(query: string): User[] {
+        getUsersById(query: string): User[] {
             var ids = query.split(',');
             var users: User[] = [];
             for (var i = 0; i < ids.length; ++i)
@@ -799,7 +803,7 @@ module Game {
             return users;
         }
 
-            queryUsers(query: string): User[] {
+        queryUsers(query: string): User[] {
             var names = query.split(',');
             var users: User[] = [];
             for (var i = 0; i < name.length; ++i)
@@ -808,7 +812,7 @@ module Game {
             return users;
         }
 
-            queryRegions(query: string): Region[] {
+        queryRegions(query: string): Region[] {
             var names = query.split(',');
             var regions: Region[] = [];
             for (var i = 0; i < names.length; ++i)
@@ -816,7 +820,7 @@ module Game {
             return regions;
         }
 
-            next < T > (value: T, list: T[], loop: boolean = false): T {
+        next < T > (value: T, list: T[], loop: boolean = false): T {
             var i = list.indexOf(value) + 1;
             if (loop)
                 i = i % list.length;
@@ -827,7 +831,7 @@ module Game {
             return list[i];
         }
 
-            prev < T > (value: T, list: T[], loop: boolean = false) {
+        prev < T > (value: T, list: T[], loop: boolean = false) {
             var i = list.indexOf(value);
             if (i === -1) {
                 if (!loop)
@@ -845,7 +849,7 @@ module Game {
             return list[i];
         }
 
-            convertLocationsToString(other: any): string {
+        convertLocationsToString(other: any): string {
             var str = '';
             if (other instanceof Game.Location)
                 str = other.id.toString();
@@ -867,7 +871,7 @@ module Game {
             return str;
         }
 
-            convertCardsToString(other: any): string {
+        convertCardsToString(other: any): string {
             var str = '';
             if (other instanceof Game.Card)
                 str = other.id.toString();
@@ -889,12 +893,12 @@ module Game {
             return str;
         }
 
-            print() {
+        print() {
             for (var i = 0; i < this.locations.length; ++i) {
                 var location = this.locations[i];
                 var str = location.name + '(' + location.id + '): ';
-                for (var j = 0; j < location.cards.length; ++j) {
-                    var card = location.cards[j];
+                for (var j = 0; j < location.getCards().length; ++j) {
+                    var card = location.getCards()[j];
                     if (j > 0)
                         str += ',';
                     str += card.id;
@@ -904,19 +908,19 @@ module Game {
             }
         }
 
-            getDecks(): Deck[] {
+        getDecks(): Deck[] {
             return this.decks;
         }
 
-            getLocations(): Location[] {
+        getLocations(): Location[] {
             return this.locations;
         }
 
-            getCards(): Card[] {
+        getCards(): Card[] {
             return this.cards;
         }
 
-            save(): any {
+        save(): any {
             var obj = {
                 type: 'Board',
                 locations: [],
@@ -939,7 +943,7 @@ module Game {
 
         }
 
-            load(obj: any) {
+        load(obj: any) {
             if (obj.type !== 'Board')
                 return;
 
@@ -974,7 +978,7 @@ module Game {
         }
 
         // VariableMixin
-            variables: {
+        public variables: {
             [key: string]: any
         } = {};
         setVariables: (variables: {

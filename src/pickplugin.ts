@@ -1,6 +1,5 @@
 /// <reference path='_dependencies.ts' />
 /// <reference path="htmlmapping.ts" />
-/// <reference path="humanclient.ts" />
 /// <reference path="pluginhelper.ts" />
 
 interface PickRule extends Game.BaseRule {
@@ -59,7 +58,7 @@ module PickPlugin {
         });
     }
 
-    export function performCommand(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
         var pickCommand = < PickCommand > command;
 
         switch (command.type) {
@@ -85,9 +84,9 @@ module PickPlugin {
             case 'pick':
             case 'pickLocation':
             case 'pickCard':
-                if (client instanceof HumanClient)
+                if (client instanceof Game.HumanClient)
                 // don't build results, they will sent via Proxy.sendCommand()
-                    new HTMLPick( < HumanClient > client, < PickRule > rule);
+                    new HTMLPick( < Game.HumanClient > client, < PickRule > rule);
                 else
                     findValidPickCommands(client.getBoard(), < PickRule > rule, results);
                 return true;
@@ -183,12 +182,12 @@ module PickPlugin {
         private board: Game.Board;
         private highlightElems: HTMLElement[] = [];
         private proxy: Game.BaseClientProxy = null;
-        private mapping: HTMLMapping = null;
+        private mapping: Game.HTMLMapping = null;
         private pickHandler = this.onPickLocation.bind(this);
 
         CLASS_HIGHLIGHT: string = 'highlight';
 
-        constructor(private client: HumanClient, pickRule: PickRule) {
+        constructor(private client: Game.HumanClient, pickRule: PickRule) {
             this.proxy = client.getProxy();
             this.board = client.getBoard();
             this.mapping = client.mapping;
@@ -275,7 +274,7 @@ module PickPlugin {
 Game.registerPlugin('pick', {
     createRule: PickPlugin.createRule,
     performRule: PickPlugin.performRule,
-    performCommand: PickPlugin.performCommand
+    updateBoard: PickPlugin.updateBoard
 });
 
 // var list = [0];

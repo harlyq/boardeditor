@@ -1,6 +1,5 @@
 /// <reference path='_dependencies.ts' />
 /// <reference path='htmlmapping.ts' />
-/// <reference path='humanclient.ts' />
 /// <reference path='interact.ts' />
 /// <reference path='pluginhelper.ts' />
 
@@ -67,15 +66,15 @@ module MovePlugin {
             return Game._error('moveRule no cards in the from location - ' + moveRule.from)
 
         // note: HTMLMove will be send commands via proxy.sendCommands(), the results list will be empty
-        if (client instanceof HumanClient)
-            new HTMLMove( < HumanClient > client, < MoveRule > rule, cardList, fromList, toList);
+        if (client instanceof Game.HumanClient)
+            new HTMLMove( < Game.HumanClient > client, < MoveRule > rule, cardList, fromList, toList);
         else
             buildValidMoves(client.getBoard(), < MoveRule > rule, cardList, fromList, toList, results);
 
         return true;
     }
 
-    export function performCommand(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'move')
             return false;
 
@@ -92,6 +91,57 @@ module MovePlugin {
             index: moveCommand.index
         });
         return true;
+    }
+
+    export function updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+        if (command.type !== 'move')
+            return;
+
+        var moveCommand = < MoveCommand > command,
+            card = board.findCardById(moveCommand.cardId),
+            to = board.findLocationById(moveCommand.toId),
+            from = board.findLocationById(moveCommand.fromId),
+            cardElem = mapping.getElemFromCardId(moveCommand.cardId),
+            fromElem = mapping.getElemFromLocationId(moveCommand.fromId),
+            toElem = mapping.getElemFromLocationId(moveCommand.toId);
+
+        if (fromElem) {
+            var event: CustomEvent = new( < any > CustomEvent)('removeCard', {
+                bubbles: true,
+                cancelable: true,
+                detail: {
+                    card: card
+                }
+            });
+            fromElem.dispatchEvent(event);
+        }
+
+        if (toElem) {
+            var event: CustomEvent = new( < any > CustomEvent)('addCard', {
+                bubbles: true,
+                cancelable: true,
+                detail: {
+                    card: card
+                }
+            });
+            toElem.dispatchEvent(event);
+        }
+
+        if (toElem && toElem.hasAttribute('count'))
+            toElem.setAttribute('count', to.getNumCards().toString());
+
+        if (fromElem && fromElem.hasAttribute('count'))
+            fromElem.setAttribute('count', from.getNumCards().toString());
+
+        if (toElem && cardElem)
+            toElem.appendChild(cardElem);
+
+        // apply
+        if (cardElem && moveCommand.cardId > 0) {
+            var deck = board.findDeckByCardId(moveCommand.cardId);
+            mapping.applyVariables(cardElem, deck.variables);
+            mapping.applyVariables(cardElem, card.variables);
+        }
     }
 
     function buildValidMoves(board: Game.Board,
@@ -176,13 +226,13 @@ module MovePlugin {
         CLASS_HIGHLIGHT: string = 'highlight';
         fromInteract: Interact;
         toInteract: Interact;
-        mapping: HTMLMapping;
+        mapping: Game.HTMLMapping;
         board: Game.Board;
         proxy: Game.BaseClientProxy;
         transformKeyword: string = 'transform';
         highlightElems: HTMLElement[] = [];
 
-        constructor(client: HumanClient,
+        constructor(client: Game.HumanClient,
             moveRule: MoveRule,
             cardList: Game.Card[],
             fromList: Game.Location[],
@@ -333,5 +383,6 @@ module MovePlugin {
 Game.registerPlugin('move', {
     createRule: MovePlugin.createRule,
     performRule: MovePlugin.performRule,
-    performCommand: MovePlugin.performCommand
+    updateBoard: MovePlugin.updateBoard,
+    updateMapping: MovePlugin.updateMapping
 });

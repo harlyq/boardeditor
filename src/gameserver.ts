@@ -105,13 +105,14 @@ module Game {
             var nextValue = [];
             for (var i = 0; i < commands.length; ++i) {
                 for (var j in plugins) {
-                    if (plugins[j].performCommand(this.board, commands[i], nextValue))
+                    var updateBoard = plugins[j].updateBoard;
+                    if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], nextValue))
                         break;
                 }
             }
 
             for (var i = 0; i < this.proxies.length; ++i)
-                this.proxies[i].updateCommands(batch);
+                this.proxies[i].broadcastCommands(batch);
 
             this.board.print();
 

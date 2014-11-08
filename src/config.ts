@@ -178,7 +178,7 @@ module Game {
                     createClients(screen, setup, config);
                     break;
 
-                case 'updateCommands':
+                case 'broadcastCommands':
                 case 'resolveRule':
                     var proxy = < MessageClientProxy > getClientProxy(config, screen, msg.userNames);
                     if (proxy && typeof proxy.onServerMessage === 'function')

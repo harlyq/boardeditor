@@ -7,8 +7,6 @@
     <script src="layout.js" type="text/javascript"></script>
     <script src="card.js" type="text/javascript"></script>
     <script src="game.js" type="text/javascript"></script>
-    <script src="htmlmapping.js" type="text/javascript"></script>
-    <script src="humanclient.js" type="text/javascript"></script>
     <script src="pluginhelper.js" type="text/javascript"></script>
     <script src="pickplugin.js" type="text/javascript"></script>
     <script src="shuffleplugin.js" type="text/javascript"></script>
@@ -97,11 +95,15 @@
     }
 
     window.addEventListener("load", function() {
+        // add functionality
+        card(".card");
+        layout(".layout");
+
         var loveletter = LoveLetter_Setup();
 
         // must occur before queryServer();
         Game.registerClient('human', function(userName, proxy, board) {
-            return new HumanClient(userName, proxy, board, document.getElementById('board'));
+            return new Game.HumanClient(userName, proxy, board, document.getElementById('board'));
         });
 
         Game.queryServer(loveletter, 'common'); // how do we set 'common'?

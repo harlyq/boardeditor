@@ -59,7 +59,7 @@ Game.registerPlugin('set', {
         return false;
     },
 
-    performCommand: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
+    updateBoard: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
         var setCommand = < SetCommand > command;
 
         switch (command.type) {
@@ -82,5 +82,16 @@ Game.registerPlugin('set', {
         }
 
         return false;
+    },
+
+    updateMapping: function(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+        var setCommand = < SetCommand > command;
+
+        switch (command.type) {
+            case 'setCardVariable':
+                var cards = setCommand.key.split(',');
+                for (var i = 0; i < cards.length; ++i)
+                    mapping.applyVariables(mapping.getElemFromCardId(parseInt(cards[i])), setCommand.value);
+        }
     }
 });

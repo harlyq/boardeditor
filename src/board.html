@@ -120,7 +120,7 @@
                 myConfig = Game.createClients('common', document.getElementById('board'), mySetup, msg);
                 break;
 
-            case 'updateCommands':
+            case 'broadcastCommands':
             case 'resolveRule':
                 var proxy = Game.getClientProxy(myConfig, 'common', msg.userNames);
                 if (proxy && typeof proxy.onServerMessage === 'function')

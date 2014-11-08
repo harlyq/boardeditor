@@ -1,5 +1,6 @@
 /// <reference path="seedrandom.d.ts" />
 /// <reference path="board.ts" />
+/// <reference path="htmlmapping.ts" />
 /// <reference path="proxy.ts" />
 /// <reference path="plugin.ts" />
 /// <reference path="gameclient.ts" />

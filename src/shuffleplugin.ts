@@ -18,7 +18,7 @@ Game.registerPlugin('shuffle', {
         }, board.createRule('shuffle'));
     },
 
-    performCommand: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
+    updateBoard: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
         if (command.type !== 'shuffle')
             return false;
 
