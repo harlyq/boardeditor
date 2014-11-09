@@ -65,6 +65,10 @@ module Game {
             this.mapping = new HTMLMapping(board);
         }
 
+        getMapping() {
+            return this.mapping;
+        }
+
         onSetup() {
             // bind layouts, decks and cards
             this.mapping.parseElement(this.boardElem);

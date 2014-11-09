@@ -82,27 +82,35 @@ module Game {
                 }
 
                 // concatenate all commands, there may be multiple commands from multiple proxies
-                var batch = {
-                    ruleId: nextRule.id,
-                    commands: []
-                };
+                var commands = [],
+                    responded = false;
+
                 for (var i = 0; i < userProxies.length; ++i) {
                     var localBatch = userProxies[i].resolveRule(nextRule);
-                    [].push.apply(batch.commands, localBatch.commands);
+                    if (localBatch) {
+                        responded = true;
+                        [].push.apply(commands, localBatch.commands);
+                    }
                 }
 
-                nextValue = this.handleCommands(batch);
-            } while (batch && batch.commands.length > 0) // while we're not waiting for commands
+                if (responded)
+                    nextValue = this.handleCommands({
+                        ruleId: nextRule.id,
+                        commands: commands
+                    });
+
+            } while (responded) // while we're not waiting for commands
 
             return true;
         }
 
         private handleCommands(batch: BatchCommand): any[] {
-            if (!batch || batch.commands.length === 0)
+            if (!batch)
                 return undefined;
 
             var commands = batch.commands;
             var nextValue = [];
+
             for (var i = 0; i < commands.length; ++i) {
                 for (var j in plugins) {
                     var updateBoard = plugins[j].updateBoard;

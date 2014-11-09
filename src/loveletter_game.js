@@ -7,12 +7,14 @@ function LoveLetter_Game(setup) {
     require('./shuffleplugin.js');
     require('./setplugin.js');
     require('./moveplugin.js');
+    require('./settemporaryplugin.js');
 
     setup.newGameGen = function*(Game, board) {
         Game.setPlugin(board, 'waitPick', 'pick');
         Game.setPlugin(board, 'waitShuffle', 'shuffle');
         Game.setPlugin(board, 'waitSet', 'set');
         Game.setPlugin(board, 'waitMove', 'move');
+        Game.setPlugin(board, 'waitSetTemporary', 'setTemporary');
 
         yield board.waitMove({
             cards: '.card',
@@ -93,19 +95,13 @@ function LoveLetter_Game(setup) {
                 var pickedHand = 'hand' + pickedPlayer;
                 var cards = board.queryFirstLocation(pickedHand).getCards();
 
-                yield board.waitSet({
-                    key: cards,
-                    value: {
-                        facedown: false
-                    },
-                    user: userNames[currentPlayer]
-                });
-                yield board.waitSet({
+                yield board.waitSetTemporary({
                     key: cards,
                     value: {
                         facedown: true
                     },
-                    user: 'BANK'
+                    user: userNames[currentPlayer],
+                    timeout: 1
                 });
 
                 break;

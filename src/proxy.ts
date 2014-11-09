@@ -73,19 +73,27 @@ module Game {
         }
 
         onResolveRule(rule: BaseRule): BatchCommand {
-            var response = {
-                ruleId: rule.id,
-                commands: []
-            };
+            var responded = false,
+                commands = [];
+
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
                 if (listener && typeof listener.onResolveRule === 'function' && rule.user.indexOf(listener.getUser()) !== -1) {
                     var batch = listener.onResolveRule(rule);
-                    if (batch)
-                        [].push.apply(response.commands, batch.commands);
+                    if (batch) {
+                        responded = true;
+                        [].push.apply(commands, batch.commands);
+                    }
                 }
             }
-            return response;
+
+            if (responded)
+                return {
+                    ruleId: rule.id,
+                    commands: commands
+                };
+            else
+                return null;
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
@@ -321,10 +329,7 @@ module Game {
 
             console.log('SEND resolveRule to:' + msg.userNames + ' id:' + msg.rule.id);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
-            return {
-                ruleId: rule.id,
-                commands: []
-            };
+            return null;
         }
 
         broadcastCommands(batch: BatchCommand) {
@@ -339,7 +344,6 @@ module Game {
 
             console.log('SEND broadcastCommands (' + batch.commands.length + ') to:' + msg.userNames + ' id:' + batch.ruleId);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
-            return [];
         }
 
         private onClientMessage(e) {
@@ -407,6 +411,7 @@ module Game {
                 this.batches.sort(function(a, b): number {
                     return a.ruleId - b.ruleId;
                 });
+
                 if (msg.batch.ruleId === this.lastRuleId + 1)
                     this.sendMessages();
             } else {
@@ -434,9 +439,13 @@ module Game {
 
             // then the rule
             if (this.rule && this.rule.id === this.lastRuleId + 1) {
-                this.onResolveRule(this.rule);
+                var batch = this.onResolveRule(this.rule);
                 this.rule = null;
-                // do not update the lastRuleId, as we expect an updateCommand for this rule
+
+                if (batch)
+                    this.sendCommands(batch);
+
+                // do not update the lastRuleId, we will get a message from the server to do that
             }
 
             // TODO - do we need to handle deprecated rules???

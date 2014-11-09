@@ -13,7 +13,7 @@ module Game {
     export interface PluginInfo {
         createRule: (...args: any[]) => BaseRule;
         performRule: (client: Client, rule: BaseRule, results: Game.BatchCommand[]) => boolean;
-        updateBoard: (board: Board, command: BaseCommand, results: any[]) => any;
+        updateBoard ? : (board: Board, command: BaseCommand, results: any[]) => any;
         updateMapping ? : (board: Board, mapping: Game.HTMLMapping, command: BaseCommand) => void;
     };
 

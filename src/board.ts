@@ -152,6 +152,17 @@ module Game {
                 this.variables[i] = variables[i];
         }
 
+        copyVariables(variables: {
+            [key: string]: any
+        }): {
+            [key: string]: any
+        } {
+            var results: any = {};
+            for (var i in variables)
+                results[i] = this.variables[i];
+            return results;
+        }
+
         setVariable(name: string, value: any) {
             this.variables[name] = value;
         }
@@ -182,6 +193,7 @@ module Game {
         //     [key: string]: any
         // } = {};
         // setVariables: (variables: {[key: string]: any}) => void;
+        // copyVariables: (variables:  {[key: string]: any}) => {[key: string]: any};
         // setVariable: (name: string, value: any) => void;
         // getAlias: (value: string) => string;
         // getVariable: (name: string) => any;
@@ -434,6 +446,11 @@ module Game {
         setVariables: (variables: {
             [key: string]: any
         }) => void;
+        copyVariables: (variables: {
+            [key: string]: any
+        }) => {
+            [key: string]: any
+        };
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;
@@ -504,6 +521,11 @@ module Game {
         setVariables: (variables: {
             [key: string]: any
         }) => void;
+        copyVariables: (variables: {
+            [key: string]: any
+        }) => {
+            [key: string]: any
+        };
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;
@@ -984,6 +1006,11 @@ module Game {
         setVariables: (variables: {
             [key: string]: any
         }) => void;
+        copyVariables: (variables: {
+            [key: string]: any
+        }) => {
+            [key: string]: any
+        };
         setVariable: (name: string, value: any) => void;
         getAlias: (value: string) => string;
         getVariable: (name: string) => any;

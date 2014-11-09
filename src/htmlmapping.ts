@@ -77,6 +77,18 @@ module Game {
                 element.setAttribute(i, variables[i]);
         }
 
+        copyVariables(element: HTMLElement, variables: {
+            [key: string]: any
+        }): {
+            [key: string]: any
+        } {
+            var results: any = {};
+            for (var i in variables)
+                results[i] = element.getAttribute(i);
+
+            return results;
+        }
+
         getDeckFromElem(deckElem: HTMLElement): Game.Deck {
             for (var i in this.deckToElem) {
                 if (deckElem = this.deckToElem[i]) {
@@ -118,6 +130,15 @@ module Game {
             return this.cardToElem[cardId];
         }
 
+        getElemsFromCards(cards: Game.Card[]): HTMLElement[] {
+            var list = [];
+            for (var i = 0; i < cards.length; ++i) {
+                var card = cards[i];
+                list.push(card ? this.cardToElem[card.id] : null);
+            }
+            return list;
+        }
+
         getLocationFromElem(locationElem: HTMLElement): Game.Location {
             for (var i in this.locationToElem) {
                 if (locationElem === this.locationToElem[i]) {
@@ -138,5 +159,15 @@ module Game {
         getElemFromLocationId(locationId: number): HTMLElement {
             return this.locationToElem[locationId];
         }
+
+        getElemsFromLocations(locations: Game.Location[]): HTMLElement[] {
+            var list = [];
+            for (var i = 0; i < locations.length; ++i) {
+                var location = locations[i];
+                list.push(location ? this.locationToElem[location.id] : null);
+            }
+            return list;
+        }
+
     }
 }

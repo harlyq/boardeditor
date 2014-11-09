@@ -37,7 +37,6 @@ Game.registerPlugin('set', {
 
     performRule: function(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
         var setRule = < SetRule > rule;
-        var wait = false;
 
         switch (rule.type) {
             case 'setCardVariable':
