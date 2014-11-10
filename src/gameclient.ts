@@ -92,11 +92,16 @@ module Game {
             if (this.mapping.lastRuleId >= batch.ruleId)
                 return;
 
-            for (var i in plugins) {
-                var updateMapping = plugins[i].updateMapping;
-                if (typeof updateMapping === 'function') {
-                    for (var j = 0; j < batch.commands.length; ++j)
-                        updateMapping(this.board, this.mapping, batch.commands[j]);
+            for (var k in batch.commands) {
+                var commands = batch.commands[k];
+
+                for (var j = 0; j < commands.length; ++j) {
+
+                    for (var i in plugins) {
+                        var updateMapping = plugins[i].updateMapping;
+                        if (typeof updateMapping === 'function')
+                            updateMapping(this.board, this.mapping, commands[j]);
+                    }
                 }
             }
 

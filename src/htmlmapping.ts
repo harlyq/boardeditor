@@ -27,6 +27,7 @@ module Game {
                 if (location) {
                     self.locationToElem[location.id] = element;
                     self.applyLabels(element, location.getLabels());
+                    self.applyVariables(element, location.getVariables());
                 } else {
                     Game._error('could not find location "' + name + '" alias "' + altName + '"');
                 }
@@ -42,6 +43,7 @@ module Game {
                 var element = < HTMLElement > (boardElem.querySelector('.card[name="' + card.name + '"]'));
                 self.cardToElem[card.id] = element;
                 self.applyLabels(element, card.labels);
+                self.applyVariables(element, card.getVariables());
             });
         }
 

@@ -2,6 +2,7 @@ function LoveLetter_Game(setup) {
     var currentPlayer = 0;
     var userNames = ['PLAYER1', 'PLAYER2', 'PLAYER3', 'PLAYER4'];
     var numPlayers = userNames.length;
+    var allPlayers;
 
     require('./pickplugin.js');
     require('./shuffleplugin.js');
@@ -9,12 +10,30 @@ function LoveLetter_Game(setup) {
     require('./moveplugin.js');
     require('./settemporaryplugin.js');
 
+    function getFirstLocation(pickedLocations) {
+        for (var k in pickedLocations) {
+            if (pickedLocations[k].length > 0)
+                return pickedLocations[k][0];
+        }
+        return null;
+    }
+
+    function getFirstMove(moves) {
+        for (var k in moves) {
+            if (moves[k].length > 0)
+                return moves[k][0];
+        }
+        return null;
+    }
+
     setup.newGameGen = function*(Game, board) {
         Game.setPlugin(board, 'waitPick', 'pick');
         Game.setPlugin(board, 'waitShuffle', 'shuffle');
         Game.setPlugin(board, 'waitSet', 'set');
         Game.setPlugin(board, 'waitMove', 'move');
         Game.setPlugin(board, 'waitSetTemporary', 'setTemporary');
+
+        allPlayers = board.createList(0, 1, 2, 3);
 
         yield board.waitMove({
             cards: '.card',
@@ -26,14 +45,14 @@ function LoveLetter_Game(setup) {
             location: 'pile'
         });
 
-        for (var i = 0; i < numPlayers; ++i) {
+        for (var i = 0; i < allPlayers.length; ++i) {
             yield board.waitMove({
                 from: 'pile',
                 to: 'hand' + i
             });
         }
 
-        currentPlayer = ~~(Math.random() * numPlayers);
+        currentPlayer = allPlayers.get(~~(Math.random() * allPlayers.length));
         yield board.waitSet({
             key: 'currentPlayer',
             value: userNames[currentPlayer]
@@ -55,10 +74,10 @@ function LoveLetter_Game(setup) {
                     user: userNames[currentPlayer]
                 });
 
-            var card = moves[0].card;
+            var card = getFirstMove(moves).card;
             yield * cardAction(card, Game, board);
 
-            currentPlayer = (currentPlayer + 1) % numPlayers;
+            currentPlayer = allPlayers.next(currentPlayer);
             yield board.waitSet({
                 key: 'currentPlayer',
                 value: userNames[currentPlayer]
@@ -68,37 +87,50 @@ function LoveLetter_Game(setup) {
 
     function* cardAction(card, Game, board) {
         var otherPlayers = [];
-        for (var i = 0; i < numPlayers; ++i) {
-            var iDiscard = board.queryFirstLocation('discard' + i);
-            var topCard = iDiscard.getCard(Game.Position.Top);
-            if ((!topCard || topCard.getVariable('value') !== 'handmaid') && i !== currentPlayer)
-                otherPlayers.push(iDiscard);
+        for (var i = 0; i < allPlayers.length; ++i) {
+            var player = allPlayers.get(i);
+            if (player === currentPlayer)
+                continue;
+
+            var hand = board.queryFirstLocation('hand' + player);
+            var discard = board.queryFirstLocation('discard' + player);
+            var topCard = discard.getCard(Game.Position.Top);
+            if ((!topCard || topCard.getVariable('who') !== 'handmaid'))
+                otherPlayers.push(hand);
         }
 
-        switch (card.getVariable('value')) {
+        switch (card.getVariable('who')) {
             case 'guard':
-                var pickedLocation =
+                if (otherPlayers.length === 0)
+                    break; // no other players to check
+
+                var pickedLocations =
                     yield board.waitPick({
                         list: otherPlayers,
                         // user: userNames[currentPlayer]
                     });
-                var pickedPlayer = parseInt(pickedLocation[0][0].name.substr(7));
+                var name = getFirstLocation(pickedLocations).name;
+                var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 break;
 
             case 'priest':
-                var pickedLocation =
+                if (otherPlayers.length === 0)
+                    break; // no other players to check
+
+                var pickedLocations =
                     yield board.waitPick({
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var pickedPlayer = parseInt(pickedLocation[0][0].name.substr(7));
+                var name = getFirstLocation(pickedLocations).name;
+                var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 var pickedHand = 'hand' + pickedPlayer;
                 var cards = board.queryFirstLocation(pickedHand).getCards();
 
                 yield board.waitSetTemporary({
                     key: cards,
                     value: {
-                        facedown: true
+                        facedown: false
                     },
                     user: userNames[currentPlayer],
                     timeout: 1
@@ -107,39 +139,66 @@ function LoveLetter_Game(setup) {
                 break;
 
             case 'baron':
-                var pickedLocation =
+                if (otherPlayers.length === 0)
+                    break; // no other players to check
+
+                var pickedLocations =
                     yield board.waitPick({
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var pickedPlayer = parseInt(pickedLocation[0][0].name.substr(7));
+                var name = getFirstLocation(pickedLocations).name;
+                var otherPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 var myHand = board.queryFirstLocation('hand' + currentPlayer);
-                var otherHand = board.queryFirstLocation('hand' + pickedPlayer);
+                var myCard = myHand.getCardByIndex(0);
+                var otherHand = board.queryFirstLocation('hand' + otherPlayer);
+                var otherCard = otherHand.getCardByIndex(0);
+
+                yield board.waitSetTemporary({
+                    key: [myCard, otherCard],
+                    value: {
+                        facedown: false
+                    },
+                    user: [userNames[otherPlayer], userNames[currentPlayer]].join(','),
+                    timeout: 1
+                });
+
+                if (myCard.getVariable('value') > otherCard.getVariable('value'))
+                    allPlayers.remove(otherPlayer);
+                else
+                    allPlayers.remove(currentPlayer);
                 break;
 
             case 'handmaid':
                 break;
 
             case 'prince':
-                var allPlayers = [];
-                for (var i = 0; i < numPlayers; ++i)
-                    allPlayers.push(board.queryFirstLocation('discard' + i));
+                var allHands = [];
+                for (var i = 0; i < allPlayers.length; ++i) {
+                    var player = allPlayers.get(i);
+                    allHands.push(board.queryFirstLocation('hand' + player));
+                }
 
-                var pickedLocation =
+                var pickedLocations =
                     yield board.waitPick({
-                        list: allPlayers,
+                        list: allHands,
                         user: userNames[currentPlayer]
                     });
-                var pickedPlayer = parseInt(pickedLocation[0][0].name.substr(7));
+                var name = getFirstLocation(pickedLocations).name;
+                var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 break;
 
             case 'king':
-                var pickedLocation =
+                if (otherPlayers.length === 0)
+                    break; // no other players to check
+
+                var pickedLocations =
                     yield board.waitPick({
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var pickedPlayer = parseInt(pickedLocation[0][0].name.substr(7));
+                var name = getFirstLocation(pickedLocations).name;
+                var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 break;
 
             case 'countess':

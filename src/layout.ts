@@ -209,7 +209,7 @@ class Layout {
                 break;
         }
 
-        this.refreshFaceDown(elem);
+        //this.refreshFaceDown(elem);
     }
 
     // note: don't use getBoundingClientRect() as that will get the post-scaled size

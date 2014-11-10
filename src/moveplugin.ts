@@ -69,7 +69,7 @@ module MovePlugin {
         if (client instanceof Game.HumanClient)
             new HTMLMove( < Game.HumanClient > client, < MoveRule > rule, cardList, fromList, toList);
         else
-            buildValidMoves(client.getBoard(), < MoveRule > rule, cardList, fromList, toList, results);
+            buildValidMoves(client.getUser(), client.getBoard(), < MoveRule > rule, cardList, fromList, toList, results);
 
         return true;
     }
@@ -139,12 +139,13 @@ module MovePlugin {
         // apply
         if (cardElem && moveCommand.cardId > 0) {
             var deck = board.findDeckByCardId(moveCommand.cardId);
-            mapping.applyVariables(cardElem, deck.variables);
+            //mapping.applyVariables(cardElem, deck.variables);
             mapping.applyVariables(cardElem, card.variables);
         }
     }
 
-    function buildValidMoves(board: Game.Board,
+    function buildValidMoves(user: string,
+        board: Game.Board,
         moveRule: MoveRule,
         cardList: Game.Card[],
         fromList: Game.Location[],
@@ -196,15 +197,16 @@ module MovePlugin {
                 do {
                     var batch: Game.BatchCommand = {
                         ruleId: moveRule.id,
-                        commands: []
+                        commands: {}
                     };
+                    batch.commands[user] = [];
 
                     // TODO, run where clause, don't push batch if where fails
                     for (var j = 0; j < i; ++j) {
                         var card = cards[j],
                             to = toList[indices[j]];
 
-                        batch.commands.push({
+                        batch.commands[user].push({
                             type: 'move',
                             cardId: card.id,
                             fromId: (card.location ? card.location.id : -1),
@@ -231,6 +233,7 @@ module MovePlugin {
         proxy: Game.BaseClientProxy;
         transformKeyword: string = 'transform';
         highlightElems: HTMLElement[] = [];
+        user: string;
 
         constructor(client: Game.HumanClient,
             moveRule: MoveRule,
@@ -238,7 +241,8 @@ module MovePlugin {
             fromList: Game.Location[],
             toList: Game.Location[]) {
 
-            this.mapping = client.mapping;
+            this.user = client.getUser();
+            this.mapping = client.getMapping();
             this.board = client.getBoard();
             this.proxy = client.getProxy();
 
@@ -301,17 +305,16 @@ module MovePlugin {
                     var dragCard = e.detail.dragTarget;
                     self.clearHighlights();
 
-                    self.proxy.sendCommands({
-                        ruleId: self.lastRuleId,
-                        commands: [{
-                            type: 'move',
-                            cardId: self.mapping.getCardFromElem(dragCard).id,
-                            fromId: self.mapping.getLocationFromElem(dragCard.parentNode).id,
-                            toId: self.mapping.getLocationFromElem(e.currentTarget).id,
-                            index: -1
-                        }]
-                    });
+                    var batch = Game.createBatchCommand(self.lastRuleId, self.user);
+                    batch.commands[self.user] = [{
+                        type: 'move',
+                        cardId: self.mapping.getCardFromElem(dragCard).id,
+                        fromId: self.mapping.getLocationFromElem(dragCard.parentNode).id,
+                        toId: self.mapping.getLocationFromElem(e.currentTarget).id,
+                        index: -1
+                    }];
 
+                    self.proxy.sendCommands(batch);
                     self.toInteract.disable();
                 });
         }

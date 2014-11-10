@@ -74,7 +74,9 @@ module Game {
 
         onResolveRule(rule: BaseRule): BatchCommand {
             var responded = false,
-                commands = [];
+                commands: {
+                    [user: string]: BaseCommand[]
+                } = {};
 
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
@@ -82,7 +84,7 @@ module Game {
                     var batch = listener.onResolveRule(rule);
                     if (batch) {
                         responded = true;
-                        [].push.apply(commands, batch.commands);
+                        extend(commands, batch.commands);
                     }
                 }
             }
@@ -97,12 +99,16 @@ module Game {
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
-            for (var i = 0; i < batch.commands.length; ++i) {
-                var command = batch.commands[i];
-                for (var j in plugins) {
-                    var updateBoard = plugins[j].updateBoard;
-                    if (typeof updateBoard === 'function' && updateBoard(this.board, command, []))
-                        break;
+            for (var k in batch.commands) {
+                var commands = batch.commands[k];
+
+                for (var i = 0; i < commands.length; ++i) {
+
+                    for (var j in plugins) {
+                        var updateBoard = plugins[j].updateBoard;
+                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
+                            break;
+                    }
                 }
             }
 
@@ -131,7 +137,7 @@ module Game {
         resolveRule(rule: BaseRule): BatchCommand {
             return {
                 ruleId: rule.id,
-                commands: []
+                commands: {}
             };
         }
 
@@ -225,7 +231,7 @@ module Game {
 
             return {
                 ruleId: rule.id,
-                commands: []
+                commands: {}
             };
         }
 
@@ -342,7 +348,7 @@ module Game {
                 batch: batch
             };
 
-            console.log('SEND broadcastCommands (' + batch.commands.length + ') to:' + msg.userNames + ' id:' + batch.ruleId);
+            console.log('SEND broadcastCommands (' + Object.keys(batch.commands).length + ') to:' + msg.userNames + ' id:' + batch.ruleId);
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
         }
 

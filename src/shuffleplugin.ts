@@ -38,14 +38,16 @@ Game.registerPlugin('shuffle', {
         var shuffleRule = < ShuffleRule > rule;
         var location = client.getBoard().queryFirstLocation(shuffleRule.location);
 
-        results.push({
+        var batch: Game.BatchCommand = {
             ruleId: shuffleRule.id,
-            commands: [{
-                type: 'shuffle',
-                seed: shuffleRule.seed,
-                locationId: location ? location.id : 0
-            }]
-        });
+            commands: {}
+        };
+        batch.commands[client.getUser()] = [{
+            type: 'shuffle',
+            seed: shuffleRule.seed,
+            locationId: location ? location.id : 0
+        }];
+        results.push(batch);
 
         return true;
     }

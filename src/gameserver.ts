@@ -6,6 +6,11 @@ module Game {
         private board: Board = new Board();
         private rulesIter: any;
         private proxies: BaseServerProxy[] = [];
+        private ruleUsers: string[] = [];
+        private ruleBatch: BatchCommand = {
+            ruleId: -1,
+            commands: {}
+        };
         public config: GameConfig = null;
         public gameId: number = -1;
 
@@ -61,7 +66,7 @@ module Game {
             this.step();
         }
 
-        step(nextValue ? : any[]): boolean {
+        step(nextValue ? : any): boolean {
             if (!('next' in this.rulesIter))
                 return;
 
@@ -75,6 +80,12 @@ module Game {
                 var nextRule: BaseRule = result.value;
                 console.log(nextRule);
 
+                this.ruleBatch = {
+                    ruleId: nextRule.id,
+                    commands: {}
+                };
+                this.ruleUsers = nextRule.user.split(',');
+
                 var userProxies = this.getProxies(nextRule.user);
                 if (userProxies.length === 0) {
                     _error('user does not have proxy - ' + nextRule.user);
@@ -82,40 +93,73 @@ module Game {
                 }
 
                 // concatenate all commands, there may be multiple commands from multiple proxies
-                var commands = [],
-                    responded = false;
+                var commands: {
+                    [user: string]: BaseCommand[]
+                } = {};
 
                 for (var i = 0; i < userProxies.length; ++i) {
                     var localBatch = userProxies[i].resolveRule(nextRule);
-                    if (localBatch) {
-                        responded = true;
-                        [].push.apply(commands, localBatch.commands);
-                    }
+                    if (localBatch)
+                        extend(commands, localBatch.commands);
                 }
 
-                if (responded)
-                    nextValue = this.handleCommands({
-                        ruleId: nextRule.id,
-                        commands: commands
-                    });
+                nextValue = {};
+                var allResponded = this.handleCommands({
+                    ruleId: nextRule.id,
+                    commands: commands
+                }, nextValue);
 
-            } while (responded) // while we're not waiting for commands
+            } while (allResponded) // while we're not waiting for commands
 
             return true;
         }
 
-        private handleCommands(batch: BatchCommand): any[] {
+        private handleCommands(batch: BatchCommand, nextValue): boolean {
             if (!batch)
-                return undefined;
+                return false;
 
-            var commands = batch.commands;
-            var nextValue = [];
+            if (batch.ruleId !== this.ruleBatch.ruleId) {
+                _error('out of sequence rule received, expecting ' + this.ruleBatch.ruleId + ' received ' + batch);
+                return false;
+            }
 
-            for (var i = 0; i < commands.length; ++i) {
-                for (var j in plugins) {
-                    var updateBoard = plugins[j].updateBoard;
-                    if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], nextValue))
-                        break;
+            if (!batch.commands)
+                return;
+
+            for (var k in batch.commands) {
+                if (typeof this.ruleBatch.commands[k] !== 'undefined') {
+                    _error('command received twice from user ' + i);
+                    return false;
+                }
+            }
+
+            extend(this.ruleBatch.commands, batch.commands);
+
+            var allUsers = true;
+            for (var i = 0; allUsers && i < this.ruleUsers.length; ++i)
+                allUsers = (typeof this.ruleBatch.commands[this.ruleUsers[i]] !== 'undefined');
+
+            if (!allUsers)
+                return false; // waiting for responses
+
+            for (var k in batch.commands) {
+                var commands = batch.commands[k];
+
+                for (var i = 0; i < commands.length; ++i) {
+
+                    for (var j in plugins) {
+                        var updateBoard = plugins[j].updateBoard;
+                        var results = [];
+                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], results)) {
+                            if (results.length > 0) {
+                                if (!(k in nextValue))
+                                    nextValue[k] = [];
+
+                                [].push.apply(nextValue[k], results);
+                            }
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -124,12 +168,14 @@ module Game {
 
             this.board.print();
 
-            return nextValue;
+            return true;
         }
 
         // server only supports sendCommands
         onSendCommands(batch: BatchCommand) {
-            this.step(this.handleCommands(batch));
+            var nextValue = {};
+            if (this.handleCommands(batch, nextValue))
+                this.step(nextValue);
         }
 
         getUser(): string {

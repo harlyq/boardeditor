@@ -36,10 +36,7 @@ Game.registerPlugin('setTemporary', {
         if (rule.type !== 'setTemporaryCard' && rule.type !== 'setTemporaryLocation')
             return false;
 
-        var nullBatch = {
-            ruleId: rule.id,
-            commands: []
-        };
+        var nullBatch = Game.createBatchCommand(rule.id, client.getUser());
 
         // setTemporary does nothing on a non-HumanClient
         if (!(client instanceof Game.HumanClient)) {
@@ -51,22 +48,23 @@ Game.registerPlugin('setTemporary', {
             board = client.getBoard(),
             mapping = ( < Game.HumanClient > client).getMapping(),
             oldVariables = [],
+            things = [],
             elems = [];
 
         switch (rule.type) {
             case 'setTemporaryCard':
-                var cards = board.queryCards(setTemporaryRule.key);
-                elems = mapping.getElemsFromCards(cards);
+                things = board.queryCards(setTemporaryRule.key);
+                elems = mapping.getElemsFromCards(things);
                 break;
 
             case 'setTemporaryLocation':
-                var locations = board.queryLocations(setTemporaryRule.key);
-                elems = mapping.getElemsFromLocations(locations);
+                things = board.queryLocations(setTemporaryRule.key);
+                elems = mapping.getElemsFromLocations(things);
                 break;
         }
 
         for (var i = 0; i < elems.length; ++i) {
-            oldVariables.push(mapping.copyVariables(elems[i], setTemporaryRule.value));
+            oldVariables.push(things[i].copyVariables(setTemporaryRule.value));
             mapping.applyVariables(elems[i], setTemporaryRule.value);
         }
 

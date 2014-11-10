@@ -60,8 +60,20 @@ module Game {
 
     export interface BatchCommand {
         ruleId: number;
-        commands: BaseCommand[];
+        commands: {
+            [user: string]: BaseCommand[] // one set of commands per user
+        };
     }
+
+    export function createBatchCommand(id: number, user: string) {
+        var batch: Game.BatchCommand = {
+            ruleId: id,
+            commands: {}
+        };
+        batch.commands[user] = [];
+        return batch;
+    }
+
 
     //----------------------------------------------------------------
     export class LabelMixin {
@@ -222,14 +234,16 @@ module Game {
     _applyMixins(Region, [LabelMixin]);
 
     //----------------------------------------------------------------
-    export class Location implements LabelMixin, RegionMixin {
+    export class Location implements LabelMixin, RegionMixin, VariableMixin {
         private cards: Card[] = [];
         private fromPosition: Position = Position.Top;
         private toPosition: Position = Position.Top;
 
-        constructor(public name: string, public id: number, public visibility ? : {
-            [userId: number]: Location.Visibility
-        }) {}
+        constructor(public name: string, public id: number, variables ? : {
+            [key: string]: any
+        }) {
+            this.setVariables(variables);
+        }
 
         // LabelMixin
         public labels: string[] = [];
@@ -243,6 +257,23 @@ module Game {
         addRegion: (region: Region) => void;
         removeRegion: (region: Region) => void;
         containsRegion: (regionOrName: any) => boolean;
+
+        // VariableMixin
+        public variables: {
+            [key: string]: any
+        } = {};
+        setVariables: (variables: {
+            [key: string]: any
+        }) => void;
+        copyVariables: (variables: {
+            [key: string]: any
+        }) => {
+            [key: string]: any
+        };
+        setVariable: (name: string, value: any) => void;
+        getAlias: (value: string) => string;
+        getVariable: (name: string) => any;
+        getVariables: () => any;
 
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
@@ -258,27 +289,23 @@ module Game {
                 toPosition = this.toPosition;
 
             var numCards = this.cards.length;
-            var index = numCards;
+            var i = numCards;
             switch (toPosition) {
                 case Position.Default:
                 case Position.Top:
-                    index = numCards;
+                    i = numCards;
                     break;
                 case Position.Bottom:
-                    index = 0;
+                    i = 0;
                     break;
                 case Position.Random:
-                    index = ~~(Math.random() * numCards);
+                    i = ~~(Math.random() * numCards);
                     break;
             }
 
-            if (card.location)
-                card.location.removeCard(card);
+            this.insertCardInternal(i, card);
 
-            this.cards.splice(index, 0, card);
-            card.location = this;
-
-            return index;
+            return i;
         }
 
         removeCard(card: Card) {
@@ -311,10 +338,20 @@ module Game {
                 }
             }
 
+            this.insertCardInternal(i, card);
+        }
+
+        private insertCardInternal(index: number, card: Card) {
+            // override card properties with location properties
+            var cardVariables = card.variables;
+            for (var k in this.variables) {
+                cardVariables[k] = this.variables[k];
+            }
+
             if (card.location !== null)
                 card.location.removeCard(card);
 
-            this.cards.splice(i, 0, card);
+            this.cards.splice(index, 0, card);
             card.location = this;
         }
 
@@ -368,13 +405,13 @@ module Game {
             return this.cards.length;
         }
 
-        getVisibility(userId: number): Location.Visibility {
-            var visibility = this.visibility[userId];
-            if (typeof visibility == 'undefined')
-                visibility = Location.Visibility.None;
+        // getVisibility(userId: number): Location.Visibility {
+        //     var visibility = this.visibility[userId];
+        //     if (typeof visibility == 'undefined')
+        //         visibility = Location.Visibility.None;
 
-            return visibility;
-        }
+        //     return visibility;
+        // }
 
         shuffle() {
             var numCards = this.cards.length;
@@ -392,7 +429,7 @@ module Game {
                 type: 'Location',
                 name: this.name,
                 id: this.id,
-                visibility: this.visibility,
+                // visibility: this.visibility,
                 cards: []
             };
 
@@ -406,7 +443,7 @@ module Game {
 
             this.name = obj.name;
             this.id = obj.id;
-            this.visibility = obj.visibility;
+            // this.visibility = obj.visibility;
             this.cards = [];
 
             for (var i = 0; i < obj.cards.length; ++i) {
@@ -424,7 +461,7 @@ module Game {
         };
     }
 
-    _applyMixins(Location, [LabelMixin]);
+    _applyMixins(Location, [LabelMixin, RegionMixin, VariableMixin]);
 
     //----------------------------------------------------------------
     export class Deck implements VariableMixin {
@@ -457,6 +494,13 @@ module Game {
         getVariables: () => any;
 
         addCard(card: Card): Deck {
+            // apply the deck properties - if not present on the card
+            var cardVariables = card.variables;
+            for (var k in this.variables) {
+                if (!cardVariables.hasOwnProperty(k))
+                    cardVariables[k] = this.variables[k];
+            }
+
             this.cards.push(card);
             return this;
         }
@@ -492,7 +536,7 @@ module Game {
     _applyMixins(Deck, [VariableMixin]);
 
     //----------------------------------------------------------------
-    export class Card implements LabelMixin, VariableMixin {
+    export class Card implements LabelMixin, RegionMixin, VariableMixin {
         location: Location = null; // back pointer, do not dereference, used by Location
 
         static UNKNOWN = -1;
@@ -513,6 +557,12 @@ module Game {
         removeLabel: (label: string) => void;
         containsLabel: (label: string) => boolean;
         getLabels: () => string[];
+
+        // RegionMixin
+        public regions: Region[] = [];
+        addRegion: (region: Region) => void;
+        removeRegion: (region: Region) => void;
+        containsRegion: (regionOrName: any) => boolean;
 
         // VariableMixin
         public variables: {
@@ -557,7 +607,7 @@ module Game {
         }
     }
 
-    _applyMixins(Card, [LabelMixin, VariableMixin]);
+    _applyMixins(Card, [LabelMixin, RegionMixin, VariableMixin]);
 
     //----------------------------------------------------------------
     export class User {
@@ -583,6 +633,109 @@ module Game {
     }
 
     //----------------------------------------------------------------
+    export class UniqueList {
+        private values: any[];
+        private removed: boolean[] = []; // one index for each value
+        length: number = 0;
+
+        constructor(args: any[]) {
+            this.values = args;
+            this.length = args.length;
+            for (var i = 0; i < args.length; ++i)
+                this.removed[i] = false;
+        }
+
+        push(value: any): boolean {
+            return this.add(value);
+        }
+
+        remove(value: any): boolean {
+            var i = this.values.indexOf(value);
+            if (i === -1)
+                return false; // value not present
+
+            if (this.removed[i])
+                return false; // value is hidden, cannot be removed again
+
+            this.removed[i] = true;
+            --this.length;
+
+            return true;
+        }
+
+        add(value: any): boolean {
+            if (this.indexOf(value))
+                return false; // already present (and not removed)
+
+            var i = this.values.indexOf(value);
+            if (i !== -1)
+                this.values.splice(i, 1); // delete old removed value
+
+            i = this.values.length;
+            this.values.push(value);
+            this.removed[i] = false;
+            ++this.length;
+
+            return true;
+        }
+
+        indexOf(value: any) {
+            for (var i = 0; i < this.values.length; ++i) {
+                if (this.values[i] === value)
+                    return (this.removed[i] ? -1 : i);
+            }
+            return -1;
+        }
+
+        get(index: number): any {
+            if (index < 0 || index >= this.length)
+                return undefined; // outside of bounds
+
+            for (var i = 0, k = 0; i < this.values.length; ++i) {
+                if (this.removed[i])
+                    continue;
+
+                if (k === index)
+                    return this.values[i];
+
+                k++;
+            }
+            _assert('invalid logic');
+
+            return undefined; // should never happen
+        }
+
+        next(value: any, loop: boolean = true): any {
+            if (this.length === 0)
+                return undefined; // no entries available
+
+            var i = this.values.indexOf(value);
+            if (i === -1)
+                return undefined; // value was never in the list
+
+            do {
+                i = this.nextIndex(i, loop);
+            } while (i >= 0 && this.removed[i]);
+
+            if (i === -1)
+                return undefined; // no next value
+
+            return this.values[i];
+        }
+
+        private nextIndex(i: number, loop: boolean): number {
+            i++;
+            if (i >= this.values.length) {
+                if (!loop)
+                    i = -1;
+                else
+                    i = 0;
+            }
+            return i;
+        }
+    }
+
+    //----------------------------------------------------------------
     export class Board implements VariableMixin {
         private locations: Location[] = [];
         private decks: Deck[] = [];
@@ -592,6 +745,13 @@ module Game {
         private uniqueId: number = 0;
         private lastRuleId: number = 0;
 
+        createList(...args: any[]): UniqueList {
+            if (args.length === 1 && Array.isArray(args[0]))
+                args = args[0]; // user passed an array, treat this as the list
+
+            return new UniqueList(args);
+        }
+
         createRule(type: string): BaseRule {
             return {
                 id: this.uniqueId++,
@@ -600,10 +760,10 @@ module Game {
             };
         }
 
-        createLocation(name: string, locationId: number, visibility ? : {
-            [userId: number]: Location.Visibility
+        createLocation(name: string, locationId: number, variables ? : {
+            [key: string]: any
         }): Location {
-            var location = new Location(name, locationId, visibility);
+            var location = new Location(name, locationId, variables);
             this.locations.push(location);
             return location;
         }

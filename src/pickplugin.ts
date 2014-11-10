@@ -63,15 +63,15 @@ module PickPlugin {
 
         switch (command.type) {
             case 'pick':
-                results.push(pickCommand.values);
+                [].push.apply(results, pickCommand.values);
                 return true;
 
             case 'pickLocation':
-                results.push(board.queryLocations(pickCommand.values.join(',')));
+                [].push.apply(results, board.queryLocations(pickCommand.values.join(',')));
                 return true;
 
             case 'pickCard':
-                results.push(board.queryCards(pickCommand.values.join(',')));
+                [].push.apply(results, board.queryCards(pickCommand.values.join(',')));
                 return true;
         }
 
@@ -88,14 +88,14 @@ module PickPlugin {
                 // don't build results, they will sent via Proxy.sendCommand()
                     new HTMLPick( < Game.HumanClient > client, < PickRule > rule);
                 else
-                    findValidPickCommands(client.getBoard(), < PickRule > rule, results);
+                    findValidPickCommands(client.getUser(), client.getBoard(), < PickRule > rule, results);
                 return true;
         }
 
         return false;
     }
 
-    function findValidPickCommands(board: Game.Board, pickRule: PickRule, results: Game.BatchCommand[]) {
+    function findValidPickCommands(user: string, board: Game.Board, pickRule: PickRule, results: Game.BatchCommand[]) {
         var where: any = pickRule.where || function() {
             return true;
         }
@@ -103,7 +103,8 @@ module PickPlugin {
         var pickList = getPickList(board, pickRule),
             numPickList = pickList.length;
 
-        for (var i = 0; i < numPickList; ++i) {
+        // go up to pickList because this represents the count, which can none (0) to all (numPickList)
+        for (var i = 0; i <= numPickList; ++i) {
             if (!PluginHelper.isCountComplete(pickRule.quantity, pickRule.count, i))
                 continue;
 
@@ -136,13 +137,15 @@ module PickPlugin {
                     }
                 }
 
-                results.push({
+                var batch: Game.BatchCommand = {
                     ruleId: pickRule.id,
-                    commands: [{
-                        type: pickRule.type,
-                        values: values
-                    }]
-                });
+                    commands: {}
+                }
+                batch.commands[user] = [{
+                    type: pickRule.type,
+                    values: values
+                }];
+                results.push(batch);
 
             } while (PluginHelper.nextCombination(indices, possibles));
         }
@@ -177,6 +180,7 @@ module PickPlugin {
     }
 
     export class HTMLPick {
+        private user: string;
         private pickList: any[] = [];
         private lastRuleId: number = 0;
         private board: Game.Board;
@@ -188,6 +192,7 @@ module PickPlugin {
         CLASS_HIGHLIGHT: string = 'highlight';
 
         constructor(private client: Game.HumanClient, pickRule: PickRule) {
+            this.user = client.getUser();
             this.proxy = client.getProxy();
             this.board = client.getBoard();
             this.mapping = client.mapping;
@@ -215,10 +220,12 @@ module PickPlugin {
             this.pickList = [];
             this.clearHighlights();
 
-            this.proxy.sendCommands({
+            var batch: Game.BatchCommand = {
                 ruleId: this.lastRuleId,
-                commands: [this.createPickCommand('pickLocation', [location.name])] // should this be a Location????
-            });
+                commands: {}
+            };
+            batch.commands[this.user] = [this.createPickCommand('pickLocation', [location.name])];
+            this.proxy.sendCommands(batch);
         }
 
         private showHTMLPick(pickRule: PickRule) {

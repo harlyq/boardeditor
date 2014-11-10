@@ -1,5 +1,4 @@
 /// <reference path='_dependencies.ts' />
-/// <reference path="humanclient.ts"/>
 
 interface SetRule extends Game.BaseRule {
     key: any;
@@ -42,14 +41,16 @@ Game.registerPlugin('set', {
             case 'setCardVariable':
             case 'setLocationVariable':
             case 'setVariable':
-                var batch = {
+                var batch: Game.BatchCommand = {
                     ruleId: rule.id,
-                    commands: [{
-                        type: rule.type,
-                        key: setRule.key,
-                        value: setRule.value
-                    }]
+                    commands: {}
                 };
+
+                batch.commands[client.getUser()] = [{
+                    type: rule.type,
+                    key: setRule.key,
+                    value: setRule.value
+                }];
 
                 results.push(batch);
                 return true;
