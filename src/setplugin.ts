@@ -10,8 +10,10 @@ interface SetCommand extends Game.BaseCommand {
     value: any;
 }
 
-Game.registerPlugin('set', {
-    createRule: function(board: Game.Board, setRule: SetRule) {
+module SetPlugin {
+    var Game = require('./game')
+
+    export function createRule(board: Game.Board, setRule: SetRule) {
         var type = 'setVariable',
             key: any = setRule.key,
             keyArray = Array.isArray(key);
@@ -32,9 +34,9 @@ Game.registerPlugin('set', {
             key: key,
             value: setRule.value
         }, board.createRule(type));
-    },
+    }
 
-    performRule: function(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
         var setRule = < SetRule > rule;
 
         switch (rule.type) {
@@ -57,9 +59,9 @@ Game.registerPlugin('set', {
         }
 
         return false;
-    },
+    }
 
-    updateBoard: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
+    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {
         var setCommand = < SetCommand > command;
 
         switch (command.type) {
@@ -82,9 +84,9 @@ Game.registerPlugin('set', {
         }
 
         return false;
-    },
+    }
 
-    updateMapping: function(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         var setCommand = < SetCommand > command;
 
         switch (command.type) {
@@ -94,4 +96,15 @@ Game.registerPlugin('set', {
                     mapping.applyVariables(mapping.getElemFromCardId(parseInt(cards[i])), setCommand.value);
         }
     }
-});
+};
+
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined')
+    exports.set = SetPlugin;

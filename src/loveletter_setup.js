@@ -1,10 +1,23 @@
-function LoveLetter_Setup() {
+var setup = (function() {
     var setup = {};
     var maxPlayers = 4;
+
+    var Game = require('./game')
+    var pickPlugin = require('./pickplugin');
+    var shufflePlugin = require('./shuffleplugin');
+    var setPlugin = require('./setplugin');
+    var movePlugin = require('./moveplugin');
+    var setTemporaryPlugin = require('./settemporaryplugin');
 
     setup.whereList = [];
 
     setup.setupFunc = function(board) {
+        Game.bindPlugin(board, 'waitPick', pickPlugin);
+        Game.bindPlugin(board, 'waitShuffle', shufflePlugin);
+        Game.bindPlugin(board, 'waitSet', setPlugin);
+        Game.bindPlugin(board, 'waitMove', movePlugin);
+        Game.bindPlugin(board, 'waitSetTemporary', setTemporaryPlugin);
+
         var id = 1;
         board.createLocation('pile', id++, {
             facedown: 'true'
@@ -74,4 +87,12 @@ function LoveLetter_Setup() {
     }
 
     return setup;
+})();
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined') {
+    for (k in setup)
+        exports[k] = setup[k];
 }

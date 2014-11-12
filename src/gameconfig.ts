@@ -10,7 +10,8 @@ module Game {
     export interface ScreenConfig {
         screen ? : string; // board for this user
         mode: string; // shared | networked | pass-n-play
-        proxy: string; // message
+        transport: string; // message
+        proxy: BaseClientProxy;
         iframe ? : string; // iframe for message proxy
         users: UserConfig[];
     }

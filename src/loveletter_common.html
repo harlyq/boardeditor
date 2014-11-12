@@ -100,7 +100,7 @@
         card(".card");
         layout(".layout");
 
-        var loveletter = LoveLetter_Setup();
+        var loveletter = require('./loveletter_setup');
 
         // must occur before queryServer();
         Game.registerClient('human', function(userName, proxy, board) {

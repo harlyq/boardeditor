@@ -36,7 +36,7 @@ module Game {
         var numPlayers = users.length;
         var proxy: BaseClientProxy = null;
 
-        switch (screenConfig.proxy) {
+        switch (screenConfig.transport) {
             case 'REST':
                 proxy = createRESTClientProxy(userNames, game.whereList);
                 break;
@@ -51,6 +51,7 @@ module Game {
             return config;
 
         proxy.setup(game.setupFunc);
+        screenConfig.proxy = proxy;
 
         for (var i = 0; i < numPlayers; ++i) {
             var user = users[i];
@@ -110,7 +111,7 @@ module Game {
             var userNames = getUserNames(screenConfig);
             var proxy: BaseServerProxy = null;
 
-            switch (screenConfig.proxy) {
+            switch (screenConfig.transport) {
                 case 'REST':
                     proxy = Game.createRESTServerProxy(userNames, game.whereList, server);
                     break;
@@ -144,20 +145,12 @@ module Game {
         return server;
     }
 
-    export function getClientProxy(config: GameConfig, screen: string, userNames: string): BaseClientProxy {
+    export function getClientProxy(config: GameConfig, screen: string): BaseClientProxy {
         var screenConfig = getScreenConfig(config, screen);
         if (!screenConfig)
             return null;
 
-        if (userNames !== getUserNames(screenConfig))
-            return null;
-
-        for (var i = 0; i < screenConfig.users.length; ++i) {
-            var user = screenConfig.users[i];
-            if (user.client)
-                return user.client.getProxy();
-        }
-        return null;
+        return screenConfig.proxy;
     }
 
     export function queryServer(setup: any, screen: string) {
@@ -167,6 +160,7 @@ module Game {
             return new AIClient(userName, proxy, board);
         });
 
+        // setup for debug server
         window.addEventListener('message', function(e) {
             var msg = JSON.parse(e.data);
             if (!('type' in msg))
@@ -180,11 +174,30 @@ module Game {
 
                 case 'broadcastCommands':
                 case 'resolveRule':
-                    var proxy = < MessageClientProxy > getClientProxy(config, screen, msg.userNames);
+                    var proxy = < MessageClientProxy > getClientProxy(config, screen);
                     if (proxy && typeof proxy.onServerMessage === 'function')
                         proxy.onServerMessage(msg);
                     break;
             }
         });
+
+        // setup for web server
+        var req = new XMLHttpRequest();
+        req.onload = function() {
+            var msg = JSON.parse(this.response);
+            if ('type' in msg && msg.type === 'loveletter') {
+                config = msg;
+                createClients(screen, setup, config);
+            }
+
+            var proxy = < RESTClientProxy > getClientProxy(config, screen);
+            if (proxy && typeof proxy.pollServer === 'function')
+                proxy.pollServer();
+        };
+        req.open('GET', 'config?screen=' + screen); // this board layout
+        req.setRequestHeader('Content-Type', 'application/json');
+        try {
+            req.send(); // will fail for the iframe (debug server) version
+        } catch (e) {}
     }
 }

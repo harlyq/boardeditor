@@ -1,14 +1,11 @@
-function LoveLetter_Game(setup) {
+var setup = (function() {
+    var Game = require('./game')
+    var setup = require('./loveletter_setup');
+
     var currentPlayer = 0;
     var userNames = ['PLAYER1', 'PLAYER2', 'PLAYER3', 'PLAYER4'];
     var numPlayers = userNames.length;
     var allPlayers;
-
-    require('./pickplugin.js');
-    require('./shuffleplugin.js');
-    require('./setplugin.js');
-    require('./moveplugin.js');
-    require('./settemporaryplugin.js');
 
     function getFirstLocation(pickedLocations) {
         for (var k in pickedLocations) {
@@ -26,13 +23,7 @@ function LoveLetter_Game(setup) {
         return null;
     }
 
-    setup.newGameGen = function*(Game, board) {
-        Game.setPlugin(board, 'waitPick', 'pick');
-        Game.setPlugin(board, 'waitShuffle', 'shuffle');
-        Game.setPlugin(board, 'waitSet', 'set');
-        Game.setPlugin(board, 'waitMove', 'move');
-        Game.setPlugin(board, 'waitSetTemporary', 'setTemporary');
-
+    setup.newGameGen = function*(board) {
         allPlayers = board.createList(0, 1, 2, 3);
 
         yield board.waitMove({
@@ -59,7 +50,7 @@ function LoveLetter_Game(setup) {
         });
     }
 
-    setup.rulesGen = function*(Game, board) {
+    setup.rulesGen = function*(board) {
         while (board.queryFirstLocation('pile').getNumCards() > 0) {
             yield board.waitMove({
                 from: 'pile',
@@ -210,6 +201,9 @@ function LoveLetter_Game(setup) {
     }
 
     return setup;
-}
+})();
 
-if (typeof exports !== 'undefined') {}
+if (typeof exports !== 'undefined') {
+    for (var k in setup)
+        exports[k] = setup[k];
+}

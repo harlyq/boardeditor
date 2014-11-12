@@ -5,7 +5,7 @@ node_modules/*
 !src/mancala.js
 !src/mancala_game.js
 !src/mancala_setup.js
-!src/gamex.js
-!src/index.js
+!src/mancala_server.js
 !src/loveletter_game.js
 !src/loveletter_setup.js
+!src/loveletter_server.js

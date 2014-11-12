@@ -90,3 +90,16 @@ module PluginHelper {
         return false;
     }
 }
+
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined') {
+    for (var k in PluginHelper)
+        exports[k] = PluginHelper[k];
+}

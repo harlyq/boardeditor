@@ -6,8 +6,10 @@ interface SetTemporaryRule extends Game.BaseRule {
     timeout: number; // seconds
 }
 
-Game.registerPlugin('setTemporary', {
-    createRule: function(board: Game.Board, setTemporaryRule: SetTemporaryRule) {
+module SetTemporaryPlugin {
+    var Game = require('./game');
+
+    export function createRule(board: Game.Board, setTemporaryRule: SetTemporaryRule) {
         var type = 'setTemporaryCard',
             key: any = setTemporaryRule.key,
             keyArray = Array.isArray(key);
@@ -30,9 +32,9 @@ Game.registerPlugin('setTemporary', {
         }, board.createRule(type), setTemporaryRule, {
             key: key
         });
-    },
+    }
 
-    performRule: function(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
         if (rule.type !== 'setTemporaryCard' && rule.type !== 'setTemporaryLocation')
             return false;
 
@@ -78,5 +80,16 @@ Game.registerPlugin('setTemporary', {
         }, setTemporaryRule.timeout * 1000);
 
         return true;
-    },
-});
+    }
+};
+
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined')
+    exports.setTemporary = SetTemporaryPlugin;

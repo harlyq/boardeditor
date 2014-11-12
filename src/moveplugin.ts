@@ -25,6 +25,8 @@ interface MoveCommand extends Game.BaseCommand {
 }
 
 module MovePlugin {
+    var Game = require('./game');
+    var PluginHelper = require('./pluginhelper');
 
     export function createRule(board: Game.Board, rule: MoveRule): Game.BaseRule {
         return Game.extend({
@@ -383,9 +385,13 @@ module MovePlugin {
     }
 }
 
-Game.registerPlugin('move', {
-    createRule: MovePlugin.createRule,
-    performRule: MovePlugin.performRule,
-    updateBoard: MovePlugin.updateBoard,
-    updateMapping: MovePlugin.updateMapping
-});
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined')
+    exports.move = MovePlugin;

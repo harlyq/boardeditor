@@ -14,10 +14,10 @@ module Game {
         public config: GameConfig = null;
         public gameId: number = -1;
 
-        rulesGen: (game: any, board: Board) => {
+        rulesGen: (board: Board) => {
             next(...args: any[]): any
         };
-        newGameGen: (game: any, board: Board) => {
+        newGameGen: (board: Board) => {
             next(...args: any[]): any
         };
         setupFunc: (board: Board) => void;
@@ -56,12 +56,12 @@ module Game {
 
         newGame() {
             if (typeof this.newGameGen === 'function')
-                this.rulesIter = this.newGameGen(Game, this.board);
+                this.rulesIter = this.newGameGen(this.board);
 
             this.step(); // don't have user rules in the newGame!!!
 
             if (typeof this.rulesGen === 'function')
-                this.rulesIter = this.rulesGen(Game, this.board);
+                this.rulesIter = this.rulesGen(this.board);
 
             this.step();
         }

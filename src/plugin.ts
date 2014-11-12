@@ -1,15 +1,5 @@
 /// <reference path="_dependencies.ts" />
 module Game {
-    // export interface BaseCommand {
-    //     type: string;
-    // }
-
-    // export interface BaseRule {
-    //     id ? : number;
-    //     type ? : string;
-    //     user ? : string; // maybe this should be an array
-    // }
-
     export interface PluginInfo {
         createRule: (...args: any[]) => BaseRule;
         performRule: (client: Client, rule: BaseRule, results: Game.BatchCommand[]) => boolean;
@@ -21,22 +11,25 @@ module Game {
         [name: string]: PluginInfo;
     } = {};
 
-    export function registerPlugin(name: string, info: PluginInfo) {
-        plugins[name] = info;
-    }
+    export function bindPlugin(board: Board, name: string, info: any) {
+        if (!info)
+            return;
 
-    export function getPlugin(name: string): PluginInfo {
-        return plugins[name];
-    }
+        var key = Object.keys(info)[0];
+        if (!key) {
+            Game._error('no key specified in bindPlugin - ' + info);
+            return;
+        }
+        info = info[key]; // PluginInfo
 
-    export function setPlugin(board: Board, name: string, pluginName: string) {
-        if (!(pluginName in plugins))
-            Game._error('plugin - ' + pluginName + ' - not loaded.');
+        console.log(name, info, key);
 
-        // add the create function to the current board
+        plugins[key] = info;
+
+        // bind the createRule function to the current board
         board[name] = function(...args: any[]) {
             args.splice(0, 0, this); // board as 1st argument
-            return plugins[pluginName].createRule.apply(this, args);
+            return info.createRule.apply(this, args);
         }
     }
 }

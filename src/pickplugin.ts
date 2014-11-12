@@ -15,6 +15,8 @@ interface PickCommand extends Game.BaseCommand {
 }
 
 module PickPlugin {
+    var Game = require('./game');
+    var PluginHelper = require('./pluginhelper');
 
     export function createRule(board: Game.Board, rule: PickRule): Game.BaseRule {
         var type = '',
@@ -278,11 +280,17 @@ module PickPlugin {
     }
 }
 
-Game.registerPlugin('pick', {
-    createRule: PickPlugin.createRule,
-    performRule: PickPlugin.performRule,
-    updateBoard: PickPlugin.updateBoard
-});
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined')
+    exports.pick = PickPlugin;
+
 
 // var list = [0];
 // while (PickPlugin.nextCombination(list, 6))

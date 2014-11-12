@@ -10,15 +10,18 @@ interface ShuffleCommand extends Game.BaseCommand {
     locationId: number;
 }
 
-Game.registerPlugin('shuffle', {
-    createRule: function(board: Game.Board, shuffleRule: ShuffleRule) {
+module ShufflePlugin {
+    var Game = require('./game');
+    require('./seedrandom');
+
+    export function createRule(board: Game.Board, shuffleRule: ShuffleRule) {
         return Game.extend({
             seed: shuffleRule.seed || Math.seedrandom(),
             location: board.convertLocationsToString(shuffleRule.location)
         }, board.createRule('shuffle'));
-    },
+    }
 
-    updateBoard: function(board: Game.Board, command: Game.BaseCommand, results: any[]) {
+    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {
         if (command.type !== 'shuffle')
             return false;
 
@@ -29,9 +32,9 @@ Game.registerPlugin('shuffle', {
             location.shuffle();
 
         return true;
-    },
+    }
 
-    performRule: function(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
         if (rule.type !== 'shuffle')
             return false;
 
@@ -51,4 +54,15 @@ Game.registerPlugin('shuffle', {
 
         return true;
     }
-});
+};
+
+declare
+var exports: any;
+declare
+var browserRequire: any;
+
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
+if (typeof exports !== 'undefined')
+    exports.shuffle = ShufflePlugin;
