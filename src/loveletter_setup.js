@@ -25,11 +25,11 @@ var setup = (function() {
 
         for (var i = 0; i < maxPlayers; ++i) {
             board.createLocation('hand' + i, id++, {
-                facedown: false
-            }).addLabel('p' + i);
+                facedown: true
+            });
             board.createLocation('discard' + i, id++, {
                 facedown: false
-            }).addLabel('p' + i);
+            });
         }
 
         var deck1 = board.createDeck('deck1', id++, {

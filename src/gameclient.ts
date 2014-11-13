@@ -62,7 +62,7 @@ module Game {
             super(user, proxy, board);
 
             // TODO shared mapping for shared screens
-            this.mapping = new HTMLMapping(board);
+            this.mapping = new HTMLMapping(board, user);
         }
 
         getMapping() {

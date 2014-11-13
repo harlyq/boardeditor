@@ -1,4 +1,4 @@
-var setup = (function() {
+(function() {
     var Game = require('./game')
     var setup = require('./loveletter_setup');
 
@@ -37,6 +37,14 @@ var setup = (function() {
         });
 
         for (var i = 0; i < allPlayers.length; ++i) {
+            yield board.waitSet({
+                key: board.queryFirstLocation('hand' + i),
+                value: {
+                    facedown: false
+                },
+                user: userNames[i]
+            });
+
             yield board.waitMove({
                 from: 'pile',
                 to: 'hand' + i
@@ -44,10 +52,6 @@ var setup = (function() {
         }
 
         currentPlayer = allPlayers.get(~~(Math.random() * allPlayers.length));
-        yield board.waitSet({
-            key: 'currentPlayer',
-            value: userNames[currentPlayer]
-        });
     }
 
     setup.rulesGen = function*(board) {
@@ -69,10 +73,6 @@ var setup = (function() {
             yield * cardAction(card, Game, board);
 
             currentPlayer = allPlayers.next(currentPlayer);
-            yield board.waitSet({
-                key: 'currentPlayer',
-                value: userNames[currentPlayer]
-            });
         }
     }
 
@@ -200,13 +200,12 @@ var setup = (function() {
         }
     }
 
-    return setup;
+    if (typeof browserRequire === 'function')
+        exports = browserRequire();
+
+    if (typeof exports !== 'undefined') {
+        for (var k in setup)
+            exports[k] = setup[k];
+    }
+
 })();
-
-if (typeof browserRequire === 'function')
-    exports = browserRequire();
-
-if (typeof exports !== 'undefined') {
-    for (var k in setup)
-        exports[k] = setup[k];
-}

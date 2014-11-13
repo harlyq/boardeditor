@@ -121,6 +121,14 @@ module Game {
                 case 'message':
                     var iframe = < HTMLIFrameElement > (document.getElementById(screenConfig.iframe));
                     proxy = Game.createMessageServerProxy(userNames, iframe, game.whereList, server);
+
+                    // for message we tell the iframe which screen to use
+                    var msg = {
+                        type: 'config',
+                        config: config,
+                        screen: screenConfig.screen
+                    }
+                    iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
                     break;
             }
 
@@ -153,7 +161,7 @@ module Game {
         return screenConfig.proxy;
     }
 
-    export function queryServer(setup: any, screen: string) {
+    export function queryServer(setup: any, screen: string = 'unknown') {
         var config: any;
 
         registerClient('AI', function(userName: string, proxy: BaseClientProxy, board: Board) {
@@ -168,7 +176,8 @@ module Game {
 
             switch (msg.type) {
                 case 'config':
-                    config = msg;
+                    config = msg.config;
+                    screen = msg.screen;
                     createClients(screen, setup, config);
                     break;
 
@@ -186,7 +195,8 @@ module Game {
         req.onload = function() {
             var msg = JSON.parse(this.response);
             if ('type' in msg && msg.type === 'loveletter') {
-                config = msg;
+                config = msg.config;
+                screen = msg.screen;
                 createClients(screen, setup, config);
             }
 

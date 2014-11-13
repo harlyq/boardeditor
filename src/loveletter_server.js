@@ -65,7 +65,12 @@ app.get('/config', function(req, res) {
     var screen = req.param('screen');
     console.log('/config?screen=' + screen);
 
-    res.send(JSON.stringify(config));
+    var msg = {
+        type: 'config',
+        config: config,
+        screen: screen
+    };
+    res.send(JSON.stringify(msg));
 });
 
 var host = app.listen(3000, function() {

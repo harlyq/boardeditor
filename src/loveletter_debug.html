@@ -3,18 +3,6 @@
 
 <head>
     <meta name="viewport" content="width=600">
-    <!--script src="platform.js" type="text/javascript"></script-->
-    <!--link href="bootstrap-3.2.0-dist/css/bootstrap.css" rel="stylesheet">
-    <script src="jquery-2.1.1.js" type="text/javascript"></script>
-    <script src="bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script-->
-    <!--script src="tool.js" type="text/javascript"></script>
-    <script src="interact.js" type="text/javascript"></script>
-    <script src="decklayout.js" type="text/javascript"></script>
-    <script src="deckcard.js" type="text/javascript"></script>
-    <script src="oldgame.js" type="text/javascript"></script>
-    <script src="command.js" type="text/javascript"></script>
-    <script src="proxy.js" type="text/javascript"></script>
-    <script src="rule2.js" type="text/javascript"></script-->
     <script src="seedrandom.js" type="text/javascript"></script>
     <script src="game.js" type="text/javascript"></script>
     <script src="pluginhelper.js" type="text/javascript"></script>
@@ -38,20 +26,38 @@
         var config = {
             type: 'config',
             screens: [{
-                screen: 'common',
+                screen: 'common1',
                 mode: 'shared',
                 transport: 'message',
-                iframe: 'iframe',
+                iframe: 'iframe1',
                 users: [{
                     name: 'PLAYER1',
                     type: 'human'
-                }, {
+                }]
+            }, {
+                screen: 'common2',
+                mode: 'shared',
+                transport: 'message',
+                iframe: 'iframe2',
+                users: [{
                     name: 'PLAYER2',
                     type: 'human'
-                }, {
+                }]
+            }, {
+                screen: 'common3',
+                mode: 'shared',
+                transport: 'message',
+                iframe: 'iframe3',
+                users: [{
                     name: 'PLAYER3',
                     type: 'human'
-                }, {
+                }]
+            }, {
+                screen: 'common4',
+                mode: 'shared',
+                transport: 'message',
+                iframe: 'iframe4',
+                users: [{
                     name: 'PLAYER4',
                     type: 'human'
                 }]
@@ -60,25 +66,34 @@
 
         var server = Game.createServer(myGame, config);
 
-        iframe = document.getElementById('iframe');
-        iframe.contentWindow.postMessage(JSON.stringify(config), '*');
-
         // use a short pause before starting a new game, to ensure that the server config
         // message is received before any new game information
         setTimeout(function() {
             server.newGameGen = myGame.newGameGen;
             server.rulesGen = myGame.rulesGen;
             server.newGame()
-        }, 0);
+        }, 100);
     });
     </script>
 
     <style>
+    iframe {
+        overflow: hidden;
+    }
     </style>
 </head>
 
 <body>
-    <iframe id="iframe" src="loveletter_common.html" width="800" height="800">
+    <iframe id="iframe1" src="loveletter_common.html" width="800" height="750" scrolling="no">
+        Missing loveletter_common.html
+    </iframe>
+    <iframe id="iframe2" src="loveletter_common.html" width="800" height="750" scrolling="no">
+        Missing loveletter_common.html
+    </iframe>
+    <iframe id="iframe3" src="loveletter_common.html" width="800" height="750" scrolling="no">
+        Missing loveletter_common.html
+    </iframe>
+    <iframe id="iframe4" src="loveletter_common.html" width="800" height="750" scrolling="no">
         Missing loveletter_common.html
     </iframe>
 </body>

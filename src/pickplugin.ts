@@ -210,9 +210,6 @@ module PickPlugin {
         }
 
         private onPickLocation(e) {
-            if (this.board.getVariable('currentPlayer') !== this.client.getUser())
-                return;
-
             var location = this.mapping.getLocationFromElem(e.currentTarget);
             var i = this.pickList.indexOf(location);
             if (i === -1)
