@@ -170,17 +170,36 @@ class Interact {
     }
 
     dropzone(accept: string): Interact {
-        if (!accept && this._dropzone) {
-            var i = Interact.dropList.indexOf(this);
-            if (i !== -1)
-                Interact.dropList.splice(i, 1);
-        } else if (accept && !this._dropzone) {
-            Interact.dropList.push(this);
-        }
-
+        this.disableDropZone();
         this._dropzone = accept;
+        this.enableDropZone();
+
         return this;
     }
+
+    private disableDropZone() {
+        // TODO should we send leave events?
+        var i = Interact.dropList.indexOf(this);
+        if (i !== -1)
+            Interact.dropList.splice(i, 1);
+
+        for (var i = 0; i < Interact.activeDropList.length; ++i) {
+            var dropList = Interact.activeDropList[i];
+            if (dropList.dropZone = this) {
+                this.deactivateDropZone(dropList.dragTarget); // this will remove us from the activeDropList
+                break;
+            }
+        }
+    }
+
+    private enableDropZone() {
+        if (!this._enable)
+            return;
+
+        if (this._dropzone)
+            Interact.dropList.push(this);
+    }
+
 
     bubbles(value: boolean): Interact {
         if (typeof value === 'undefined')
@@ -219,6 +238,8 @@ class Interact {
         if (!this._enable)
             return this;
 
+        this.disableDropZone();
+
         // should we send any end/deactivate/leave events?
 
         for (var i = 0; i < this.elems.length; ++i)
@@ -253,6 +274,8 @@ class Interact {
 
         for (var i = 0; i < this.elems.length; ++i)
             this.enableElement(this.elems[i]);
+
+        this.enableDropZone();
 
         return this;
     }

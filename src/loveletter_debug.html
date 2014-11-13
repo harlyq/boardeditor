@@ -33,8 +33,7 @@
     }
 
     window.addEventListener('load', function(e) {
-        var mySetup = LoveLetter_Setup();
-        var myGame = LoveLetter_Game(mySetup); // for whereList and setup
+        var myGame = require("./loveletter_game"); // for whereList and setup
 
         var config = {
             type: 'config',
@@ -59,7 +58,7 @@
             }]
         };
 
-        var server = Game.createServer(mySetup, config);
+        var server = Game.createServer(myGame, config);
 
         iframe = document.getElementById('iframe');
         iframe.contentWindow.postMessage(JSON.stringify(config), '*');

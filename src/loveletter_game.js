@@ -203,6 +203,9 @@ var setup = (function() {
     return setup;
 })();
 
+if (typeof browserRequire === 'function')
+    exports = browserRequire();
+
 if (typeof exports !== 'undefined') {
     for (var k in setup)
         exports[k] = setup[k];
