@@ -272,7 +272,8 @@ module MovePlugin {
             var self = this;
 
             // add functionality
-            var moving = [];
+            var moving = [],
+                isDropped = false;
 
             this.fromInteract = interact(null)
                 .disable()
@@ -292,6 +293,8 @@ module MovePlugin {
                         self.translate(e.currentTarget, 0, 0, true);
                         e.currentTarget.style.zIndex = '';
                     }
+                    if (isDropped)
+                        self.fromInteract.disable();
                 })
 
             this.toInteract = interact(null)
@@ -318,6 +321,7 @@ module MovePlugin {
 
                     self.proxy.sendCommands(batch);
                     self.toInteract.disable();
+                    isDropped = true;
                 });
         }
 

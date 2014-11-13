@@ -280,9 +280,10 @@ module Game {
 
         sendCommands(batch: BatchCommand) {
             if (HTML_DEFINED) {
-                this.request.open('POST', 'new?userNames=' + this.userNames + '&afterId=' + this.lastRuleId);
+                this.request.open('POST', 'new?userNames=' + this.userNames);
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send(JSON.stringify(batch));
+                this.pollServer();
             }
         }
 

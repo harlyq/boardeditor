@@ -80,6 +80,7 @@ var log = function(msg) {
 }
 
 class Interact {
+    private id: number = Interact.selfId++;
     private elems: Element[] = [];
     private touches: TouchInfo[] = [];
     private mouseDownHandler = this.onMouseDown.bind(this);
@@ -118,6 +119,7 @@ class Interact {
     private static dropList: Interact[] = [];
     private static activeDropList: DragInfo[] = []; // all drop zones for the current dropTarget
     private static uniqueId: number = 1;
+    private static selfId: number = 1;
 
     // public interfaces
     constructor(selector: string, options ? : InteractOptions);
@@ -233,6 +235,9 @@ class Interact {
         this.touchTargets = [];
         this.mouseTarget = null;
         this._enable = false;
+
+        if (this.parentObserver)
+            this.parentObserver.disconnect();
 
         // keep the events, they will be re-applied when enabled
         // this.onEvents = [];
