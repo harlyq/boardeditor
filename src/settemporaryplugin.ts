@@ -34,17 +34,13 @@ module SetTemporaryPlugin {
         });
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]) {
         if (rule.type !== 'setTemporaryCard' && rule.type !== 'setTemporaryLocation')
             return false;
 
-        var nullBatch = Game.createBatchCommand(rule.id, client.getUser());
-
         // setTemporary does nothing on a non-HumanClient
-        if (!(client instanceof Game.HumanClient)) {
-            results.push(nullBatch);
-            return false;
-        }
+        if (!(client instanceof Game.HumanClient))
+            return true;
 
         var setTemporaryRule = < SetTemporaryRule > rule,
             board = client.getBoard(),
@@ -75,7 +71,7 @@ module SetTemporaryPlugin {
                 mapping.applyVariables(elems[i], oldVariables[i]);
 
             // tell the server to continue
-            client.getProxy().sendCommands(nullBatch);
+            client.sendUserCommands(rule.id, []);
 
         }, setTemporaryRule.timeout * 1000);
 

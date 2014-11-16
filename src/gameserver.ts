@@ -133,6 +133,7 @@ module Game {
                 }
             }
 
+            // add this user's response to the local batch
             extend(this.ruleBatch.commands, batch.commands);
 
             var allUsers = true;

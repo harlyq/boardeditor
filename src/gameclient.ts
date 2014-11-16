@@ -34,10 +34,15 @@ module Game {
         }
 
         onResolveRule(rule: BaseRule): BatchCommand {
-            return null;
+            // if a rule cannot be resolved, then cast the rule as a single command
+            return createBatchCommand(rule.id, this.user, [ < BaseCommand > rule]);
         }
 
         onBroadcastCommands(batch: BatchCommand) {}
+
+        sendUserCommands(ruleId: number, commands: BaseCommand[]) {
+            this.proxy.sendCommands(createBatchCommand(ruleId, this.user, commands));
+        }
     }
 
 
@@ -47,8 +52,11 @@ module Game {
         onResolveRule(rule: BaseRule): BatchCommand {
             var results = []
             for (var i in plugins) {
-                if (plugins[i].performRule(this, rule, results))
-                    return results[~~(Math.random() * results.length)]; // return a random option
+                var performRule = plugins[i].performRule;
+                if (typeof performRule === 'function' && performRule(this, rule, results)) {
+                    var commands = results[~~(Math.random() * results.length)]; // pick a random option
+                    return createBatchCommand(rule.id, this.user, commands);
+                }
             }
 
             return super.onResolveRule(rule);
@@ -77,11 +85,13 @@ module Game {
         onResolveRule(rule: BaseRule): BatchCommand {
             var results = []
             for (var i in plugins) {
-                if (plugins[i].performRule(this, rule, results)) {
-                    if (results.length > 0)
-                        return results[0]; // return the first option
-                    else
+                var performRule = plugins[i].performRule;
+                if (typeof performRule === 'function' && performRule(this, rule, results)) {
+                    if (results.length > 0) {
+                        return createBatchCommand(rule.id, this.user, results[0]); // first option
+                    } else {
                         return null;
+                    }
                 }
             }
 

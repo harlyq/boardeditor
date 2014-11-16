@@ -81,7 +81,7 @@ module PickPlugin {
     }
 
     // returns an array of valid BatchCommands
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]): boolean {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
         switch (rule.type) {
             case 'pick':
             case 'pickLocation':
@@ -90,14 +90,14 @@ module PickPlugin {
                 // don't build results, they will sent via Proxy.sendCommand()
                     new HTMLPick( < Game.HumanClient > client, < PickRule > rule);
                 else
-                    findValidPickCommands(client.getUser(), client.getBoard(), < PickRule > rule, results);
+                    findValidPickCommands(client.getBoard(), < PickRule > rule, results);
                 return true;
         }
 
         return false;
     }
 
-    function findValidPickCommands(user: string, board: Game.Board, pickRule: PickRule, results: Game.BatchCommand[]) {
+    function findValidPickCommands(board: Game.Board, pickRule: PickRule, results: any[]) {
         var where: any = pickRule.where || function() {
             return true;
         }
@@ -139,15 +139,11 @@ module PickPlugin {
                     }
                 }
 
-                var batch: Game.BatchCommand = {
-                    ruleId: pickRule.id,
-                    commands: {}
-                }
-                batch.commands[user] = [{
+                var commands = [{
                     type: pickRule.type,
                     values: values
                 }];
-                results.push(batch);
+                results.push(commands);
 
             } while (PluginHelper.nextCombination(indices, possibles));
         }
@@ -182,20 +178,16 @@ module PickPlugin {
     }
 
     export class HTMLPick {
-        private user: string;
         private pickList: any[] = [];
         private lastRuleId: number = 0;
         private board: Game.Board;
+        private mapping: Game.HTMLMapping;
         private highlightElems: HTMLElement[] = [];
-        private proxy: Game.BaseClientProxy = null;
-        private mapping: Game.HTMLMapping = null;
         private pickHandler = this.onPickLocation.bind(this);
 
         CLASS_HIGHLIGHT: string = 'highlight';
 
         constructor(private client: Game.HumanClient, pickRule: PickRule) {
-            this.user = client.getUser();
-            this.proxy = client.getProxy();
             this.board = client.getBoard();
             this.mapping = client.mapping;
 
@@ -219,12 +211,8 @@ module PickPlugin {
             this.pickList = [];
             this.clearHighlights();
 
-            var batch: Game.BatchCommand = {
-                ruleId: this.lastRuleId,
-                commands: {}
-            };
-            batch.commands[this.user] = [this.createPickCommand('pickLocation', [location.name])];
-            this.proxy.sendCommands(batch);
+            var commands = [this.createPickCommand('pickLocation', [location.name])];
+            this.client.sendUserCommands(this.lastRuleId, commands);
         }
 
         private showHTMLPick(pickRule: PickRule) {

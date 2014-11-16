@@ -34,23 +34,19 @@ module ShufflePlugin {
         return true;
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]) {
         if (rule.type !== 'shuffle')
             return false;
 
         var shuffleRule = < ShuffleRule > rule;
         var location = client.getBoard().queryFirstLocation(shuffleRule.location);
 
-        var batch: Game.BatchCommand = {
-            ruleId: shuffleRule.id,
-            commands: {}
-        };
-        batch.commands[client.getUser()] = [{
+        var commands: Game.BaseCommand[] = [{
             type: 'shuffle',
             seed: shuffleRule.seed,
             locationId: location ? location.id : 0
         }];
-        results.push(batch);
+        results.push(commands);
 
         return true;
     }

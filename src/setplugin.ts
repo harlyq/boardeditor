@@ -40,34 +40,11 @@ module SetPlugin {
         }, board.createRule(type));
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
-        var setRule = < SetRule > rule;
-
-        switch (rule.type) {
-            case 'setCardVariable':
-            case 'setLocationVariable':
-            case 'setVariable':
-                var batch: Game.BatchCommand = {
-                    ruleId: rule.id,
-                    commands: {}
-                };
-
-                batch.commands[client.getUser()] = [{
-                    type: rule.type,
-                    key: setRule.key,
-                    value: setRule.value,
-                    affects: setRule.affects
-                }];
-
-                results.push(batch);
-                return true;
-        }
-
-        return false;
-    }
+    // user the default performRuel, which uses the rule as a command
+    // export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
 
     // board is never updated, only the clients
-    //export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {}
+    // export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {}
 
     export function updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')

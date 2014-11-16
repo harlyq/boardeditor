@@ -1,10 +1,10 @@
 /// <reference path="_dependencies.ts" />
 module Game {
     export interface PluginInfo {
-        createRule: (...args: any[]) => BaseRule;
-        performRule: (client: Client, rule: BaseRule, results: Game.BatchCommand[]) => boolean;
-        updateBoard ? : (board: Board, command: BaseCommand, results: any[]) => any;
-        updateMapping ? : (board: Board, mapping: Game.HTMLMapping, command: BaseCommand) => void;
+        createRule: (...args: any[]) => Game.BaseRule;
+        performRule: (client: Game.Client, rule: Game.BaseRule, results: any[]) => boolean;
+        updateBoard ? : (board: Game.Board, command: BaseCommand, results: any[]) => any;
+        updateMapping ? : (board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
     };
 
     export var plugins: {

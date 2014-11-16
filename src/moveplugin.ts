@@ -43,7 +43,7 @@ module MovePlugin {
         }, board.createRule('move'), rule);
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]): boolean {
+    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
         if (rule.type !== 'move')
             return false;
 
@@ -152,7 +152,7 @@ module MovePlugin {
         cardList: Game.Card[],
         fromList: Game.Location[],
         toList: Game.Location[],
-        results: Game.BatchCommand[]) {
+        results: any[]) {
 
         var i = 0,
             maxCards = cardList.length;
@@ -197,18 +197,14 @@ module MovePlugin {
                 }
 
                 do {
-                    var batch: Game.BatchCommand = {
-                        ruleId: moveRule.id,
-                        commands: {}
-                    };
-                    batch.commands[user] = [];
+                    var commands: Game.BaseCommand[] = [];
 
                     // TODO, run where clause, don't push batch if where fails
                     for (var j = 0; j < i; ++j) {
                         var card = cards[j],
                             to = toList[indices[j]];
 
-                        batch.commands[user].push({
+                        commands.push({
                             type: 'move',
                             cardId: card.id,
                             fromId: (card.location ? card.location.id : -1),
@@ -217,7 +213,7 @@ module MovePlugin {
                         });
                     }
 
-                    results.push(batch);
+                    results.push(commands);
 
                 } while (useAllCards && PluginHelper.nextCombination(cards, cardList));
 
@@ -226,27 +222,24 @@ module MovePlugin {
     }
 
     class HTMLMove {
-        lastRuleId: number = 0;
-        CLASS_HIGHLIGHT: string = 'highlight';
-        fromInteract: Interact;
-        toInteract: Interact;
-        mapping: Game.HTMLMapping;
-        board: Game.Board;
-        proxy: Game.BaseClientProxy;
-        transformKeyword: string = 'transform';
-        highlightElems: HTMLElement[] = [];
-        user: string;
+        private lastRuleId: number = 0;
+        private CLASS_HIGHLIGHT: string = 'highlight';
+        private fromInteract: Interact;
+        private toInteract: Interact;
+        private mapping: Game.HTMLMapping;
+        private board: Game.Board;
+        private transformKeyword: string = 'transform';
+        private highlightElems: HTMLElement[] = [];
 
-        constructor(client: Game.HumanClient,
+        constructor(private client: Game.HumanClient,
             moveRule: MoveRule,
             cardList: Game.Card[],
             fromList: Game.Location[],
             toList: Game.Location[]) {
 
-            this.user = client.getUser();
             this.mapping = client.getMapping();
             this.board = client.getBoard();
-            this.proxy = client.getProxy();
+            this.client = client;
 
             var style = client.boardElem.style;
             if ('webkitTransform' in style)
@@ -310,8 +303,7 @@ module MovePlugin {
                     var dragCard = e.detail.dragTarget;
                     self.clearHighlights();
 
-                    var batch = Game.createBatchCommand(self.lastRuleId, self.user);
-                    batch.commands[self.user] = [{
+                    var commands: Game.BaseCommand[] = [{
                         type: 'move',
                         cardId: self.mapping.getCardFromElem(dragCard).id,
                         fromId: self.mapping.getLocationFromElem(dragCard.parentNode).id,
@@ -319,7 +311,7 @@ module MovePlugin {
                         index: -1
                     }];
 
-                    self.proxy.sendCommands(batch);
+                    self.client.sendUserCommands(self.lastRuleId, commands);
                     self.toInteract.disable();
                     isDropped = true;
                 });

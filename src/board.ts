@@ -61,16 +61,16 @@ module Game {
     export interface BatchCommand {
         ruleId: number;
         commands: {
-            [user: string]: BaseCommand[] // one set of commands per user
+            [user: string]: BaseCommand[] // commands per user
         };
     }
 
-    export function createBatchCommand(id: number, user: string) {
+    export function createBatchCommand(id: number, user: string, commands ? : any[]) {
         var batch: Game.BatchCommand = {
             ruleId: id,
             commands: {}
         };
-        batch.commands[user] = [];
+        batch.commands[user] = commands;
         return batch;
     }
 
