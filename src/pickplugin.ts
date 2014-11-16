@@ -38,10 +38,10 @@ module PickPlugin {
             var item = list[0];
             if (item instanceof Game.Location) {
                 type = 'pickLocation';
-                list = board.convertLocationsToString(list);
+                list = board.convertLocationsToIdString(list);
             } else if (item instanceof Game.Card) {
                 type = 'pickCard';
-                list = board.convertCardsToString(list);
+                list = board.convertCardsToIdString(list);
             } else {
                 type = 'pick';
             }

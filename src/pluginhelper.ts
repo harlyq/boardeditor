@@ -1,5 +1,8 @@
 /// <reference path='_dependencies.ts' />
 module PluginHelper {
+
+    // COMBINATORIAL FUNCTIONS
+
     // return false if no remaining combinations
     // the first list provided should be the list of first elements of possible
     // assumes no duplicates
@@ -72,6 +75,7 @@ module PluginHelper {
         return false;
     }
 
+    // COUNTING FUNCTIONS
     export function isCountComplete(quantity: Game.Quantity, count: number, value: number): boolean {
         switch (quantity) {
             case Game.Quantity.All:
@@ -89,6 +93,7 @@ module PluginHelper {
         }
         return false;
     }
+
 }
 
 declare

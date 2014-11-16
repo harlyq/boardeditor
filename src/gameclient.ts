@@ -66,11 +66,11 @@ module Game {
     export class HumanClient extends Client {
         mapping: HTMLMapping = null;
 
-        constructor(user: string, proxy: BaseClientProxy, board: Board, public boardElem: HTMLElement) {
+        constructor(user: string, proxy: BaseClientProxy, board: Board, boardElem: HTMLElement) {
             super(user, proxy, board);
 
             // TODO shared mapping for shared screens
-            this.mapping = new HTMLMapping(board, user);
+            this.mapping = new HTMLMapping(board, user, boardElem);
         }
 
         getMapping() {
@@ -79,7 +79,7 @@ module Game {
 
         onSetup() {
             // bind layouts, decks and cards
-            this.mapping.parseElement(this.boardElem);
+            this.mapping.parseElement();
         }
 
         onResolveRule(rule: BaseRule): BatchCommand {

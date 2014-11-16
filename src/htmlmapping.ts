@@ -12,9 +12,14 @@ module Game {
         } = {};
         public lastRuleId: number = -1;
 
-        constructor(private board: Game.Board, public user: string) {}
+        constructor(private board: Game.Board, public user: string, public boardElem: HTMLElement) {}
 
-        parseElement(boardElem: HTMLElement) {
+        getBoardElem(): HTMLElement {
+            return this.boardElem;
+        }
+
+        parseElement() {
+            var boardElem = this.boardElem;
             var self = this;
 
             // bind layouts

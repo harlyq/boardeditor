@@ -1,31 +1,40 @@
 /// <reference path="_dependencies.ts" />
 
-interface SendMessageRule extends Game.BaseRule {
+interface SendMessageRule extends Game.BaseRule, Game.BaseCommand {
     message: string;
-    value: any;
-}
-
-interface SendMessageCommand extends Game.BaseCommand {
-    message: string;
-    value: any;
+    detail: any;
+    bubbles ? : boolean;
 }
 
 class SendMessagePlugin {
     createRule(board: Game.Board, rule: SendMessageRule): Game.BaseRule {
         return Game.extend({
             message: '',
-            value: {}
+            detail: {},
+            bubbles: false
         }, board.createRule('sendMessage'), rule)
     }
 
     // use the default performRule, which converts the rule into a single command
-    // performRule(client: Client, rule: BaseRule, results: any[]): boolean {
+    // performRule(client: Client, rule: BaseRule, results: any[]): boolean {}
 
-    updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {
+    // nothing to update on the board
+    // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {}
 
+    updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+        if (command.type !== 'sendMessage')
+            return;
+
+        var sendMessageCommand = < SendMessageRule > command;
+        var event = new( < any > CustomEvent)(sendMessageCommand.message, {
+            bubbles: sendMessageCommand.bubbles,
+            cancelable: sendMessageCommand.bubbles,
+            detail: sendMessageCommand.detail
+        });
+
+        var boardElem = mapping.getBoardElem();
+        boardElem.dispatchEvent(event);
     }
-
-    updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {}
 }
 
 declare

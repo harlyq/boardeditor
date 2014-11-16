@@ -17,7 +17,7 @@ module ShufflePlugin {
     export function createRule(board: Game.Board, shuffleRule: ShuffleRule) {
         return Game.extend({
             seed: shuffleRule.seed || Math.seedrandom(),
-            location: board.convertLocationsToString(shuffleRule.location)
+            location: board.convertLocationsToIdString(shuffleRule.location)
         }, board.createRule('shuffle'));
     }
 

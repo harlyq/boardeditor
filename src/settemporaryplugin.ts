@@ -19,10 +19,10 @@ module SetTemporaryPlugin {
 
         if (key instanceof Game.Card || (keyArray && key[0] instanceof Game.Card)) {
             type = 'setTemporaryCard';
-            key = board.convertCardsToString(key);
+            key = board.convertCardsToIdString(key);
         } else if (key instanceof Game.Location || (keyArray && key[0] instanceof Game.Location)) {
             type = 'setTemporaryLocation';
-            key = board.convertLocationsToString(key);
+            key = board.convertLocationsToIdString(key);
         } else {
             Game._error('unknown type of key - ' + key);
         }

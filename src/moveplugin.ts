@@ -12,7 +12,6 @@ interface MoveRule extends Game.BaseRule {
     where ? : (from: Location, to: Location) => boolean;
     whereIndex ? : number; // internal, use where instead
     hint ? : string;
-    user ? : string;
     quantity ? : Game.Quantity;
     count ? : number;
 }
@@ -29,18 +28,20 @@ module MovePlugin {
     var PluginHelper = require('./pluginhelper');
 
     export function createRule(board: Game.Board, rule: MoveRule): Game.BaseRule {
-        return Game.extend({
-            from: '',
-            fromPosition: Game.Position.Default,
-            to: '',
-            toPosition: Game.Position.Default,
-            cards: '',
-            where: null,
-            whereIndex: -1,
-            hint: '',
-            quantity: Game.Quantity.Exactly,
-            count: 1
-        }, board.createRule('move'), rule);
+        var newRule = < MoveRule > board.createRule('move');
+        newRule.from = board.convertLocationsToIdString(rule.from);
+        newRule.fromPosition = rule.fromPosition || Game.Position.Default;
+        newRule.to = board.convertLocationsToIdString(rule.to);
+        newRule.toPosition = rule.toPosition || Game.Position.Default;
+        newRule.cards = board.convertCardsToIdString(rule.cards);
+        newRule.where = rule.where || null;
+        newRule.whereIndex = rule.whereIndex || -1;
+        newRule.hint = rule.hint || '';
+        newRule.quantity = rule.quantity || Game.Quantity.Exactly;
+        newRule.count = rule.count || 1;
+        newRule.user = rule.user || newRule.user;
+
+        return newRule;
     }
 
     export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
@@ -241,7 +242,7 @@ module MovePlugin {
             this.board = client.getBoard();
             this.client = client;
 
-            var style = client.boardElem.style;
+            var style = this.mapping.boardElem.style;
             if ('webkitTransform' in style)
                 this.transformKeyword = 'webkitTransform';
             else if ('MozTransform' in style)

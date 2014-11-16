@@ -16,28 +16,29 @@ module SetPlugin {
     var Game = require('./game')
 
     export function createRule(board: Game.Board, setRule: SetRule) {
-        var type = 'setVariable',
+        var ruleType = 'setVariable',
             key: any = setRule.key,
             keyArray = Array.isArray(key);
 
-        if (keyArray && key.length === 0)
-            Game._error('key is an empty array');
-
-        if (key instanceof Game.Card || (keyArray && key[0] instanceof Game.Card)) {
-            type = 'setCardVariable';
-            key = board.convertCardsToString(key);
-        } else if (key instanceof Game.Location || (keyArray && key[0] instanceof Game.Location)) {
-            type = 'setLocationVariable';
-            key = board.convertLocationsToString(key);
-        } else if (typeof key !== 'string')
-            Game._error('unknown type of key - ' + key);
+        var info = board.convertToIdString(key);
+        switch (info.type) {
+            case 'card':
+                ruleType = 'setCardVariable';
+                break;
+            case 'location':
+                ruleType = 'setLocationVariable';
+                break;
+            case 'region':
+                ruleType = 'setRegionVariable';
+                break;
+        }
 
         // note 'affects' is set to the 'user', and 'user' is set to the default
         return Game.extend({
-            key: key,
+            key: info.value,
             value: setRule.value,
             affects: setRule.user || ''
-        }, board.createRule(type));
+        }, board.createRule(ruleType));
     }
 
     // user the default performRuel, which uses the rule as a command

@@ -49,13 +49,13 @@ module Game {
     }
 
     export interface BaseCommand {
-        type: string;
+        type ? : string;
     }
 
     export interface BaseRule {
-        id ? : number;
         type ? : string;
-        user ? : string; // maybe this should be an array
+        id ? : number;
+        user ? : string;
     }
 
     export interface BatchCommand {
@@ -72,6 +72,11 @@ module Game {
         };
         batch.commands[user] = commands;
         return batch;
+    }
+
+    export interface ConvertInfo {
+        type: string; // card, location, region, string, unknown
+        value: string; // string of ids
     }
 
 
@@ -890,6 +895,9 @@ module Game {
         }
 
         queryFirstDeck(query: string): Deck {
+            if (!query)
+                return null;
+
             var decks = this.queryDecks(query, true);
             if (decks.length === 0)
                 return null;
@@ -897,6 +905,9 @@ module Game {
         }
 
         queryDecks(query: string, quitOnFirst: boolean = false): Deck[] {
+            if (!query)
+                return [];
+
             var tags = query.split(',');
             var decks: Deck[] = [];
 
@@ -919,6 +930,9 @@ module Game {
         }
 
         queryFirstCard(query: string): Card {
+            if (!query)
+                return null;
+
             var cards = this.queryCards(query, true);
             if (cards.length === 0)
                 return null;
@@ -926,6 +940,9 @@ module Game {
         }
 
         queryCards(query: string, quitOnFirst: boolean = false): Card[] {
+            if (!query)
+                return [];
+
             var tags = query.split(',');
             var cards: Card[] = [];
 
@@ -955,6 +972,9 @@ module Game {
         }
 
         queryLocations(query: string, quitOnFirst: boolean = false): Location[] {
+            if (!query)
+                return [];
+
             var tags = query.split(',');
             var locations: Location[] = [];
 
@@ -977,6 +997,9 @@ module Game {
         }
 
         getUsersById(query: string): User[] {
+            if (!query)
+                return [];
+
             var ids = query.split(',');
             var users: User[] = [];
             for (var i = 0; i < ids.length; ++i)
@@ -986,6 +1009,9 @@ module Game {
         }
 
         queryUsers(query: string): User[] {
+            if (!query)
+                return [];
+
             var names = query.split(',');
             var users: User[] = [];
             for (var i = 0; i < name.length; ++i)
@@ -995,6 +1021,9 @@ module Game {
         }
 
         queryRegions(query: string): Region[] {
+            if (!query)
+                return [];
+
             var names = query.split(',');
             var regions: Region[] = [];
             for (var i = 0; i < names.length; ++i)
@@ -1002,36 +1031,38 @@ module Game {
             return regions;
         }
 
-        next < T > (value: T, list: T[], loop: boolean = false): T {
-            var i = list.indexOf(value) + 1;
-            if (loop)
-                i = i % list.length;
+        // CONVERSION FUNCTIONS
+        convertToIdString(key: any): ConvertInfo {
+            var isKeyArray = Array.isArray(key),
+                type = 'unknown',
+                value = '';
 
-            if (i > list.length)
-                return undefined;
-
-            return list[i];
-        }
-
-        prev < T > (value: T, list: T[], loop: boolean = false) {
-            var i = list.indexOf(value);
-            if (i === -1) {
-                if (!loop)
-                    return undefined;
-                i = list.length - 1;
-            } else {
-                i = i - 1;
-                if (i < 0) {
-                    if (!loop)
-                        return undefined;
-                    i = list.length - 1;
-                }
+            if (isKeyArray && key.length === 0) {
+                Game._error('key is an empty array');
+            } else if (key instanceof Game.Card || (isKeyArray && key[0] instanceof Game.Card)) {
+                type = 'card';
+                value = this.convertCardsToIdString(key);
+            } else if (key instanceof Game.Location || (isKeyArray && key[0] instanceof Game.Location)) {
+                type = 'location';
+                value = this.convertLocationsToIdString(key);
+            } else if (key instanceof Game.Region || (isKeyArray && key[0] instanceof Game.Region)) {
+                type = 'region';
+                // value = board.convertRegionsToIdString(key);
+            } else if (isKeyArray) {
+                type = 'string';
+                value = key.join(',');
+            } else if (key) {
+                type = 'string';
+                value = key.toString();
             }
 
-            return list[i];
+            return {
+                type: type,
+                value: value
+            };
         }
 
-        convertLocationsToString(other: any): string {
+        convertLocationsToIdString(other: any): string {
             var str = '';
             if (other instanceof Game.Location)
                 str = other.id.toString();
@@ -1053,7 +1084,7 @@ module Game {
             return str;
         }
 
-        convertCardsToString(other: any): string {
+        convertCardsToIdString(other: any): string {
             var str = '';
             if (other instanceof Game.Card)
                 str = other.id.toString();
