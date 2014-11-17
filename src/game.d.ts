@@ -10,6 +10,10 @@ function require(filename: string): any;
 declare module Game {
     export function extend(base: any, ...others: any[]): any;
 
+    export function isNumeric(value: any);
+
+    export function union(a: any, b: any): any[];
+
     export enum Quantity {
         Exactly, AtMost, AtLeast, MoreThan, LessThan, All
     }

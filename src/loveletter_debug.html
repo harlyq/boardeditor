@@ -53,7 +53,24 @@
             }]
         };
 
-        var server = Game.createServer(myGame, config);
+        var config2 = {
+            type: 'config',
+            screens: [{
+                screen: 'bank',
+                transport: 'local',
+                user: 'BANK',
+                type: 'bank'
+            }, {
+                screen: 'common1',
+                transport: 'message',
+                iframe: 'iframe1',
+                user: 'PLAYER1,PLAYER2,PLAYER3,PLAYER4',
+                type: 'human'
+            }]
+        }
+
+        // var server = Game.createServer(myGame, config);
+        var server = Game.createServer(myGame, config2);
 
         // use a short pause before starting a new game, to ensure that the server config
         // message is received before any new game information

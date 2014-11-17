@@ -36,8 +36,32 @@ module Game {
         return base;
     }
 
-    function isNumeric(value: any) {
+    export function isNumeric(value: any) {
         return !Array.isArray(value) && value - parseFloat(value) >= 0;
+    }
+
+    // returns a list of a's that exist in b
+    export function union(a: any, b: any): any[] {
+        if (!a || !b)
+            return [];
+
+        if (typeof a === 'string')
+            a = a.split(',');
+        if (typeof b === 'string')
+            b = b.split(',');
+
+        if (!Array.isArray(a))
+            a = [a];
+        if (!Array.isArray(b))
+            b = [b];
+
+        var c = [];
+        for (var i = 0; i < a.length; ++i) {
+            var value = a[i];
+            if (b.indexOf(value) !== -1)
+                c.push(value);
+        }
+        return c;
     }
 
     export enum Quantity {

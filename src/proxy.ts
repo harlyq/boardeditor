@@ -79,7 +79,10 @@ module Game {
 
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
-                if (listener && typeof listener.onResolveRule === 'function' && rule.user.indexOf(listener.getUser()) !== -1) {
+                if (listener &&
+                    typeof listener.onResolveRule === 'function' &&
+                    union(rule.user, listener.getUser()).length > 0) {
+
                     var batch = listener.onResolveRule(rule);
                     if (batch) {
                         responded = true;
@@ -98,19 +101,6 @@ module Game {
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
-            // for (var k in batch.commands) {
-            //     var commands = batch.commands[k];
-
-            //     for (var i = 0; i < commands.length; ++i) {
-
-            //         for (var j in plugins) {
-            //             var updateBoard = plugins[j].updateBoard;
-            //             if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
-            //                 break;
-            //         }
-            //     }
-            // }
-
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
                 if (listener && typeof listener.onBroadcastCommands === 'function')

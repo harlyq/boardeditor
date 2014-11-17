@@ -38,7 +38,7 @@ module Game {
             var proxies: BaseServerProxy[] = [];
             for (var i = 0; i < this.proxies.length; ++i) {
                 for (var j = 0; j < inputNames.length; ++j) {
-                    if (this.proxies[i].userNames.indexOf(inputNames[j]) !== -1) {
+                    if (union(this.proxies[i].userNames, inputNames[j]).length > 0) {
                         proxies.push(this.proxies[i]); // at least one of the users is in this proxy
                         break;
                     }
@@ -136,11 +136,8 @@ module Game {
             // add this user's response to the local batch
             extend(this.ruleBatch.commands, batch.commands);
 
-            var allUsers = true;
-            for (var i = 0; allUsers && i < this.ruleUsers.length; ++i)
-                allUsers = (typeof this.ruleBatch.commands[this.ruleUsers[i]] !== 'undefined');
-
-            if (!allUsers)
+            var responders = Object.keys(this.ruleBatch.commands).join(','); // a big string
+            if (union(this.ruleUsers, responders).length !== this.ruleUsers.length)
                 return false; // waiting for responses
 
             for (var k in batch.commands) {

@@ -13,7 +13,7 @@ interface SetCommand extends Game.BaseCommand {
 }
 
 module SetPlugin {
-    var Game = require('./game')
+    var Game = require('./game');
 
     export function createRule(board: Game.Board, setRule: SetRule) {
         var ruleType = 'setVariable',
@@ -41,7 +41,7 @@ module SetPlugin {
         }, board.createRule(ruleType));
     }
 
-    // user the default performRuel, which uses the rule as a command
+    // user the default performRule, which uses the rule as a command
     // export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
 
     // board is never updated, only the clients
@@ -54,7 +54,7 @@ module SetPlugin {
         var setCommand = < SetCommand > command,
             elems = [];
 
-        if (setCommand.affects && setCommand.affects.indexOf(mapping.getUser()) === -1)
+        if (Game.union(setCommand.affects, mapping.getUser()).length === 0)
             return; // does not affect this user
 
         switch (command.type) {

@@ -39,12 +39,12 @@ module SetTemporaryPlugin {
             return false;
 
         // setTemporary does nothing on a non-HumanClient
-        if (!(client instanceof Game.HumanClient))
+        if (!(client instanceof Game.HTMLClient))
             return true;
 
         var setTemporaryRule = < SetTemporaryRule > rule,
             board = client.getBoard(),
-            mapping = ( < Game.HumanClient > client).getMapping(),
+            mapping = ( < Game.HTMLClient > client).getMapping(),
             oldVariables = [],
             things = [],
             elems = [];

@@ -85,9 +85,9 @@ module PickPlugin {
             case 'pick':
             case 'pickLocation':
             case 'pickCard':
-                if (client instanceof Game.HumanClient)
+                if (client instanceof Game.HTMLClient)
                 // don't build results, they will sent via Proxy.sendCommand()
-                    new HTMLPick( < Game.HumanClient > client, < PickRule > rule);
+                    new HTMLPick( < Game.HTMLClient > client, < PickRule > rule);
                 else
                     findValidPickCommands(client.getBoard(), < PickRule > rule, results);
                 return true;
@@ -186,7 +186,7 @@ module PickPlugin {
 
         CLASS_HIGHLIGHT: string = 'highlight';
 
-        constructor(private client: Game.HumanClient, pickRule: PickRule) {
+        constructor(private client: Game.HTMLClient, pickRule: PickRule) {
             this.board = client.getBoard();
             this.mapping = client.getMapping();
 
