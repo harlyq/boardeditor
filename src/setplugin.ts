@@ -47,7 +47,7 @@ module SetPlugin {
     // board is never updated, only the clients
     // export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {}
 
-    export function updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')
             return;
 

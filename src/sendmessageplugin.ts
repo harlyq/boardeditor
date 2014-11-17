@@ -21,7 +21,7 @@ class SendMessagePlugin {
     // nothing to update on the board
     // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {}
 
-    updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'sendMessage')
             return;
 

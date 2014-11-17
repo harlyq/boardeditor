@@ -22,41 +22,34 @@
         var config = {
             type: 'config',
             screens: [{
+                screen: 'bank',
+                transport: 'local',
+                user: 'BANK',
+                type: 'bank'
+            }, {
                 screen: 'common1',
-                mode: 'shared',
                 transport: 'message',
                 iframe: 'iframe1',
-                users: [{
-                    name: 'PLAYER1',
-                    type: 'human'
-                }]
+                user: 'PLAYER1',
+                type: 'human'
             }, {
                 screen: 'common2',
-                mode: 'shared',
                 transport: 'message',
                 iframe: 'iframe2',
-                users: [{
-                    name: 'PLAYER2',
-                    type: 'human'
-                }]
+                user: 'PLAYER2',
+                type: 'human'
             }, {
                 screen: 'common3',
-                mode: 'shared',
                 transport: 'message',
                 iframe: 'iframe3',
-                users: [{
-                    name: 'PLAYER3',
-                    type: 'human'
-                }]
+                user: 'PLAYER3',
+                type: 'human'
             }, {
                 screen: 'common4',
-                mode: 'shared',
                 transport: 'message',
                 iframe: 'iframe4',
-                users: [{
-                    name: 'PLAYER4',
-                    type: 'human'
-                }]
+                user: 'PLAYER4',
+                type: 'human'
             }]
         };
 

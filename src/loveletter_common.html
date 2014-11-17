@@ -98,12 +98,7 @@
 
         var loveletter = require('./loveletter_setup');
 
-        // must occur before queryServer();
-        Game.registerClient('human', function(userName, proxy, board) {
-            return new Game.HumanClient(userName, proxy, board, document.getElementById('board'));
-        });
-
-        Game.queryServer(loveletter);
+        Game.queryServer(loveletter, document.getElementById("board"));
     });
     </script>
 </head>

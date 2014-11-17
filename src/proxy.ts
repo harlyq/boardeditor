@@ -52,13 +52,12 @@ module Game {
     export class BaseClientProxy {
         public lastRuleId: number = -1;
         public listeners: ProxyListener[] = [];
-        public board: Board = new Board();
 
         constructor(public userNames: string) {}
 
-        setup(setupFunc: (board: Board) => void) {
-            setupFunc(this.board);
-        }
+        // setup(setupFunc: (board: Board) => void) {
+        //     setupFunc(this.board);
+        // }
 
         registerRule(name: string, pluginName: string) {}
 
@@ -99,18 +98,18 @@ module Game {
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
-            for (var k in batch.commands) {
-                var commands = batch.commands[k];
+            // for (var k in batch.commands) {
+            //     var commands = batch.commands[k];
 
-                for (var i = 0; i < commands.length; ++i) {
+            //     for (var i = 0; i < commands.length; ++i) {
 
-                    for (var j in plugins) {
-                        var updateBoard = plugins[j].updateBoard;
-                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
-                            break;
-                    }
-                }
-            }
+            //         for (var j in plugins) {
+            //             var updateBoard = plugins[j].updateBoard;
+            //             if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
+            //                 break;
+            //         }
+            //     }
+            // }
 
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];

@@ -1095,8 +1095,10 @@ module Game {
                     else if (typeof value === 'number')
                         str += value.toString();
                 }
-            } else if (typeof other === 'string')
-                str = other;
+            } else if (typeof other === 'string') {
+                var locations = this.queryLocations(other);
+                return this.convertLocationsToIdString(locations);
+            }
 
             return str;
         }
@@ -1117,8 +1119,10 @@ module Game {
                     else if (typeof value === 'number')
                         str += value.toString();
                 }
-            } else if (typeof other === 'string')
-                str = other;
+            } else if (typeof other === 'string') {
+                var cards = this.queryCards(other);
+                return this.convertCardsToIdString(cards);
+            }
 
             return str;
         }

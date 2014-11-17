@@ -68,10 +68,10 @@ module MovePlugin {
             return Game._error('moveRule no cards in the from location - ' + moveRule.from)
 
         // note: HTMLMove will be send commands via proxy.sendCommands(), the results list will be empty
-        if (client instanceof Game.HumanClient)
-            new HTMLMove( < Game.HumanClient > client, < MoveRule > rule, cardList, fromList, toList);
+        if (client instanceof Game.HTMLClient)
+            new HTMLMove( < Game.HTMLClient > client, moveRule, cardList, fromList, toList);
         else
-            buildValidMoves(client.getUser(), client.getBoard(), < MoveRule > rule, cardList, fromList, toList, results);
+            buildValidMoves(client.getUser(), client.getBoard(), moveRule, cardList, fromList, toList, results);
 
         return true;
     }
@@ -95,14 +95,11 @@ module MovePlugin {
         return true;
     }
 
-    export function updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'move')
             return;
 
         var moveCommand = < MoveCommand > command,
-            card = board.findCardById(moveCommand.cardId),
-            to = board.findLocationById(moveCommand.toId),
-            from = board.findLocationById(moveCommand.fromId),
             cardElem = mapping.getElemFromCardId(moveCommand.cardId),
             fromElem = mapping.getElemFromLocationId(moveCommand.fromId),
             toElem = mapping.getElemFromLocationId(moveCommand.toId);
@@ -112,7 +109,7 @@ module MovePlugin {
                 bubbles: true,
                 cancelable: true,
                 detail: {
-                    card: card
+                    cardElem: cardElem
                 }
             });
             fromElem.dispatchEvent(event);
@@ -123,7 +120,7 @@ module MovePlugin {
                 bubbles: true,
                 cancelable: true,
                 detail: {
-                    card: card
+                    cardElem: cardElem
                 }
             });
             toElem.dispatchEvent(event);
@@ -224,7 +221,7 @@ module MovePlugin {
         private transformKeyword: string = 'transform';
         private highlightElems: HTMLElement[] = [];
 
-        constructor(private client: Game.HumanClient,
+        constructor(private client: Game.HTMLClient,
             moveRule: MoveRule,
             cardList: Game.Card[],
             fromList: Game.Location[],

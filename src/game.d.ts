@@ -312,14 +312,16 @@ declare module Game {
         sendUserCommands(ruleId: number, commands: BaseCommand[]);
     }
 
-    export class HumanClient extends Client {
+    export class HTMLClient extends Client {
         getMapping(): HTMLMapping;
     }
 
     export class HTMLMapping {
         getUser(): string;
         getBoardElem(): HTMLElement;
+
         getAlias(value: string): string;
+
         applyLabels(element: HTMLElement, labels: string[]);
         applyVariables(element: HTMLElement, variables: {
             [key: string]: any
@@ -327,6 +329,7 @@ declare module Game {
         copyVariables(element: HTMLElement, variables: {
             [key: string]: any
         });
+
         getDeckFromElem(deckElem: HTMLElement): Deck;
         getElemFromDeck(deck: Deck): HTMLElement;
         getElemFromDeckId(deckId: number): HTMLElement;
@@ -347,7 +350,7 @@ declare module Game {
         createRule: (...args: any[]) => Game.BaseRule;
         performRule ? : (client: Game.Client, rule: Game.BaseRule, results: any[]) => boolean;
         updateBoard ? : (board: Game.Board, command: Game.BaseCommand, results: any[]) => any;
-        updateHTML ? : (board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
+        updateHTML ? : (mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
     }
 
     export function bindPlugin(board: Board, name: string, info: any);

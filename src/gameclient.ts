@@ -9,14 +9,16 @@ module Game {
         showMoves: boolean = true;
         whereList: any[] = [];
 
-        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {}
-
-        getProxy(): BaseClientProxy {
-            return this.proxy;
+        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {
+            proxy.addListener(this);
         }
 
         getBoard(): Board {
             return this.board;
+        }
+
+        getProxy(): BaseClientProxy {
+            return this.proxy;
         }
 
         getUser(): string {
@@ -38,13 +40,46 @@ module Game {
             return createBatchCommand(rule.id, this.user, [ < BaseCommand > rule]);
         }
 
-        onBroadcastCommands(batch: BatchCommand) {}
+        onBroadcastCommands(batch: BatchCommand) {
+            for (var k in batch.commands) {
+                var commands = batch.commands[k];
+
+                for (var i = 0; i < commands.length; ++i) {
+
+                    for (var j in plugins) {
+                        var updateBoard = plugins[j].updateBoard;
+                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
+                            break;
+                    }
+                }
+            }
+        }
 
         sendUserCommands(ruleId: number, commands: BaseCommand[]) {
             this.proxy.sendCommands(createBatchCommand(ruleId, this.user, commands));
         }
     }
 
+
+    //-------------------------------
+    export class HTMLClient extends Client {
+        public mapping: HTMLMapping;
+
+        constructor(user: string, proxy: BaseClientProxy, board: Board, public boardElem: HTMLElement) {
+            super(user, proxy, board);
+
+            // use the board to establish an initial mapping and configuration of the boardElem
+            this.mapping = new HTMLMapping(board, user, boardElem);
+        }
+
+        getMapping(): HTMLMapping {
+            return this.mapping;
+        }
+
+        getBoardElem(): HTMLElement {
+            return this.boardElem;
+        }
+    }
 
     //-------------------------------
     export class BankClient extends Client {
@@ -63,26 +98,9 @@ module Game {
         }
     }
 
-    export class HumanClient extends Client {
-        mapping: HTMLMapping = null;
+    export class HumanClient extends HTMLClient {
 
-        constructor(user: string, proxy: BaseClientProxy, board: Board, boardElem: HTMLElement) {
-            super(user, proxy, board);
-
-            // TODO shared mapping for shared screens
-            this.mapping = new HTMLMapping(board, user, boardElem);
-        }
-
-        getMapping(): HTMLMapping {
-            return this.mapping;
-        }
-
-            onSetup() {
-            // bind layouts, decks and cards
-            this.mapping.parseElement();
-        }
-
-            onResolveRule(rule: BaseRule): BatchCommand {
+        onResolveRule(rule: BaseRule): BatchCommand {
             var results = []
             for (var i in plugins) {
                 var performRule = plugins[i].performRule;
@@ -98,9 +116,11 @@ module Game {
             return super.onResolveRule(rule);
         }
 
-            onBroadcastCommands(batch: BatchCommand) {
-            if (this.mapping.lastRuleId >= batch.ruleId)
-                return;
+        onBroadcastCommands(batch: BatchCommand) {
+            super.onBroadcastCommands(batch);
+
+            // if (this.mapping.lastRuleId >= batch.ruleId)
+            //     return;
 
             for (var k in batch.commands) {
                 var commands = batch.commands[k];
@@ -110,12 +130,12 @@ module Game {
                     for (var i in plugins) {
                         var updateHTML = plugins[i].updateHTML;
                         if (typeof updateHTML === 'function')
-                            updateHTML(this.board, this.mapping, commands[j]);
+                            updateHTML(this.mapping, commands[j]);
                     }
                 }
             }
 
-            this.mapping.lastRuleId = batch.ruleId;
+            // this.mapping.lastRuleId = batch.ruleId;
         }
     }
 

@@ -1,19 +1,13 @@
 /// <reference path="_dependencies.ts" />
 module Game {
-    export interface UserConfig {
-        name: string; // player1 (name of this user)
-        type: string; // human
-        client ? : Client;
-        me ? : string; // local alias for this user
-    }
-
     export interface ScreenConfig {
-        screen ? : string; // board for this user
-        mode: string; // shared | networked | pass-n-play
-        transport: string; // message
-        proxy: BaseClientProxy;
+        screen: string; // board for this user
+        //mode: string; // shared | networked | pass-n-play
+        transport: string; // message, REST, local
+        //proxy: BaseClientProxy;
         iframe ? : string; // iframe for message proxy
-        users: UserConfig[];
+        user: string;
+        type: string; // human, bank, ai, passnplay
     }
 
     export interface GameConfig {
