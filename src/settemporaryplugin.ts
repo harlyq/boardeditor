@@ -62,7 +62,7 @@ module SetTemporaryPlugin {
         }
 
         for (var i = 0; i < elems.length; ++i) {
-            oldVariables.push(things[i].copyVariables(setTemporaryRule.value));
+            oldVariables.push(mapping.copyVariables(elems[i], setTemporaryRule.value));
             mapping.applyVariables(elems[i], setTemporaryRule.value);
         }
 
