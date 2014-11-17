@@ -37,10 +37,8 @@ module Game {
             var inputNames = userNames.split(',');
             var proxies: BaseServerProxy[] = [];
             for (var i = 0; i < this.proxies.length; ++i) {
-                if (union(this.proxies[i].userNames, inputNames).length > 0) {
+                if (union(this.proxies[i].userNames, inputNames).length > 0)
                     proxies.push(this.proxies[i]); // at least one of the users is in this proxy
-                    break;
-                }
             }
             return proxies;
         }
