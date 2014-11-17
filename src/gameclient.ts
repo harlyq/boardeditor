@@ -73,16 +73,16 @@ module Game {
             this.mapping = new HTMLMapping(board, user, boardElem);
         }
 
-        getMapping() {
+        getMapping(): HTMLMapping {
             return this.mapping;
         }
 
-        onSetup() {
+            onSetup() {
             // bind layouts, decks and cards
             this.mapping.parseElement();
         }
 
-        onResolveRule(rule: BaseRule): BatchCommand {
+            onResolveRule(rule: BaseRule): BatchCommand {
             var results = []
             for (var i in plugins) {
                 var performRule = plugins[i].performRule;
@@ -108,9 +108,9 @@ module Game {
                 for (var j = 0; j < commands.length; ++j) {
 
                     for (var i in plugins) {
-                        var updateMapping = plugins[i].updateMapping;
-                        if (typeof updateMapping === 'function')
-                            updateMapping(this.board, this.mapping, commands[j]);
+                        var updateHTML = plugins[i].updateHTML;
+                        if (typeof updateHTML === 'function')
+                            updateHTML(this.board, this.mapping, commands[j]);
                     }
                 }
             }

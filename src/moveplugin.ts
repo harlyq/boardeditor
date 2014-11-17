@@ -1,7 +1,6 @@
-/// <reference path='_dependencies.ts' />
-/// <reference path='htmlmapping.ts' />
+/// <reference path='game.d.ts' />
+/// <reference path='pluginhelper.d.ts' />
 /// <reference path='interact.ts' />
-/// <reference path='pluginhelper.ts' />
 
 interface MoveRule extends Game.BaseRule {
     from: any;
@@ -50,9 +49,9 @@ module MovePlugin {
 
         var board = client.getBoard(),
             moveRule = < MoveRule > rule,
-            fromList = board.queryLocations(moveRule.from),
-            toList = board.queryLocations(moveRule.to),
-            cardList = board.queryCards(moveRule.cards);
+            fromList = board.queryLocations( < string > moveRule.from),
+            toList = board.queryLocations( < string > moveRule.to),
+            cardList = board.queryCards( < string > moveRule.cards);
 
         if (cardList.length === 0 && fromList.length === 0)
             return Game._error('moveRule without from or cards - ' + moveRule);
@@ -96,7 +95,7 @@ module MovePlugin {
         return true;
     }
 
-    export function updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'move')
             return;
 
@@ -131,20 +130,13 @@ module MovePlugin {
         }
 
         if (toElem && toElem.hasAttribute('count'))
-            toElem.setAttribute('count', to.getNumCards().toString());
+            toElem.setAttribute('count', toElem.children.length.toString());
 
         if (fromElem && fromElem.hasAttribute('count'))
-            fromElem.setAttribute('count', from.getNumCards().toString());
+            fromElem.setAttribute('count', fromElem.children.length.toString());
 
         if (toElem && cardElem)
             toElem.appendChild(cardElem);
-
-        // apply
-        if (cardElem && moveCommand.cardId > 0) {
-            var deck = board.findDeckByCardId(moveCommand.cardId);
-            //mapping.applyVariables(cardElem, deck.variables);
-            mapping.applyVariables(cardElem, card.variables);
-        }
     }
 
     function buildValidMoves(user: string,
@@ -242,7 +234,7 @@ module MovePlugin {
             this.board = client.getBoard();
             this.client = client;
 
-            var style = this.mapping.boardElem.style;
+            var style = this.mapping.getBoardElem().style;
             if ('webkitTransform' in style)
                 this.transformKeyword = 'webkitTransform';
             else if ('MozTransform' in style)
@@ -381,11 +373,6 @@ module MovePlugin {
         }
     }
 }
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();

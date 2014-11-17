@@ -1,4 +1,4 @@
-/// <reference path='_dependencies.ts' />
+/// <reference path='game.d.ts' />
 
 interface SetRule extends Game.BaseRule {
     key: any;
@@ -47,25 +47,23 @@ module SetPlugin {
     // board is never updated, only the clients
     // export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {}
 
-    export function updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')
             return;
 
         var setCommand = < SetCommand > command,
             elems = [];
 
-        if (setCommand.affects && setCommand.affects.indexOf(mapping.user) === -1)
+        if (setCommand.affects && setCommand.affects.indexOf(mapping.getUser()) === -1)
             return; // does not affect this user
 
         switch (command.type) {
             case 'setCardVariable':
-                var cards = board.queryCards(setCommand.key);
-                elems = mapping.getElemsFromCards(cards);
+                elems = mapping.getElemsFromCardIds(setCommand.key);
                 break;
 
             case 'setLocationVariable':
-                var locations = board.queryLocations(setCommand.key);
-                elems = mapping.getElemsFromLocations(locations);
+                elems = mapping.getElemsFromLocationIds(setCommand.key);
                 break;
 
         }
@@ -74,11 +72,6 @@ module SetPlugin {
             mapping.applyVariables(elems[i], setCommand.value);
     }
 };
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();

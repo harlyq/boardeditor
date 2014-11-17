@@ -3,19 +3,21 @@ module Game {
     export interface PluginInfo {
         createRule: (...args: any[]) => Game.BaseRule;
         performRule: (client: Game.Client, rule: Game.BaseRule, results: any[]) => boolean;
-        updateBoard ? : (board: Game.Board, command: BaseCommand, results: any[]) => any;
-        updateMapping ? : (board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
+        updateBoard ? : (board: Game.Board, command: Game.BaseCommand, results: any[]) => any;
+        updateHTML ? : (board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
     };
 
     export var plugins: {
         [name: string]: PluginInfo;
     } = {};
 
-    export function bindPlugin(board: Board, name: string, info: any) {
+    export function bindPlugin(board: Board, name: string, info: any, key ? : string) {
         if (!info)
             return;
 
-        var key = Object.keys(info)[0];
+        if (typeof key === 'undefined')
+            key = Object.keys(info)[0]; // get the first entry of info
+
         if (!key) {
             Game._error('no key specified in bindPlugin - ' + info);
             return;

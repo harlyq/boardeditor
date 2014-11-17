@@ -1,4 +1,4 @@
-/// <reference path='_dependencies.ts' />
+/// <reference path='game.d.ts' />
 module PluginHelper {
 
     // COMBINATORIAL FUNCTIONS
@@ -95,11 +95,6 @@ module PluginHelper {
     }
 
 }
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();

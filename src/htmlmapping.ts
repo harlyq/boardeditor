@@ -14,6 +14,10 @@ module Game {
 
         constructor(private board: Game.Board, public user: string, public boardElem: HTMLElement) {}
 
+        getUser(): string {
+            return this.user;
+        }
+
         getBoardElem(): HTMLElement {
             return this.boardElem;
         }
@@ -137,6 +141,18 @@ module Game {
             return this.cardToElem[cardId];
         }
 
+        getElemsFromCardIds(idList: string): HTMLElement[] {
+            if (!idList)
+                return [];
+
+            var list: HTMLElement[] = [];
+            var cardIds = idList.split(',');
+            for (var i = 0; i < cardIds.length; ++i)
+                list.push(this.cardToElem[cardIds[i]]);
+
+            return list;
+        }
+
         getElemsFromCards(cards: Game.Card[]): HTMLElement[] {
             var list = [];
             for (var i = 0; i < cards.length; ++i) {
@@ -165,6 +181,18 @@ module Game {
 
         getElemFromLocationId(locationId: number): HTMLElement {
             return this.locationToElem[locationId];
+        }
+
+        getElemsFromLocationIds(idList: string): HTMLElement[] {
+            if (!idList)
+                return [];
+
+            var list: HTMLElement[] = [];
+            var locationIds = idList.split(',');
+            for (var i = 0; i < locationIds.length; ++i)
+                list.push(this.locationToElem[locationIds[i]]);
+
+            return list;
         }
 
         getElemsFromLocations(locations: Game.Location[]): HTMLElement[] {

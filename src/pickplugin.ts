@@ -1,6 +1,5 @@
-/// <reference path='_dependencies.ts' />
-/// <reference path="htmlmapping.ts" />
-/// <reference path="pluginhelper.ts" />
+/// <reference path='game.d.ts' />
+/// <reference path='pluginhelper.d.ts' />
 
 interface PickRule extends Game.BaseRule {
     list: any;
@@ -189,7 +188,7 @@ module PickPlugin {
 
         constructor(private client: Game.HumanClient, pickRule: PickRule) {
             this.board = client.getBoard();
-            this.mapping = client.mapping;
+            this.mapping = client.getMapping();
 
             this.showHTMLPick(pickRule);
         }
@@ -264,11 +263,6 @@ module PickPlugin {
         }
     }
 }
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();

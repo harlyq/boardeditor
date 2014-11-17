@@ -1,4 +1,4 @@
-/// <reference path='_dependencies.ts' />
+/// <reference path='game.d.ts' />
 
 interface SetTemporaryRule extends Game.BaseRule {
     key: any;
@@ -78,11 +78,6 @@ module SetTemporaryPlugin {
         return true;
     }
 };
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();

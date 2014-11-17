@@ -65,7 +65,7 @@ module Game {
         };
     }
 
-    export function createBatchCommand(id: number, user: string, commands ? : any[]) {
+    export function createBatchCommand(id: number, user: string, commands ? : any[]): BatchCommand {
         var batch: Game.BatchCommand = {
             ruleId: id,
             commands: {}
@@ -542,7 +542,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class Card implements LabelMixin, RegionMixin, VariableMixin {
-        location: Location = null; // back pointer, do not dereference, used by Location
+        public location: Location = null; // back pointer, do not dereference, used by Location
 
         static UNKNOWN = -1;
 
@@ -593,7 +593,7 @@ module Game {
                 return this.id === parseInt(query);
         }
 
-            save(): any {
+        save(): any {
             return {
                 type: 'Card',
                 name: this.name,
@@ -602,7 +602,7 @@ module Game {
             };
         }
 
-            load(obj: any) {
+        load(obj: any) {
             if (obj.type !== 'Card')
                 return;
 
@@ -616,7 +616,7 @@ module Game {
 
     //----------------------------------------------------------------
     export class User {
-        serverId: number;
+        public serverId: number;
 
         constructor(public name: string, public id: number) {}
 
@@ -628,7 +628,7 @@ module Game {
             };
         }
 
-            load(obj: any) {
+        load(obj: any) {
             if (obj.type !== 'User')
                 return;
 
@@ -641,7 +641,7 @@ module Game {
     export class UniqueList {
         private values: any[];
         private removed: boolean[] = []; // one index for each value
-        length: number = 0;
+        public length: number = 0;
 
         constructor(args: any[]) {
             this.values = args;
@@ -749,6 +749,23 @@ module Game {
         private regions: Region[] = [];
         private uniqueId: number = 0;
         private lastRuleId: number = 0;
+
+        // VariableMixin
+        public variables: {
+            [key: string]: any
+        } = {};
+        setVariables: (variables: {
+            [key: string]: any
+        }) => void;
+        copyVariables: (variables: {
+            [key: string]: any
+        }) => {
+            [key: string]: any
+        };
+        setVariable: (name: string, value: any) => void;
+        getAlias: (value: string) => string;
+        getVariable: (name: string) => any;
+        getVariables: () => any;
 
         createList(...args: any[]): UniqueList {
             if (args.length === 1 && Array.isArray(args[0]))
@@ -1189,23 +1206,6 @@ module Game {
                 this.users.push(user);
             }
         }
-
-        // VariableMixin
-        public variables: {
-            [key: string]: any
-        } = {};
-        setVariables: (variables: {
-            [key: string]: any
-        }) => void;
-        copyVariables: (variables: {
-            [key: string]: any
-        }) => {
-            [key: string]: any
-        };
-        setVariable: (name: string, value: any) => void;
-        getAlias: (value: string) => string;
-        getVariable: (name: string) => any;
-        getVariables: () => any;
     }
 
     _applyMixins(Board, [VariableMixin]);

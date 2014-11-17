@@ -1,4 +1,4 @@
-/// <reference path="_dependencies.ts" />
+/// <reference path="game.d.ts" />
 
 interface SendMessageRule extends Game.BaseRule, Game.BaseCommand {
     message: string;
@@ -21,7 +21,7 @@ class SendMessagePlugin {
     // nothing to update on the board
     // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {}
 
-    updateMapping(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    updateHTML(board: Game.Board, mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'sendMessage')
             return;
 
@@ -37,15 +37,9 @@ class SendMessagePlugin {
     }
 }
 
-declare
-var browserRequire: any;
-declare
-var exports: any
-
 if (typeof browserRequire === 'function')
     exports = browserRequire();
 
 if (typeof exports !== 'undefined') {
-    for (var k in SendMessagePlugin)
-        exports[k] = SendMessagePlugin[k];
+    exports.sendMessage = SendMessagePlugin;
 }

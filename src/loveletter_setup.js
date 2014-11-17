@@ -3,20 +3,17 @@ var setup = (function() {
     var maxPlayers = 4;
 
     var Game = require('./game')
-    var pickPlugin = require('./pickplugin');
-    var shufflePlugin = require('./shuffleplugin');
-    var setPlugin = require('./setplugin');
-    var movePlugin = require('./moveplugin');
-    var setTemporaryPlugin = require('./settemporaryplugin');
+    var corePlugins = require('./coreplugins');
 
     setup.whereList = [];
 
     setup.setupFunc = function(board) {
-        Game.bindPlugin(board, 'waitPick', pickPlugin);
-        Game.bindPlugin(board, 'waitShuffle', shufflePlugin);
-        Game.bindPlugin(board, 'waitSet', setPlugin);
-        Game.bindPlugin(board, 'waitMove', movePlugin);
-        Game.bindPlugin(board, 'waitSetTemporary', setTemporaryPlugin);
+        Game.bindPlugin(board, 'waitPick', corePlugins, 'pick');
+        Game.bindPlugin(board, 'waitShuffle', corePlugins, 'shuffle');
+        Game.bindPlugin(board, 'waitSet', corePlugins, 'set');
+        Game.bindPlugin(board, 'waitMove', corePlugins, 'move');
+        Game.bindPlugin(board, 'waitSetTemporary', corePlugins, 'setTemporary');
+        Game.bindPlugin(board, 'waitSendMessage', corePlugins, 'sendMessage');
 
         var id = 1;
         board.createLocation('pile', id++, {

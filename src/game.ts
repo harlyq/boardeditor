@@ -15,7 +15,11 @@ if (typeof require === 'undefined') {
         var allScripts = document.getElementsByTagName('script'),
             src = allScripts[allScripts.length - 1].src,
             coreName = nameEx.exec(src)[1];
-        browserModules[coreName] = {};
+
+        // when putting multiple plugins into the same file, browserRequire() will be called multiple times
+        if (!(coreName in browserModules))
+            browserModules[coreName] = {};
+
         return browserModules[coreName];
     }
 

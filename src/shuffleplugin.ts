@@ -1,5 +1,6 @@
-/// <reference path='_dependencies.ts' />
+/// <reference path='game.d.ts' />
 /// <reference path="seedrandom.d.ts" />
+
 interface ShuffleRule extends Game.BaseRule {
     seed ? : string;
     location: string;
@@ -51,11 +52,6 @@ module ShufflePlugin {
         return true;
     }
 };
-
-declare
-var exports: any;
-declare
-var browserRequire: any;
 
 if (typeof browserRequire === 'function')
     exports = browserRequire();
