@@ -75,8 +75,11 @@ class Card {
         if (!canvas)
             return;
 
-        var w = elem.offsetWidth,
-            h = elem.offsetHeight;
+        // use computedStyle because it is quicker than offsetWidth, it will size less padding and border,
+        // and it will still be valid, even if the element is hidden
+        var style = getComputedStyle(elem),
+            w = parseFloat(style.width),
+            h = parseFloat(style.height);
         if (canvas.width !== w)
             canvas.width = w;
         if (canvas.height !== h)
@@ -171,8 +174,8 @@ class Card {
             elem.style.position = 'relative';
 
             var canvas = < HTMLCanvasElement > document.createElement('canvas');
-            canvas.width = elem.offsetWidth;
-            canvas.height = elem.offsetHeight;
+            canvas.width = 0;
+            canvas.height = 0;
             canvas.style.position = 'absolute';
             canvas.style.left = '0';
             canvas.style.top = '0';

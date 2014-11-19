@@ -40,6 +40,12 @@ module MovePlugin {
         newRule.count = rule.count || 1;
         newRule.user = rule.user || newRule.user;
 
+        if (!newRule.to)
+            Game._error('moveRule, unknown to location - ' + rule.to);
+
+        if (!newRule.cards && !newRule.from)
+            return Game._error('moveRule without from or cards - ' + rule);
+
         return newRule;
     }
 
@@ -53,16 +59,10 @@ module MovePlugin {
             toList = board.queryLocations( < string > moveRule.to),
             cardList = board.queryCards( < string > moveRule.cards);
 
-        if (cardList.length === 0 && fromList.length === 0)
-            return Game._error('moveRule without from or cards - ' + moveRule);
-
         if (cardList.length === 0) {
             for (var i = 0; i < fromList.length; ++i)
                 [].push.apply(cardList, fromList[i].getCards()); // concat cards
         }
-
-        if (toList.length === 0)
-            return Game._error('moveRule has invalid to location - ' + moveRule.to);
 
         if (cardList.length === 0)
             return Game._error('moveRule no cards in the from location - ' + moveRule.from)

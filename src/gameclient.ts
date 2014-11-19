@@ -89,8 +89,13 @@ module Game {
             for (var i in plugins) {
                 var performRule = plugins[i].performRule;
                 if (typeof performRule === 'function' && performRule(this, rule, results)) {
-                    var commands = results[~~(Math.random() * results.length)]; // pick a random option
-                    return createBatchCommand(rule.id, this.user, commands);
+                    if (results.length > 0) {
+                        var commands = results[~~(Math.random() * results.length)]; // pick a random option
+                        return createBatchCommand(rule.id, this.user, commands);
+                    } else {
+                        console.log('user - ' + this.getUser() + ' waiting for plugin - ' + i + ' - for rule - ' + rule.type);
+                        return null;
+                    }
                 }
             }
 
@@ -108,6 +113,7 @@ module Game {
                     if (results.length > 0) {
                         return createBatchCommand(rule.id, this.user, results[0]); // first option
                     } else {
+                        console.log('user - ' + this.getUser() + ' waiting for plugin - ' + i + ' - for rule - ' + rule.type);
                         return null;
                     }
                 }

@@ -4,3 +4,5 @@
 /// <reference path="shuffleplugin.ts" />
 /// <reference path="pickplugin.ts" />
 /// <reference path="sendmessageplugin.ts" />
+/// <reference path="labelplugin.ts" />
+/// <reference path="delayplugin.ts" />

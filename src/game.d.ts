@@ -347,7 +347,8 @@ declare module Game {
         getElemFromLocationId(locationId: number): HTMLElement;
         getElemsFromLocationIds(idList: string): HTMLElement[];
         getElemsFromLocations(locations: Location[]): HTMLElement[];
-
+        getElemsFromIds(idList: string): HTMLElement[];
+        getThingFromElem(elem: HTMLElement): any;
     }
 
     export interface PluginInfo {

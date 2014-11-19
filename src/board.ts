@@ -613,8 +613,10 @@ module Game {
         matches(query: string): boolean {
             if (query.substr(0, LABEL_PREFIX_LENGTH) === LABEL_PREFIX)
                 return this.containsLabel(query.substr(LABEL_PREFIX_LENGTH));
-            else
+            else if (isNumeric(query))
                 return this.id === parseInt(query);
+            else
+                return this.name === query;
         }
 
         save(): any {
@@ -1072,6 +1074,19 @@ module Game {
             return regions;
         }
 
+        queryThings(query: string): any[] {
+            var things = [];
+
+            things = this.queryLocations(query);
+            if (things.length === 0) {
+                things = this.queryCards(query);
+                if (things.length === 0)
+                    things = this.queryRegions(query);
+            }
+
+            return things;
+        }
+
         // CONVERSION FUNCTIONS
         convertToIdString(key: any): ConvertInfo {
             var isKeyArray = Array.isArray(key),
@@ -1095,6 +1110,12 @@ module Game {
             } else if (key) {
                 type = 'string';
                 value = key.toString();
+            }
+
+            if (type === 'string') {
+                var things = this.queryThings(key);
+                if (things.length > 0)
+                    return this.convertToIdString(things);
             }
 
             return {

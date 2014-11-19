@@ -183,12 +183,14 @@ module PickPlugin {
         private mapping: Game.HTMLMapping;
         private highlightElems: HTMLElement[] = [];
         private pickHandler = this.onPickLocation.bind(this);
+        private pickType: string;
 
         CLASS_HIGHLIGHT: string = 'highlight';
 
         constructor(private client: Game.HTMLClient, pickRule: PickRule) {
             this.board = client.getBoard();
             this.mapping = client.getMapping();
+            this.pickType = pickRule.type;
 
             this.showHTMLPick(pickRule);
         }
@@ -201,8 +203,8 @@ module PickPlugin {
         }
 
         private onPickLocation(e) {
-            var location = this.mapping.getLocationFromElem(e.currentTarget);
-            var i = this.pickList.indexOf(location);
+            var thing = this.mapping.getThingFromElem(e.currentTarget);
+            var i = this.pickList.indexOf(thing);
             if (i === -1)
                 return;
 
@@ -210,7 +212,7 @@ module PickPlugin {
             this.pickList = [];
             this.clearHighlights();
 
-            var commands = [this.createPickCommand('pickLocation', [location.name])];
+            var commands = [this.createPickCommand(this.pickType, [thing.id])];
             this.client.sendUserCommands(this.lastRuleId, commands);
         }
 
@@ -233,6 +235,7 @@ module PickPlugin {
                         var element = this.mapping.getElemFromLocationId(pick.id);
                         this.highlightElement(element);
                         break;
+
                     case 'pickCard':
                         var element = this.mapping.getElemFromCardId(pick.id);
                         this.highlightElement(element);

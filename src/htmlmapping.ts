@@ -148,8 +148,11 @@ module Game {
 
             var list: HTMLElement[] = [];
             var cardIds = idList.split(',');
-            for (var i = 0; i < cardIds.length; ++i)
-                list.push(this.cardToElem[cardIds[i]]);
+            for (var i = 0; i < cardIds.length; ++i) {
+                var elem = this.cardToElem[cardIds[i]];
+                if (elem)
+                    list.push(elem);
+            }
 
             return list;
         }
@@ -190,8 +193,11 @@ module Game {
 
             var list: HTMLElement[] = [];
             var locationIds = idList.split(',');
-            for (var i = 0; i < locationIds.length; ++i)
-                list.push(this.locationToElem[locationIds[i]]);
+            for (var i = 0; i < locationIds.length; ++i) {
+                var elem = this.locationToElem[locationIds[i]];
+                if (elem)
+                    list.push(elem);
+            }
 
             return list;
         }
@@ -205,5 +211,19 @@ module Game {
             return list;
         }
 
+
+        getElemsFromIds(idList: string): HTMLElement[] {
+            var elems: HTMLElement[] = [];
+            [].push.apply(elems, this.getElemsFromLocationIds(idList));
+            [].push.apply(elems, this.getElemsFromCardIds(idList));
+            return elems;
+        }
+
+        getThingFromElem(elem: HTMLElement): any {
+            var thing: any = this.getLocationFromElem(elem);
+            thing = thing || this.getCardFromElem(elem);
+
+            return thing;
+        }
     }
 }

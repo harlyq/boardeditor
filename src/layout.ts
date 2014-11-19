@@ -17,7 +17,8 @@ class Layout {
     private _offsety: string = '0';
     private _facedown: string = 'any';
     private _positionWith: (target: HTMLElement, x: number, y: number) => void = Layout.topLeft;
-    private attributeList: string[] = ['layout', 'align', 'baseline', 'offsetx', 'offsety'];
+
+    private attributeList: string[] = ['layout', 'align', 'baseline', 'offsetx', 'offsety', 'numcolumns'];
 
     static topLeft = function(target: HTMLElement, x: number, y: number) {
         target.style.position = 'absolute';
@@ -209,7 +210,7 @@ class Layout {
                 break;
         }
 
-        //this.refreshFaceDown(elem);
+        this.refreshFaceDown(elem);
     }
 
     // note: don't use getBoundingClientRect() as that will get the post-scaled size
@@ -226,26 +227,32 @@ class Layout {
     }
 
     // size +margin +border +padding
+    // note: don't use offsetWidth or offsetHeigth, as each call forces a page refresh
     private getOuterSize(elem: HTMLElement) {
         var style = window.getComputedStyle(elem),
             marginLeft = parseFloat(style.marginLeft),
-            marginTop = parseFloat(style.marginTop);
+            marginTop = parseFloat(style.marginTop),
+            borderWidth = parseFloat(style.borderWidth);
 
         return {
             x: -marginLeft,
             y: -marginTop,
-            width: elem.offsetWidth + marginLeft + parseFloat(style.marginRight),
-            height: elem.offsetHeight + marginTop + parseFloat(style.marginBottom)
+            width: parseFloat(style.width) + borderWidth + marginLeft + parseFloat(style.marginRight),
+            height: parseFloat(style.height) + borderWidth + marginTop + parseFloat(style.marginBottom)
         };
     }
 
     // size +border +padding
+    // note: don't use offsetWidth or offsetHeigth, as each call forces a page refresh
     private getBorderSize(elem: HTMLElement) {
+        var style = window.getComputedStyle(elem),
+            borderWidth = parseFloat(style.borderWidth);
+
         return {
             x: 0,
             y: 0,
-            width: elem.offsetWidth,
-            height: elem.offsetHeight
+            width: parseFloat(style.width) + borderWidth,
+            height: parseFloat(style.height) + borderWidth
         };
     }
 
@@ -294,11 +301,56 @@ class Layout {
         }
     }
 
-    private refreshGrid(elem: HTMLElement) {}
+    private refreshGrid(elem: HTMLElement) {
+        var layoutSize = this.getInnerSize(elem),
+            totalWidth = layoutSize.width,
+            totalHeight = layoutSize.height,
+            numChildren = elem.children.length,
+            align = elem.getAttribute('align') || this._align,
+            offsetx = parseFloat(elem.getAttribute('offsetx') || this._offsetx),
+            offsety = parseFloat(elem.getAttribute('offsety') || this._offsety),
+            baseline = elem.getAttribute('baseline') || this._baseline,
+            numColumns = parseInt(elem.getAttribute('numcolumns'), 10) || Math.ceil(Math.sqrt(numChildren)),
+            dx = totalWidth / numColumns,
+            dy = totalHeight / numColumns;
+
+        for (var i = 0; i < numChildren; ++i) {
+            var child = < HTMLElement > (elem.children[i]),
+                j = (i % numColumns),
+                k = (~~(i / numColumns)),
+                x = j * dx,
+                y = k * dy,
+                dimensions = this.getOuterSize(child);
+
+            switch (align) {
+                //case 'left':
+                case 'right':
+                    x += dx - dimensions.width;
+                    break;
+                case 'centered':
+                    x += (dx - dimensions.width) / 2;
+                    break;
+            }
+            switch (baseline) {
+                //case 'top':
+                case 'bottom':
+                    y += dy - dimensions.height;
+                    break;
+                case 'middle':
+                    y += (dy - dimensions.height) / 2;
+                    break;
+            }
+
+            x += offsetx * j;
+            y += offsety * k;
+            this._positionWith.call(this, child, x + layoutSize.x, y + layoutSize.y);
+        }
+    }
 
     private refreshRandom(elem: HTMLElement) {
-        var totalWidth = elem.offsetWidth,
-            totalHeight = elem.offsetHeight,
+        var layoutSize = this.getInnerSize(elem),
+            totalWidth = layoutSize.width,
+            totalHeight = layoutSize.height,
             numChildren = elem.children.length;
 
         for (var i = 0; i < numChildren; ++i) {
@@ -307,7 +359,7 @@ class Layout {
                 x = Math.random() * (totalWidth - dimensions.width),
                 y = Math.random() * (totalHeight - dimensions.height);
 
-            this._positionWith.call(this, child, x, y);
+            this._positionWith.call(this, child, x + layoutSize.x, y + layoutSize.y);
         }
     }
 
@@ -321,7 +373,7 @@ class Layout {
             numChildren = elem.children.length;
 
         var align = elem.getAttribute('align') || this._align,
-            offsetx = elem.getAttribute('offsetx') || this._offsetx,
+            offsetx = parseFloat(elem.getAttribute('offsetx') || this._offsetx),
             offsety = parseFloat(elem.getAttribute('offsety') || this._offsety),
             baseline = elem.getAttribute('baseline') || this._baseline;
 
@@ -342,7 +394,7 @@ class Layout {
             delta = delta / (numChildren - 1);
 
         if (align !== 'justified')
-            delta = Math.min(delta, parseFloat(offsetx));
+            delta = Math.min(delta, offsetx);
 
         switch (align) {
             // case 'left':

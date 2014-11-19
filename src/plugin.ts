@@ -28,6 +28,9 @@ module Game {
 
         plugins[key] = info;
 
+        if (!('createRule' in info))
+            Game._error('no createRule for binding - ' + key);
+
         // bind the createRule function to the current board
         board[name] = function(...args: any[]) {
             args.splice(0, 0, this); // board as 1st argument

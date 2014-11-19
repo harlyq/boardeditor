@@ -1,13 +1,7 @@
 /// <reference path='game.d.ts' />
 
-interface SetRule extends Game.BaseRule {
+interface SetRule extends Game.BaseRule, Game.BaseCommand {
     key: any;
-    value: any;
-    affects: string; // affected users
-}
-
-interface SetCommand extends Game.BaseCommand {
-    key: string;
     value: any;
     affects: string; // affected users
 }
@@ -51,7 +45,7 @@ module SetPlugin {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')
             return;
 
-        var setCommand = < SetCommand > command,
+        var setCommand = < SetRule > command,
             elems = [];
 
         if (Game.union(setCommand.affects, mapping.getUser()).length === 0)

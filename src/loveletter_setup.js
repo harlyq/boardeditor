@@ -14,6 +14,8 @@ var setup = (function() {
         Game.bindPlugin(board, 'waitMove', corePlugins, 'move');
         Game.bindPlugin(board, 'waitSetTemporary', corePlugins, 'setTemporary');
         Game.bindPlugin(board, 'waitSendMessage', corePlugins, 'sendMessage');
+        Game.bindPlugin(board, 'waitLabel', corePlugins, 'label');
+        Game.bindPlugin(board, 'waitDelay', corePlugins, 'delay');
 
         var id = 1;
         board.createLocation('pile', id++, {
@@ -21,6 +23,7 @@ var setup = (function() {
         });
 
         for (var i = 0; i < maxPlayers; ++i) {
+            board.createLocation('token' + i, id++);
             board.createLocation('hand' + i, id++, {
                 facedown: true
             });
@@ -28,6 +31,21 @@ var setup = (function() {
                 facedown: false
             });
         }
+
+        board.createLocation('tokenPile', id++).addLabel('hidden');
+        board.createLocation('picktype', id++).addLabel('hidden');
+
+        var deck3 = board.createDeck('deck3', id++);
+        for (var i = 1; i <= 9; ++i)
+            board.createCard('deck3.' + i, id++, deck3).addLabel('token');
+
+        var deck2 = board.createDeck('deck2', id++);
+        for (var i = 1; i <= 8; ++i)
+            board.createCard('deck2.' + i, id++, deck2, {
+                facedown: false,
+                value: i,
+                front: '#f' + i
+            }).addLabel('cardType');
 
         var deck1 = board.createDeck('deck1', id++, {
             back: '#back',
@@ -38,46 +56,38 @@ var setup = (function() {
         var k = 1;
         for (var i = 0; i < 5; ++i)
             board.createCard("deck1." + k++, id++, deck1, {
-                who: 'guard',
                 value: 1,
                 front: '#f1'
             }).addLabel('card');
 
         for (var i = 0; i < 2; ++i) {
             board.createCard("deck1." + k++, id++, deck1, {
-                who: 'priest',
                 value: 2,
                 front: '#f2'
             }).addLabel('card');
             board.createCard("deck1." + k++, id++, deck1, {
-                who: 'baron',
                 value: 3,
                 front: '#f3'
             }).addLabel('card');
             board.createCard("deck1." + k++, id++, deck1, {
-                who: 'handmaid',
                 value: 4,
                 front: '#f4'
             }).addLabel('card');
             board.createCard("deck1." + k++, id++, deck1, {
-                who: 'prince',
                 value: 5,
                 front: '#f5'
             }).addLabel('card');
         }
 
         board.createCard("deck1." + k++, id++, deck1, {
-            who: 'king',
             value: 6,
             front: '#f6'
         }).addLabel('card');
         board.createCard("deck1." + k++, id++, deck1, {
-            who: 'countess',
             value: 7,
             front: '#f7'
         }).addLabel('card');
         board.createCard("deck1." + k++, id++, deck1, {
-            who: 'princess',
             value: 8,
             front: '#f8'
         }).addLabel('card');

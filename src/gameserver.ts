@@ -67,19 +67,27 @@ module Game {
                 return;
 
             do {
-                var result = this.rulesIter.next(nextValue);
+                var result = this.rulesIter.next(nextValue); // step into rules
                 if (result.done) {
                     console.log('RULES COMPLETE');
                     return true;
                 }
 
                 var nextRule: BaseRule = result.value;
+                if (!nextRule) {
+                    _error('game rules yielded an empty rule');
+                    continue; // continue tracing to see which yield was incorrect
+                }
+
                 console.log(nextRule);
 
                 this.ruleBatch = {
                     ruleId: nextRule.id,
                     commands: {}
                 };
+                if (!nextRule.user)
+                    _error('there is no user in the rule - ' + nextRule);
+
                 this.ruleUsers = nextRule.user.split(',');
 
                 var userProxies = this.getProxies(nextRule.user);

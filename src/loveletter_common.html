@@ -41,6 +41,32 @@
     .layout.highlight {
         outline: 3px solid red;
     }
+    .card.highlight {
+        outline: 3px solid green;
+    }
+    #picktype {
+        background-color: white;
+    }
+    .playerout {
+        outline: 1px solid oragne;
+        position: absolute;
+        background-color: orange;
+        opacity: 0.25;
+    }
+    .hidden {
+        display: none;
+    }
+    .token {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: red;
+    }
+    .winner {
+        position: absolute;
+        font: bold 80px sans-serif;
+        text-align: center;
+    }
     </style>
 
     <script type="text/javascript">
@@ -98,7 +124,28 @@
 
         var loveletter = require('./loveletter_setup');
 
-        Game.queryServer(loveletter, document.getElementById("board"));
+        var board = document.getElementById("board");
+
+        board.addEventListener("removePlayer", function(e) {
+            var player = e.detail.player;
+
+            document.getElementById('remove' + player).classList.remove('hidden');
+        });
+
+        board.addEventListener("nextRound", function(e) {
+            var player = e.detail.player;
+
+            for (var i = 0; i < 4; ++i)
+                document.getElementById('remove' + i).classList.add('hidden');
+        });
+
+        board.addEventListener("winner", function(e) {
+            var player = e.detail.player;
+
+            document.getElementById('winner' + player).classList.remove('hidden');
+        });
+
+        Game.queryServer(loveletter, board);
     });
     </script>
 </head>
@@ -106,15 +153,19 @@
 <body>
     <div id="board">
         <div id="pile" class="layout" name="pile" layout="stack" facedown="true" style="left: 10px; top: 270px; width: 100px; height: 140px; padding: 10px"></div>
+        <div id="token0" class="layout" name="token0" layout="stack" align="top" offsetY="25" style="left: 170px; top: 20px; width: 20px; height: 140px;"></div>
         <div id="hand0" class="layout" name="hand0" layout="fan" facedown="false" style="left: 200px; top: 10px; width: 200px; height: 140px; padding: 10px"></div>
         <div id="discard0" class="layout" name="discard0" layout="fan" facedown="false" style="left: 450px; top: 10px; width: 250px; height: 140px; padding: 10px"></div>
+        <div id="token1" class="layout" name="token1" layout="stack" align="top" offsetY="25" style="left: 170px; top: 190px; width: 20px; height: 140px;"></div>
         <div id="hand1" class="layout" name="hand1" layout="fan" facedown="false" style="left: 200px; top: 180px; width: 200px; height: 140px; padding: 10px"></div>
         <div id="discard1" class="layout" name="discard1" layout="fan" facedown="false" style="left: 450px; top: 180px; width: 250px; height: 140px; padding: 10px"></div>
+        <div id="token2" class="layout" name="token2" layout="stack" align="top" offsetY="25" style="left: 170px; top: 360px; width: 20px; height: 140px;"></div>
         <div id="hand2" class="layout" name="hand2" layout="fan" facedown="false" style="left: 200px; top: 350px; width: 200px; height: 140px; padding: 10px"></div>
         <div id="discard2" class="layout" name="discard2" layout="fan" facedown="false" style="left: 450px; top: 350px; width: 250px; height: 140px; padding: 10px"></div>
+        <div id="token3" class="layout" name="token3" layout="stack" align="top" offsetY="25" style="left: 170px; top: 530px; width: 20px; height: 140px;"></div>
         <div id="hand3" class="layout" name="hand3" layout="fan" facedown="false" style="left: 200px; top: 520px; width: 200px; height: 140px; padding: 10px"></div>
         <div id="discard3" class="layout" name="discard3" layout="fan" facedown="false" style="left: 450px; top: 520px; width: 250px; height: 140px; padding: 10px"></div>
-        <div id="deck1" class="deck" name="deck1">
+        <div id="deck1" class="deck hidden" name="deck1">
             <div id="c1" class="card" name="deck1.1"></div>
             <div id="c2" class="card" name="deck1.2"></div>
             <div id="c3" class="card" name="deck1.3"></div>
@@ -132,6 +183,36 @@
             <div id="c15" class="card" name="deck1.15"></div>
             <div id="c16" class="card" name="deck1.16"></div>
         </div>
+        <div id="deck2" class="deck" name="deck2">
+            <div id="d1" class="card" name="deck2.1"></div>
+            <div id="d2" class="card" name="deck2.2"></div>
+            <div id="d3" class="card" name="deck2.3"></div>
+            <div id="d4" class="card" name="deck2.4"></div>
+            <div id="d5" class="card" name="deck2.5"></div>
+            <div id="d6" class="card" name="deck2.6"></div>
+            <div id="d7" class="card" name="deck2.7"></div>
+            <div id="d8" class="card" name="deck2.8"></div>
+        </div>
+        <div id="deck3" class="deck hidden" name="deck3">
+            <div id="e1" class="card" name="deck3.1"></div>
+            <div id="e2" class="card" name="deck3.2"></div>
+            <div id="e3" class="card" name="deck3.3"></div>
+            <div id="e4" class="card" name="deck3.4"></div>
+            <div id="e5" class="card" name="deck3.5"></div>
+            <div id="e6" class="card" name="deck3.6"></div>
+            <div id="e7" class="card" name="deck3.7"></div>
+            <div id="e8" class="card" name="deck3.8"></div>
+            <div id="e9" class="card" name="deck3.9"></div>
+        </div>
+        <div id="remove0" class="playerout hidden" style="left: 200px; top: 10px; width: 500px; height: 140px; padding: 10px"></div>
+        <div id="remove1" class="playerout hidden" style="left: 200px; top: 180px; width: 500px; height: 140px; padding: 10px"></div>
+        <div id="remove2" class="playerout hidden" style="left: 200px; top: 350px; width: 500px; height: 140px; padding: 10px"></div>
+        <div id="remove3" class="playerout hidden" style="left: 200px; top: 520px; width: 500px; height: 140px; padding: 10px"></div>
+        <div id="winner0" class="winner hidden" style="left: 200px; top: 10px; width: 500px; height: 140px; padding: 10px">WINNER</div>
+        <div id="winner1" class="winner hidden" style="left: 200px; top: 180px; width: 500px; height: 140px; padding: 10px">WINNER</div>
+        <div id="winner2" class="winner hidden" style="left: 200px; top: 350px; width: 500px; height: 140px; padding: 10px">WINNER</div>
+        <div id="winner3" class="winner hidden" style="left: 200px; top: 520px; width: 500px; height: 140px; padding: 10px">WINNER</div>
+        <div id="picktype" class="layout" name="picktype" layout="grid" facedown="false" align="centered" baseline="middle" style="left: 150px; top: 150px; width: 350px; height: 450px; padding: 10px"></div>
     </div>
     <div id="pieces">
         <img src="Love-Letter-Cards.jpg"></img>

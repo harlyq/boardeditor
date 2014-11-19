@@ -6,8 +6,8 @@ interface SendMessageRule extends Game.BaseRule, Game.BaseCommand {
     bubbles ? : boolean;
 }
 
-class SendMessagePlugin {
-    createRule(board: Game.Board, rule: SendMessageRule): Game.BaseRule {
+module SendMessagePlugin {
+    export function createRule(board: Game.Board, rule: SendMessageRule): Game.BaseRule {
         return Game.extend({
             message: '',
             detail: {},
@@ -21,7 +21,7 @@ class SendMessagePlugin {
     // nothing to update on the board
     // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {}
 
-    updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
         if (command.type !== 'sendMessage')
             return;
 
