@@ -2,11 +2,12 @@
     var Game = require('./game')
     var setup = require('./loveletter_setup');
 
-    var currentPlayer = 0;
-    var userNames = ['PLAYER1', 'PLAYER2', 'PLAYER3', 'PLAYER4'];
-    var numPlayers = userNames.length;
-    var allPlayers;
-    var tokens = []; // number of tokens per player
+    var currentPlayer = 0,
+        userNames = ['PLAYER1', 'PLAYER2', 'PLAYER3', 'PLAYER4'],
+        numPlayers = userNames.length,
+        allPlayers,
+        tokens = [], // number of tokens per player
+        NUM_WINNING_TOKENS = 3
 
     var GUARD = 1,
         PRIEST = 2,
@@ -35,6 +36,37 @@
         tokens = [0, 0, 0, 0];
     }
 
+    setup.rulesGen = function*(board) {
+        var winner = -1;
+        while (winner === -1) {
+            yield * startRound(board);
+
+            yield * nextRound(board);
+
+            for (var i = 0; winner < 0 && i < tokens.length; ++i) {
+                if (tokens[i] >= NUM_WINNING_TOKENS)
+                    winner = i;
+            }
+
+            if (winner >= 0) {
+                yield board.waitSendMessage({
+                    message: 'winner',
+                    detail: {
+                        player: winner
+                    }
+                });
+            } else {
+                yield board.waitDelay({
+                    seconds: 5
+                });
+
+                yield board.waitSendMessage({
+                    message: 'nextRound'
+                });
+            }
+        }
+    }
+
     function* startRound(board) {
         allPlayers = board.createList(0, 1, 2, 3);
 
@@ -55,6 +87,15 @@
         });
 
         for (var i = 0; i < allPlayers.length; ++i) {
+            // hide hand for all users
+            yield board.waitSet({
+                key: board.queryFirstLocation('hand' + i),
+                value: {
+                    facedown: true
+                }
+            });
+
+            // show hand for individual user
             yield board.waitSet({
                 key: board.queryFirstLocation('hand' + i),
                 value: {
@@ -72,38 +113,6 @@
         currentPlayer = allPlayers.get(~~(Math.random() * allPlayers.length));
     }
 
-    setup.rulesGen = function*(board) {
-        while (true) {
-            yield * startRound(board);
-
-            yield * nextRound(board);
-
-            var winner = -1;
-            for (var i = 0; winner < 0 && i < tokens.length; ++i) {
-                if (tokens[i] >= 3)
-                    winner = i;
-            }
-
-            if (winner >= 0) {
-                yield board.waitSendMessage({
-                    message: 'winner',
-                    detail: {
-                        player: winner
-                    }
-                });
-            } else {
-                yield board.waitDelay({
-                    seconds: 2
-                });
-
-                yield board.waitSendMessage({
-                    message: 'nextRound'
-                });
-            }
-
-        }
-    }
-
     function* nextRound(board) {
         while (allPlayers.length > 1 && board.queryFirstLocation('pile').getNumCards() > 0) {
             yield board.waitMove({
@@ -119,6 +128,7 @@
             var countessIndex = cardValues.indexOf(COUNTESS);
 
             if (countessIndex !== -1 && (cardValues.indexOf(KING) !== -1 || cardValues.indexOf(PRINCE) !== -1)) {
+                // if the Countess is with the King or Prince, always discard the Countess
                 moves =
                     yield board.waitMove({
                         cards: cardsInHand[countessIndex],
@@ -141,7 +151,30 @@
             currentPlayer = allPlayers.next(currentPlayer);
         }
 
-        var winner = allPlayers.get(0);
+        var winner,
+            highestValue = 0;
+
+        // player with the highest value is the winner
+        for (var i = 0; i < allPlayers.length; ++i) {
+            var player = allPlayers.get(i),
+                hand = board.queryFirstLocation('hand' + player),
+                value = hand.getCard(0).getVariable('value');
+
+            if (value > highestValue) {
+                highestValue = value;
+                winner = player;
+            }
+        }
+
+        // show all users hands
+        for (var i = 0; i < numPlayers; ++i)
+            yield board.waitSet({
+                key: board.queryFirstLocation('hand' + player),
+                value: {
+                    facedown: false
+                }
+            });
+
         yield board.waitMove({
             from: 'tokenPile',
             to: 'token' + winner
@@ -150,7 +183,8 @@
     }
 
     function* cardAction(board, card) {
-        var otherPlayers = [];
+        var otherPlayers = [],
+            handmaidPlayers = []; // this doesn't include the current player
         for (var i = 0; i < allPlayers.length; ++i) {
             var player = allPlayers.get(i);
             if (player === currentPlayer)
@@ -159,12 +193,18 @@
             var hand = board.queryFirstLocation('hand' + player);
             var discard = board.queryFirstLocation('discard' + player);
             var topCard = discard.getCard(Game.Position.Top);
+
+            // player's who just discarded the handmaid cannot be selected
             if ((!topCard || topCard.getVariable('value') !== HANDMAID))
                 otherPlayers.push(hand);
+            else
+                handmaidPlayers.push(hand);
         }
 
         switch (card.getVariable('value')) {
             case GUARD:
+                // pick a card type and another player, if that player has holding that card type
+                // then they are out
                 if (otherPlayers.length === 0)
                     break; // no other players to check
 
@@ -205,6 +245,7 @@
                 break;
 
             case PRIEST:
+                // look at another player's card
                 if (otherPlayers.length === 0)
                     break; // no other players to check
 
@@ -230,6 +271,7 @@
                 break;
 
             case BARON:
+                // pick another player and compare cards, the player with the lower value is out
                 if (otherPlayers.length === 0)
                     break; // no other players to check
 
@@ -266,9 +308,18 @@
                 break;
 
             case PRINCE:
+                // pick a player (can be yourself) and they discard their hand and take a new card
+
+                // if there are no cards left in the pile, then the Prince does nothing
+                if (board.queryFirstLocation('pile').getNumCards() === 0)
+                    return;
+
                 var allHands = [];
                 for (var i = 0; i < allPlayers.length; ++i) {
                     var player = allPlayers.get(i);
+                    if (handmaidPlayers.indexOf(player) !== -1)
+                        continue; // can't pick player's who have discarded the handmaid
+
                     allHands.push(board.queryFirstLocation('hand' + player));
                 }
 
@@ -280,19 +331,27 @@
                 var name = getFirstEntry(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
 
-                yield board.waitMove({
-                    from: 'hand' + pickedPlayer,
-                    to: 'discard' + pickedPlayer,
-                    quantity: Game.Quantity.All
-                });
+                var discarded =
+                    yield board.waitMove({
+                        from: 'hand' + pickedPlayer,
+                        to: 'discard' + pickedPlayer,
+                        quantity: Game.Quantity.All
+                    });
+                var discardedCard = getFirstEntry(discarded).card;
+                yield * checkDiscarded(board, pickedPlayer, discardedCard);
 
-                yield board.waitMove({
-                    from: 'pile',
-                    to: 'hand' + pickedPlayer
-                });
+                // if the pickedPlayer discarded the PRINCESS then they are instantly out of 
+                // the game
+                if (allPlayers.indexOf(pickedPlayer) !== -1) {
+                    yield board.waitMove({
+                        from: 'pile',
+                        to: 'hand' + pickedPlayer
+                    });
+                }
                 break;
 
             case KING:
+                // swap your hand with another player
                 if (otherPlayers.length === 0)
                     break; // no other players to check
 
@@ -304,18 +363,17 @@
                 var name = getFirstEntry(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
 
-                // yield board.waitSwap({
-                //     from: 'hand' + currentPlayer,
-                //     to: 'hand' + pickedPlayer,
-                //     user: 'BANK'
-                // });
+                yield board.waitSwap({
+                    from: 'hand' + currentPlayer,
+                    to: 'hand' + pickedPlayer
+                });
                 break;
 
             case COUNTESS:
                 break;
 
             case PRINCESS:
-                yield * removePlayer(board, currentPlayer);
+                yield * checkDiscarded(board, currentPlayer, card);
                 break;
         }
     }
@@ -329,6 +387,12 @@
                 player: player
             }
         });
+    }
+
+    function* checkDiscarded(board, player, card) {
+        // if a player discards the PRINCESS then they are out
+        if (card.getVariable('value') === PRINCESS)
+            yield * removePlayer(board, player);
     }
 
     if (typeof browserRequire === 'function')

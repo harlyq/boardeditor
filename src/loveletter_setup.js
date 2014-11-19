@@ -16,6 +16,7 @@ var setup = (function() {
         Game.bindPlugin(board, 'waitSendMessage', corePlugins, 'sendMessage');
         Game.bindPlugin(board, 'waitLabel', corePlugins, 'label');
         Game.bindPlugin(board, 'waitDelay', corePlugins, 'delay');
+        Game.bindPlugin(board, 'waitSwap', corePlugins, 'swap');
 
         var id = 1;
         board.createLocation('pile', id++, {

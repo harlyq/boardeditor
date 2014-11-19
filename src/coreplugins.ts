@@ -6,3 +6,4 @@
 /// <reference path="sendmessageplugin.ts" />
 /// <reference path="labelplugin.ts" />
 /// <reference path="delayplugin.ts" />
+/// <reference path="swapplugin.ts" />

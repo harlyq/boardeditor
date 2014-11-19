@@ -127,7 +127,9 @@ declare module Game {
 
         matches(query: string): boolean;
         addCard(card: Card, toPosition ? : Position): number;
+        addCards(cardList: Card[]);
         removeCard(card: Card);
+        removeAllCards();
         insertCard(card: Card, i: number);
         containsCard(card: Card);
         findCard(cardId: number): Card;

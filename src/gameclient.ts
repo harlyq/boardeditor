@@ -45,10 +45,13 @@ module Game {
                 var commands = batch.commands[k];
 
                 for (var i = 0; i < commands.length; ++i) {
+                    var command = commands[i];
+                    if (!command.type)
+                        _error('no type specified in command - ' + command);
 
                     for (var j in plugins) {
                         var updateBoard = plugins[j].updateBoard;
-                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], []))
+                        if (typeof updateBoard === 'function' && updateBoard(this.board, command, []))
                             break;
                     }
                 }
@@ -106,6 +109,9 @@ module Game {
     export class HumanClient extends HTMLClient {
 
         onResolveRule(rule: BaseRule): BatchCommand {
+            if (!rule.type)
+                _error('no type specified in rule - ' + rule);
+
             var results = []
             for (var i in plugins) {
                 var performRule = plugins[i].performRule;
@@ -132,11 +138,12 @@ module Game {
                 var commands = batch.commands[k];
 
                 for (var j = 0; j < commands.length; ++j) {
+                    var command = commands[j];
 
                     for (var i in plugins) {
                         var updateHTML = plugins[i].updateHTML;
                         if (typeof updateHTML === 'function')
-                            updateHTML(this.mapping, commands[j]);
+                            updateHTML(this.mapping, command);
                     }
                 }
             }

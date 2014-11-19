@@ -337,6 +337,11 @@ module Game {
             return i;
         }
 
+        addCards(cardList: Card[]) {
+            for (var i = 0; i < cardList.length; ++i)
+                this.addCard(cardList[i]);
+        }
+
         removeCard(card: Card) {
             if (card.location !== this)
                 return; // card not in the correct location
@@ -347,6 +352,11 @@ module Game {
 
             this.cards.splice(i, 1);
             card.location = null;
+        }
+
+        removeAllCards() {
+            for (var i = 0; i < this.cards.length; ++i)
+                this.removeCard(this.cards[i]);
         }
 
         insertCard(card: Card, i: number) {

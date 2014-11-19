@@ -48,7 +48,7 @@ module SetPlugin {
         var setCommand = < SetRule > command,
             elems = [];
 
-        if (Game.union(setCommand.affects, mapping.getUser()).length === 0)
+        if (setCommand.affects && Game.union(setCommand.affects, mapping.getUser()).length === 0)
             return; // does not affect this user
 
         switch (command.type) {
