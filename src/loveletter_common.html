@@ -56,7 +56,7 @@
     .hidden {
         display: none;
     }
-    .token {
+    .card.token {
         position: absolute;
         width: 20px;
         height: 20px;
@@ -120,6 +120,7 @@
     window.addEventListener("load", function() {
         // add functionality
         card(".card");
+        card(".token");
         layout(".layout");
 
         var loveletter = require('./loveletter_setup');
@@ -137,6 +138,8 @@
 
             for (var i = 0; i < 4; ++i)
                 document.getElementById('remove' + i).classList.add('hidden');
+
+            document.getElementById('arrow').classList.add('hidden');
         });
 
         board.addEventListener("winner", function(e) {
@@ -145,9 +148,25 @@
             document.getElementById('winner' + player).classList.remove('hidden');
         });
 
+        board.addEventListener("affected", function(e) {
+            var card = e.detail.card;
+            var player = e.detail.player;
+
+            document.getElementById('arrow' + player).classList.remove('hidden');
+        });
+
         Game.queryServer(loveletter, board);
     });
     </script>
+    <defs>
+        <marker id="markerCircle" markerWidth="8" markerHeight="8" refx="5" refy="5">
+            <circle cx="5" cy="5" r="3" style="stroke: none; fill:#000000;" />
+        </marker>
+
+        <marker id="markerArrow" markerWidth="13" markerHeight="13" refx="2" refy="6" orient="auto">
+            <path d="M2,2 L2,11 L10,6 L2,2" style="fill: #000000;" />
+        </marker>
+    </defs>
 </head>
 
 <body>
@@ -183,7 +202,7 @@
             <div id="c15" class="card" name="deck1.15"></div>
             <div id="c16" class="card" name="deck1.16"></div>
         </div>
-        <div id="deck2" class="deck" name="deck2">
+        <div id="deck2" class="deck hidden" name="deck2">
             <div id="d1" class="card" name="deck2.1"></div>
             <div id="d2" class="card" name="deck2.2"></div>
             <div id="d3" class="card" name="deck2.3"></div>
@@ -194,15 +213,15 @@
             <div id="d8" class="card" name="deck2.8"></div>
         </div>
         <div id="deck3" class="deck hidden" name="deck3">
-            <div id="e1" class="card" name="deck3.1"></div>
-            <div id="e2" class="card" name="deck3.2"></div>
-            <div id="e3" class="card" name="deck3.3"></div>
-            <div id="e4" class="card" name="deck3.4"></div>
-            <div id="e5" class="card" name="deck3.5"></div>
-            <div id="e6" class="card" name="deck3.6"></div>
-            <div id="e7" class="card" name="deck3.7"></div>
-            <div id="e8" class="card" name="deck3.8"></div>
-            <div id="e9" class="card" name="deck3.9"></div>
+            <div id="e1" class="card token" name="deck3.1"></div>
+            <div id="e2" class="card token" name="deck3.2"></div>
+            <div id="e3" class="card token" name="deck3.3"></div>
+            <div id="e4" class="card token" name="deck3.4"></div>
+            <div id="e5" class="card token" name="deck3.5"></div>
+            <div id="e6" class="card token" name="deck3.6"></div>
+            <div id="e7" class="card token" name="deck3.7"></div>
+            <div id="e8" class="card token" name="deck3.8"></div>
+            <div id="e9" class="card token" name="deck3.9"></div>
         </div>
         <div id="remove0" class="playerout hidden" style="left: 200px; top: 10px; width: 500px; height: 140px; padding: 10px"></div>
         <div id="remove1" class="playerout hidden" style="left: 200px; top: 180px; width: 500px; height: 140px; padding: 10px"></div>
@@ -212,6 +231,7 @@
         <div id="winner1" class="winner hidden" style="left: 200px; top: 180px; width: 500px; height: 140px; padding: 10px">WINNER</div>
         <div id="winner2" class="winner hidden" style="left: 200px; top: 350px; width: 500px; height: 140px; padding: 10px">WINNER</div>
         <div id="winner3" class="winner hidden" style="left: 200px; top: 520px; width: 500px; height: 140px; padding: 10px">WINNER</div>
+        <div id="arrow" class="arrow" style=""></div>
         <div id="picktype" class="layout" name="picktype" layout="grid" facedown="false" align="centered" baseline="middle" style="left: 150px; top: 150px; width: 350px; height: 450px; padding: 10px"></div>
     </div>
     <div id="pieces">

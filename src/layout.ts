@@ -232,13 +232,16 @@ class Layout {
         var style = window.getComputedStyle(elem),
             marginLeft = parseFloat(style.marginLeft),
             marginTop = parseFloat(style.marginTop),
-            borderWidth = parseFloat(style.borderWidth);
+            borderLeftWidth = parseFloat(style.borderLeftWidth),
+            borderRightWidth = parseFloat(style.borderRightWidth),
+            borderTopWidth = parseFloat(style.borderTopWidth),
+            borderBottomWidth = parseFloat(style.borderBottomWidth);
 
         return {
             x: -marginLeft,
             y: -marginTop,
-            width: parseFloat(style.width) + borderWidth + marginLeft + parseFloat(style.marginRight),
-            height: parseFloat(style.height) + borderWidth + marginTop + parseFloat(style.marginBottom)
+            width: parseFloat(style.width) + borderLeftWidth + borderRightWidth + marginLeft + parseFloat(style.marginRight),
+            height: parseFloat(style.height) + borderTopWidth + borderBottomWidth + marginTop + parseFloat(style.marginBottom)
         };
     }
 
@@ -246,13 +249,16 @@ class Layout {
     // note: don't use offsetWidth or offsetHeigth, as each call forces a page refresh
     private getBorderSize(elem: HTMLElement) {
         var style = window.getComputedStyle(elem),
-            borderWidth = parseFloat(style.borderWidth);
+            borderLeftWidth = parseFloat(style.borderLeftWidth),
+            borderRightWidth = parseFloat(style.borderRightWidth),
+            borderTopWidth = parseFloat(style.borderTopWidth),
+            borderBottomWidth = parseFloat(style.borderBottomWidth);
 
         return {
             x: 0,
             y: 0,
-            width: parseFloat(style.width) + borderWidth,
-            height: parseFloat(style.height) + borderWidth
+            width: parseFloat(style.width) + borderLeftWidth + borderRightWidth,
+            height: parseFloat(style.height) + borderTopWidth + borderBottomWidth
         };
     }
 

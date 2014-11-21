@@ -11,7 +11,7 @@ class Card {
     private _back: string = '';
     private _facedown: boolean = false;
 
-    static attributeList = ['front', 'back', 'facedown']
+    static attributeList = ['front', 'back', 'facedown'];
 
     constructor(selector: string, options ? : CardOptions);
     constructor(elem: Element, options ? : CardOptions);
@@ -75,11 +75,12 @@ class Card {
         if (!canvas)
             return;
 
-        // use computedStyle because it is quicker than offsetWidth, it will size less padding and border,
-        // and it will still be valid, even if the element is hidden
+        // use computedStyle because it is quicker than offsetWidth. It is the size less padding and border,
+        // and it is valid when the element is hidden
         var style = getComputedStyle(elem),
             w = parseFloat(style.width),
             h = parseFloat(style.height);
+
         if (canvas.width !== w)
             canvas.width = w;
         if (canvas.height !== h)

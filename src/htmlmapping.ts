@@ -51,9 +51,13 @@ module Game {
             // bind cards
             this.board.getCards().forEach(function(card) {
                 var element = < HTMLElement > (boardElem.querySelector('.card[name="' + card.name + '"]'));
-                self.cardToElem[card.id] = element;
-                self.applyLabels(element, card.labels);
-                self.applyVariables(element, card.getVariables());
+                if (element) {
+                    self.cardToElem[card.id] = element;
+                    self.applyLabels(element, card.labels);
+                    self.applyVariables(element, card.getVariables());
+                } else {
+                    Game._error('could not find element for card - ' + card.name);
+                }
             });
         }
 

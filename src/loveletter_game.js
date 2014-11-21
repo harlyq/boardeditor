@@ -183,8 +183,9 @@
     }
 
     function* cardAction(board, card) {
-        var otherPlayers = [],
-            handmaidPlayers = []; // this doesn't include the current player
+        var otherPlayers = [], // list of locations
+            handmaidPlayers = []; // list of player indices, doesn't include the current player
+
         for (var i = 0; i < allPlayers.length; ++i) {
             var player = allPlayers.get(i);
             if (player === currentPlayer)
@@ -195,10 +196,10 @@
             var topCard = discard.getCard(Game.Position.Top);
 
             // player's who just discarded the handmaid cannot be selected
-            if ((!topCard || topCard.getVariable('value') !== HANDMAID))
+            if (!topCard || topCard.getVariable('value') !== HANDMAID)
                 otherPlayers.push(hand);
-            else
-                handmaidPlayers.push(hand);
+            else if (topCard)
+                handmaidPlayers.push(player);
         }
 
         switch (card.getVariable('value')) {
