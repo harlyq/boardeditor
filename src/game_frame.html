@@ -5,32 +5,47 @@
     <script src="game.js" type="text/javascript"></script>
 
     <script>
-    var myKey = Math.random().toString();
-    var gameKey = '1';
-
-    window.addEventListener('message', function(e) {
-        alert(e);
-    })
-
     window.addEventListener('load', function() {
         var req = new XMLHttpRequest();
         req.onload = function() {
             var msg = JSON.parse(this.response);
             if ('type' in msg && msg.type === 'config') {
-                // forward the message to the iframe
+                // forward the config message to the iframe
                 var iframe = document.getElementById("main");
                 iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
             }
         };
-        req.open('POST', 'adduser?gameKey=' + gameKey + '&key=' + myKey + '&type=human');
-        req.setRequestHeader('Content-Type', 'application/json');
-        req.send();
+
+        var userKey = localStorage.getItem("userKey");
+        var gameKey = localStorage.getItem("gameKey");
+
+        document.getElementById("gameKey").value = gameKey || "1";
+        document.getElementById("userKey").value = userKey || Math.random().toString().substr(2, 6);
+
+        document.getElementById("newgame").addEventListener("click", function(e) {
+            gameKey = document.getElementById("gameKey").value;
+            userKey = document.getElementById("userKey").value;
+
+            req.open('POST', 'adduser?gameKey=' + gameKey + '&userKey=' + userKey + '&type=human');
+            req.setRequestHeader('Content-Type', 'application/json');
+            req.send();
+
+            localStorage.setItem("gameKey", gameKey);
+            localStorage.setItem("userKey", userKey);
+        });
     });
     </script>
 </head>
 
 <body>
-    <div>This is the game frame</div>
+    <h4>Join Game</h4>
+    <div>Game Key:
+        <input id="gameKey" type="text" name="key" value="1" />
+    </div>
+    <div>User Key:
+        <input id="userKey" type="text" name="key" />
+    </div>
+    <button id="newgame" type="submit">NEW GAME</button>
     <iframe id="main" src="loveletter_common.html" frameborder="0" scrolling="no" width="850px" height="1800px"></iframe>
 </body>
 

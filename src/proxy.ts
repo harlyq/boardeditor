@@ -52,7 +52,6 @@ module Game {
     export class BaseClientProxy {
         public lastRuleId: number = -1;
         public listeners: ProxyListener[] = [];
-        public waitingForCommands: boolean = false;
 
         constructor(public userNames: string) {}
 
@@ -92,19 +91,16 @@ module Game {
                 }
             }
 
-            if (responded) {
+            if (responded)
                 return {
                     ruleId: rule.id,
                     commands: commands
                 };
-            } else {
-                this.waitingForCommands = true;
+            else
                 return null;
-            }
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
-            this.waitingForCommands = false;
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
                 if (listener && typeof listener.onBroadcastCommands === 'function')
@@ -259,6 +255,7 @@ module Game {
     export class RESTClientProxy extends BaseClientProxy {
         private request: any = null;
         private lastRespondedRuleId: number = -1;
+        private waitingForCommands: boolean = false;
 
         constructor(userNames: string, private whereList: any[]) {
             super(userNames);
@@ -284,7 +281,6 @@ module Game {
 
             if (HTML_DEFINED) {
                 this.waitingForCommands = false;
-                this.lastRespondedRuleId = batch.ruleId;
 
                 console.log('send commands - ' + this.userNames + ' - rule - ' + batch.ruleId);
                 this.request.open('POST', 'new?userNames=' + this.userNames);
@@ -312,6 +308,8 @@ module Game {
                 // have responded to a rule, other players may not yet have responded, hence
                 // the rule is still pending and we receive it again on the next poll
                 if (rule && rule.id > this.lastRespondedRuleId) {
+                    this.lastRespondedRuleId = rule.id;
+
                     if ('whereIndex' in rule)
                         rule['where'] = this.whereList[rule['whereIndex']];
 
@@ -320,6 +318,8 @@ module Game {
 
                     if (batch)
                         this.sendCommands(batch);
+                    else
+                        this.waitingForCommands = true;
                 }
             }
         }

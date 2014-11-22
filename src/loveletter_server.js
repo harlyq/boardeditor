@@ -80,7 +80,7 @@ app.post('/addUser', function(req, res) {
     var foundSlot = false;
     var numPlayers = 1;
     for (var k in config.players) {
-        foundSlot = config.players[k] === '';
+        foundSlot = config.players[k] === '' || config.players[k] === userKey;
         if (foundSlot) {
             config.players[k] = userKey;
             break;
@@ -112,7 +112,7 @@ app.post('/addUser', function(req, res) {
     };
     res.send(JSON.stringify(response));
 
-    console.log('added player - ' + k);
+    console.log('added player - ' + k + ' [' + userKey + ']');
 });
 
 app.post('/new', function(req, res) {
