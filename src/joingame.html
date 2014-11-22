@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="game.js" type="text/javascript"></script>
+
+    <script>
+    function folder(selector) {
+        var elements = document.querySelectorAll(selector);
+
+        for (var i = 0; i < elements.length; ++i) {
+            elements[i].addEventListener('click', function(e) {
+                var target = e.target,
+                    isOpen = target.classList.contains('folder-open'),
+                    isClosed = target.classList.contains('folder-closed');
+
+                if (!isOpen && !isClosed)
+                    return; // clicked on something other than the folder labels
+
+                if (isOpen) {
+                    target.classList.remove('folder-open');
+                    target.classList.add('folder-closed');
+                } else {
+                    target.classList.add('folder-open');
+                    target.classList.remove('folder-closed');
+                }
+            });
+        }
+    }
+
+    window.addEventListener('load', function() {
+        var msg = {
+            type: 'newGame'
+        }
+        window.parent.postMessage(JSON.stringify(msg), '*');
+
+        folder(".folder");
+    });
+    </script>
+
+    <style>
+    .waiting {
+        color: red
+    }
+    .folder-open,
+    .folder-closed {
+        cursor: pointer;
+    }
+    .folder-closed:before {
+        content: '+ ';
+    }
+    .folder-open:before {
+        content: '- ';
+    }
+    .folder-closed + .folder-sub {
+        display: none;
+    }
+    </style>
+</head>
+
+<body>
+    <div>User Key:
+        <input id="userkey" type="text"></input>
+    </div>
+    <div>Display Name:
+        <input id="displayname" type="text"></input>
+    </div>
+    <div class="folder">
+        <h2 class="folder-open">Create Game</h2>
+        <div class="folder-sub">
+            <div>
+                <h4>Mancala</h4>
+                <form action="" method="post">
+                    Private games do not appear in the Join Game list, unless the Game Key is entered into the Join Game's Search box
+                    <div>Private:
+                        <input type="checkbox" name="private" />
+                    </div>
+                    <div>Game Key:
+                        <input type="text" name="gamekey" disabled value="b5490a1" />
+                    </div>
+                    <div>Maximum Turn Time:
+                        <select name="turntime">
+                            <option value="0" selected>1 min</option>
+                            <option value="1">5 min</option>
+                            <option value="1">15 min</option>
+                            <option value="1">30 min</option>
+                            <option value="1">2 hr</option>
+                            <option value="1">1 day</option>
+                            <option value="1">1 week</option>
+                            <option value="1">1 month</option>
+                        </select>
+                    </div>
+                    <div>Player 1:
+                        <select name="player1">
+                            <option value="human" selected>Human</option>
+                            <option value="ai">AI</option>
+                        </select> (me)
+                    </div>
+                    <div>Player 2:
+                        <select name="player2">
+                            <option value="human" selected>Human</option>
+                            <option value="ai">AI</option>
+                        </select>
+                    </div>
+                    <input type="submit" value="Submit" />
+                </form>
+            </div>
+            <div>
+                <h4>Love Letter</h4>
+                <div>Private:
+                    <input type="checkbox" name="private"></input>
+                </div>
+                <div>Maximum Turn Time:
+                    <select name="turntime">
+                        <option value="0" selected>1 min</option>
+                        <option value="1">5 min</option>
+                        <option value="1">15 min</option>
+                        <option value="1">30 min</option>
+                        <option value="1">2 hr</option>
+                        <option value="1">1 day</option>
+                        <option value="1">1 week</option>
+                        <option value="1">1 month</option>
+                    </select>
+                </div>
+                <div>Player 1:
+                    <select name="player1">
+                        <option value="human" selected>Human</option>
+                        <option value="ai">AI</option>
+                    </select> (me)
+                </div>
+                <div>Player 2:
+                    <select name="player2">
+                        <option value="human" selected>Human</option>
+                        <option value="ai">AI</option>
+                    </select>
+                </div>
+                <div>Player 3:
+                    <select name="player3">
+                        <option value="human">Human</option>
+                        <option value="ai">AI</option>
+                        <option value="none" selected>-</option>
+                    </select>
+                </div>
+                <div>Player 4:
+                    <select name="player4">
+                        <option value="human">Human</option>
+                        <option value="ai">AI</option>
+                        <option value="none" selected>-</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <h2 class="folder-closed">Join Game</h2>
+        <div class="folder-sub">
+            <div>Search:
+                <input id="search" type="text"></input>
+            </div>
+            <ul>
+                <li class="waiting">Mancala [7c9c5423] 1 min - missing 1, tom</li>
+                <li class="waiting">Love Letter [4543abd2] 15 min - missing 1, brOn, tx786</li>
+            </ul>
+        </div>
+        <h2 class="folder-closed">My Games</h2>
+        <ul class="folder-sub">
+            <li class="complete">Love Letter [12fecd45] 1 day - jon, mark, bUddI</li>
+            <li class="waiting">PRIVATE Love Letter [9041122a] 1 day - missing 2, hex8945</li>
+        </ul>
+    </div>
+</body>
+
+</html>

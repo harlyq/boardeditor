@@ -1,6 +1,8 @@
 /// <reference path='game.d.ts' />
 module PluginHelper {
 
+    var Game = require('./game');
+
     // COMBINATORIAL FUNCTIONS
 
     // return false if no remaining combinations

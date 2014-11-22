@@ -130,7 +130,7 @@
     });
 
     var pollServer = function(myConfig) {
-        var screenConfig = Game.getScreenConfig(myConfig, 'common');
+        var screenConfig = Game.getScreenConfigByScreen(myConfig, 'common');
 
         for (var i = 0; i < screenConfig.users.length; ++i) {
             var client = screenConfig.users[i].client;

@@ -52,6 +52,7 @@ module Game {
     export class BaseClientProxy {
         public lastRuleId: number = -1;
         public listeners: ProxyListener[] = [];
+        public waitingForCommands: boolean = false;
 
         constructor(public userNames: string) {}
 
@@ -91,16 +92,19 @@ module Game {
                 }
             }
 
-            if (responded)
+            if (responded) {
                 return {
                     ruleId: rule.id,
                     commands: commands
                 };
-            else
+            } else {
+                this.waitingForCommands = true;
                 return null;
+            }
         }
 
         onBroadcastCommands(batch: BatchCommand): void {
+            this.waitingForCommands = false;
             for (var i = 0; i < this.listeners.length; ++i) {
                 var listener = this.listeners[i];
                 if (listener && typeof listener.onBroadcastCommands === 'function')
@@ -254,6 +258,7 @@ module Game {
 
     export class RESTClientProxy extends BaseClientProxy {
         private request: any = null;
+        private lastRespondedRuleId: number = -1;
 
         constructor(userNames: string, private whereList: any[]) {
             super(userNames);
@@ -264,11 +269,24 @@ module Game {
                 this.request.onload = function() {
                     self.serverResponse(this.response);
                 }
+
+                // // tell the server that we now exist
+                // this.request.open('GET', 'clientReady?user=' + this.userNames);
+                // this.request.setRequestHeader('Content-Type', 'application/json');
+                // this.request.send();
+                this.periodicPoll();
             }
         }
 
         sendCommands(batch: BatchCommand) {
+            if (!batch)
+                return;
+
             if (HTML_DEFINED) {
+                this.waitingForCommands = false;
+                this.lastRespondedRuleId = batch.ruleId;
+
+                console.log('send commands - ' + this.userNames + ' - rule - ' + batch.ruleId);
                 this.request.open('POST', 'new?userNames=' + this.userNames);
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send(JSON.stringify(batch));
@@ -285,28 +303,50 @@ module Game {
                     var batch = response.batches[i];
                     this.onBroadcastCommands(batch);
                     this.lastRuleId = batch.ruleId; // remember the last id
+                    console.log('received command - ' + batch.ruleId);
                 }
 
-                var rule = response.rule
-                if (rule) {
+                var rule = response.rule;
+
+                // check the ruleId here, because it is possible that although we
+                // have responded to a rule, other players may not yet have responded, hence
+                // the rule is still pending and we receive it again on the next poll
+                if (rule && rule.id > this.lastRespondedRuleId) {
                     if ('whereIndex' in rule)
                         rule['where'] = this.whereList[rule['whereIndex']];
 
-                    this.onResolveRule(rule);
+                    console.log('resolve rule - ' + rule.id);
+                    var batch = this.onResolveRule(rule);
+
+                    if (batch)
+                        this.sendCommands(batch);
                 }
             }
         }
 
         pollServer() {
             if (HTML_DEFINED) {
+                console.log('poll server after - ' + this.lastRuleId);
                 this.request.open('GET', 'moves?userNames=' + this.userNames + '&afterId=' + this.lastRuleId);
                 this.request.setRequestHeader('Content-Type', 'application/json');
                 this.request.send();
             }
         }
+
+        periodicPoll() {
+            if (HTML_DEFINED) {
+                if (!this.waitingForCommands)
+                    this.pollServer();
+
+                window.setTimeout(this.periodicPoll.bind(this), 2000);
+            }
+        }
     }
 
     export class MessageServerProxy extends BaseServerProxy {
+        lastRule: BaseRule = null;
+        clientReady: boolean = false;
+
         constructor(userNames: string, private iframeElem: HTMLIFrameElement, private whereList: any[], listener: ProxyListener) {
             super(userNames, listener);
 
@@ -314,6 +354,14 @@ module Game {
         }
 
         resolveRule(rule: BaseRule): BatchCommand {
+            if (!rule)
+                return;
+
+            if (!this.clientReady) {
+                this.lastRule = rule;
+                return;
+            }
+
             var msg = {
                 type: 'resolveRule',
                 userNames: this.userNames,
@@ -328,7 +376,7 @@ module Game {
             return null;
         }
 
-        broadcastCommands(batch: BatchCommand) {
+            broadcastCommands(batch: BatchCommand) {
             if (!batch)
                 return;
 
@@ -342,7 +390,7 @@ module Game {
             this.iframeElem.contentWindow.postMessage(JSON.stringify(msg), '*');
         }
 
-        private onClientMessage(e) {
+            private onClientMessage(e) {
             var msg: any = JSON.parse(e.data);
             if (!msg || typeof msg !== 'object') {
                 _error('server received invalid message');
@@ -354,6 +402,11 @@ module Game {
 
             if (msg.type === 'sendCommands')
                 this.onSendCommands(msg.batch);
+
+            if (msg.type === 'clientReady') {
+                this.clientReady = true;
+                this.resolveRule(this.lastRule);
+            }
         }
     }
 
@@ -363,6 +416,10 @@ module Game {
 
         constructor(userNames: string, private whereList: any[]) {
             super(userNames);
+
+            window.parent.postMessage(JSON.stringify({
+                type: 'clientReady'
+            }), '*');
         }
 
         sendCommands(batch: BatchCommand) {

@@ -1,7 +1,7 @@
 /// <reference path="_dependencies.ts" />
 
 module Game {
-    export function getScreenConfig(config: GameConfig, screen: string): ScreenConfig {
+    export function getScreenConfigByScreen(config: GameConfig, screen: string): ScreenConfig {
         for (var i = 0; i < config.screens.length; ++i) {
             if (config.screens[i].screen === screen)
                 return config.screens[i];
@@ -9,15 +9,19 @@ module Game {
         return null;
     }
 
+    export function getScreenConfigByUser(config: GameConfig, user: string): ScreenConfig {
+        var numUsers = user.split(',').length;
+        for (var i = 0; i < config.screens.length; ++i) {
+            if (union(user, config.screens[i].user).length === numUsers)
+                return config.screens[i];
+        }
+        return null;
+    }
+
     export function createClient(
         game: any,
-        screen: string,
-        config: GameConfig,
+        screenConfig: ScreenConfig,
         createClientFunc: (user: string, proxy: BaseClientProxy, board: Board) => Client): Client {
-
-        var screenConfig = getScreenConfig(config, screen);
-        if (!screenConfig)
-            return null;
 
         var user = screenConfig.user;
         var proxy: BaseClientProxy = null;
@@ -135,7 +139,7 @@ module Game {
                     // for message we tell the iframe which screen to use
                     var msg = {
                         type: 'config',
-                        config: config,
+                        config: screenConfig,
                         screen: screenConfig.screen
                     }
                     iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
@@ -148,7 +152,7 @@ module Game {
             server.addProxy(proxy);
 
             if (screenConfig.transport === 'local') {
-                var client = createClient(game, screenConfig.screen, config, function(user, proxy, board) {
+                var client = createClient(game, screenConfig, function(user, proxy, board) {
                     switch (screenConfig.type) {
                         case 'bank':
                             return new BankClient(user, proxy, board);
@@ -171,12 +175,13 @@ module Game {
     }
 
     export function queryServer(setup: any, boardElem: HTMLElement) {
-        var config: any,
+        var screenConfig: ScreenConfig,
             client: Client,
-            screen: string,
-            createHumanFunc = function(user, proxy, board) {
-                return new HumanClient(user, proxy, board, boardElem);
-            };
+            screen: string;
+
+        var createHumanFunc = function(user, proxy, board) {
+            return new HumanClient(user, proxy, board, boardElem);
+        };
 
         // setup for debug server
         window.addEventListener('message', function(e) {
@@ -186,9 +191,9 @@ module Game {
 
             switch (msg.type) {
                 case 'config':
-                    config = msg.config;
+                    screenConfig = msg.config;
                     screen = msg.screen;
-                    client = createClient(setup, screen, config, createHumanFunc);
+                    client = createClient(setup, screenConfig, createHumanFunc);
                     break;
 
                 case 'broadcastCommands':
@@ -200,24 +205,24 @@ module Game {
             }
         });
 
-        // setup for web server
-        var req = new XMLHttpRequest();
-        req.onload = function() {
-            var msg = JSON.parse(this.response);
-            if ('type' in msg && msg.type === 'loveletter') {
-                config = msg.config;
-                screen = msg.screen;
-                client = createClient(setup, screen, config, createHumanFunc);
-            }
+        // // setup for web server
+        // var req = new XMLHttpRequest();
+        // req.onload = function() {
+        //     var msg = JSON.parse(this.response);
+        //     if ('type' in msg && msg.type === 'loveletter') {
+        //         config = msg.config;
+        //         screen = msg.screen;
+        //         client = createClient(setup, screen, config, createHumanFunc);
+        //     }
 
-            var proxy = < RESTClientProxy > (client ? client.getProxy() : null);
-            if (proxy && typeof proxy.pollServer === 'function')
-                proxy.pollServer();
-        };
-        req.open('GET', 'config?screen=' + screen); // this board layout
-        req.setRequestHeader('Content-Type', 'application/json');
-        try {
-            req.send(); // will fail for the iframe (debug server) version
-        } catch (e) {}
+        //     var proxy = < RESTClientProxy > (client ? client.getProxy() : null);
+        //     if (proxy && typeof proxy.pollServer === 'function')
+        //         proxy.pollServer();
+        // };
+        // req.open('GET', 'config?screen=' + screen); // this board layout
+        // req.setRequestHeader('Content-Type', 'application/json');
+        // try {
+        //     req.send(); // will fail for the iframe (debug server) version
+        // } catch (e) {}
     }
 }

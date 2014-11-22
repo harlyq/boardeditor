@@ -84,7 +84,7 @@ module SwapModule {
     // export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
 }
 
-if (typeof browserRequire === 'undefined')
+if (typeof browserRequire === 'function')
     exports = browserRequire();
 
 if (typeof exports !== 'undefined')

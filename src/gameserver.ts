@@ -123,7 +123,7 @@ module Game {
                 return false;
 
             if (batch.ruleId !== this.ruleBatch.ruleId) {
-                _error('out of sequence rule received, expecting ' + this.ruleBatch.ruleId + ' received ' + batch);
+                _error('out of sequence rule received, expecting ' + this.ruleBatch.ruleId + ' received ' + batch.ruleId);
                 return false;
             }
 

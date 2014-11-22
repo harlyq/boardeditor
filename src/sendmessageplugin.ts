@@ -7,6 +7,8 @@ interface SendMessageRule extends Game.BaseRule, Game.BaseCommand {
 }
 
 module SendMessagePlugin {
+    var Game = require('./game');
+
     export function createRule(board: Game.Board, rule: SendMessageRule): Game.BaseRule {
         return Game.extend({
             message: '',
