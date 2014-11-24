@@ -267,10 +267,6 @@ module Game {
                     self.serverResponse(this.response);
                 }
 
-                // // tell the server that we now exist
-                // this.request.open('GET', 'clientReady?user=' + this.userNames);
-                // this.request.setRequestHeader('Content-Type', 'application/json');
-                // this.request.send();
                 this.periodicPoll();
             }
         }
@@ -345,7 +341,6 @@ module Game {
 
     export class MessageServerProxy extends BaseServerProxy {
         lastRule: BaseRule = null;
-        clientReady: boolean = false;
 
         constructor(userNames: string, private iframeElem: HTMLIFrameElement, private whereList: any[], listener: ProxyListener) {
             super(userNames, listener);
@@ -356,11 +351,6 @@ module Game {
         resolveRule(rule: BaseRule): BatchCommand {
             if (!rule)
                 return;
-
-            if (!this.clientReady) {
-                this.lastRule = rule;
-                return;
-            }
 
             var msg = {
                 type: 'resolveRule',
@@ -402,11 +392,6 @@ module Game {
 
             if (msg.type === 'sendCommands')
                 this.onSendCommands(msg.batch);
-
-            if (msg.type === 'clientReady') {
-                this.clientReady = true;
-                this.resolveRule(this.lastRule);
-            }
         }
     }
 
@@ -416,10 +401,6 @@ module Game {
 
         constructor(userNames: string, private whereList: any[]) {
             super(userNames);
-
-            window.parent.postMessage(JSON.stringify({
-                type: 'clientReady'
-            }), '*');
         }
 
         sendCommands(batch: BatchCommand) {

@@ -310,11 +310,43 @@ module MovePlugin {
         resolveMove(moveRule: MoveRule, cardList: Game.Card[], fromLocations: Game.Location[], toLocations: Game.Location[]) {
             this.lastRuleId = moveRule.id;
 
-            if (fromLocations.length === 0)
-                return; // card only moves not yet supported
-
             if (toLocations.length === 0)
                 return; // move not supported for this user
+
+            var self = this;
+            if (fromLocations.length === 0) {
+                var cardElems = this.mapping.getElemsFromCards(cardList);
+
+                this.fromInteract.setElements(cardElems)
+                    .enable()
+                    .off('movestart') // clear old movestart calls
+                    .on('movestart', function(e) {
+                        // match the target's parent to get the fromElement, and then the fromLocation
+                        var j = cardElems.indexOf(e.currentTarget);
+                        if (j !== -1)
+                            var card = cardList[j];
+
+                        if (card) {
+                            // bind where to the starting 'from' location, so we filter on 'to'
+                            var validLocations = toLocations;
+
+                            // TODO where option
+                            // if (moveRule.where)
+                            //     validLocations = toLocations.filter(moveRule.where.bind(fromLocation));
+
+                            var validLocationElems = [];
+                            for (var i = 0; i < validLocations.length; ++i) {
+                                var element = self.mapping.getElemFromLocationId(validLocations[i].id);
+                                validLocationElems.push(element);
+                                self.addHighlight(element);
+                            }
+
+                            self.toInteract.setElements(validLocationElems).enable();
+                        }
+                    });
+
+                return;
+            }
 
             var fromElements = [];
             for (var i = 0; i < fromLocations.length; ++i) {
@@ -324,7 +356,6 @@ module MovePlugin {
                 fromElements.push(element); // may push null
             }
 
-            var self = this;
             this.fromInteract.setElements('.' + this.CLASS_HIGHLIGHT + ' > .card')
                 .enable()
                 .off('movestart') // clear old movestart calls
