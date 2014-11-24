@@ -55,14 +55,20 @@ Game.addGameConfig(config);
 //     res.sendFile(__dirname + '/client.html');
 // });
 
-app.get('/moves', function(req, res) {
-    var userNames = req.param('userNames');
-    var afterId = req.param('afterId');
-    console.log('/moves?userNames=' + userNames + '&afterId=' + afterId);
+app.get('/message', function(req, res) {
+    var user = req.param('user'),
+        proxies = server.getProxies(user);
 
-    var proxies = server.getProxies(userNames);
     for (var i = 0; i < proxies.length; ++i)
-        res.send(JSON.stringify(proxies[i].clientRequest(afterId)));
+        res.send(JSON.stringify(proxies[i].onGet(req, res)));
+});
+
+app.post('/message', function(req, res) {
+    var user = req.param('user'),
+        proxies = server.getProxies(user);
+
+    for (var i = 0; i < proxies.length; ++i)
+        proxies[i].onPost(req, res);
 });
 
 
@@ -115,18 +121,18 @@ app.post('/addUser', function(req, res) {
     console.log('added player - ' + k + ' [' + userKey + ']');
 });
 
-app.post('/new', function(req, res) {
-    var userNames = req.param('userNames');
-    console.log('/new?userNames=' + userNames);
-    console.log(req.body);
+// app.post('/new', function(req, res) {
+//     var userNames = req.param('userNames');
+//     console.log('/new?userNames=' + userNames);
+//     console.log(req.body);
 
-    // var proxy = server.getProxy(user);
-    // if (proxy)
-    //     proxy.updateCommands(req.body);
-    server.onSendCommands(req.body);
+//     // var proxy = server.getTransport(user);
+//     // if (proxy)
+//     //     proxy.updateCommands(req.body);
+//     server.onSendCommands(req.body);
 
-    // TODO send a response;
-});
+//     // TODO send a response;
+// });
 
 app.get('/config', function(req, res) {
     var screen = req.param('screen');

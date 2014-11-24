@@ -5,7 +5,7 @@ module Game {
         screen: string; // board for this user (html name)
         //mode: string; // shared | networked | pass-n-play
         transport: string; // message, REST, local
-        //proxy: BaseClientProxy;
+        //proxy: BaseTransport;
         iframe ? : string; // iframe for message transport
         user: string; // comma separated list of users that will use this screen
         type: string; // type of user using this board - human, bank, ai, passnplay

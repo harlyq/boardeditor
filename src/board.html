@@ -122,7 +122,7 @@
 
             case 'broadcastCommands':
             case 'resolveRule':
-                var proxy = Game.getClientProxy(myConfig, 'common', msg.userNames);
+                var proxy = Game.getClientTransport(myConfig, 'common', msg.userNames);
                 if (proxy && typeof proxy.onServerMessage === 'function')
                     proxy.onServerMessage(msg);
                 break;

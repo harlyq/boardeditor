@@ -301,7 +301,7 @@ declare module Game {
         // load(obj: any);
     }
 
-    // export interface ProxyListener {
+    // export interface TransportListener {
     //     // client listener's support
     //     onResolveRule ? : (rule: BaseRule) => BatchCommand;
     //     onBroadcastCommands ? : (batch: BatchCommand) => void;
@@ -311,8 +311,8 @@ declare module Game {
     //     getUser: () => string;
     // }
 
-    export class Client /*implements ProxyListener*/ {
-        // getProxy(): BaseClientProxy;
+    export class Client /*implements TransportListener*/ {
+        // getTransport(): BaseTransport;
         getBoard(): Board;
         getUser(): string;
         sendUserCommands(ruleId: number, commands: BaseCommand[]);

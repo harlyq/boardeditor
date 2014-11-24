@@ -86,7 +86,7 @@ module PickPlugin {
             case 'pickLocation':
             case 'pickCard':
                 if (client instanceof Game.HTMLClient)
-                // don't build results, they will sent via Proxy.sendCommand()
+                // don't build results, they will sent via Transport.sendCommand()
                     new HTMLPick( < Game.HTMLClient > client, < PickRule > rule);
                 else
                     findValidPickCommands(client.getBoard(), < PickRule > rule, results);

@@ -51,7 +51,7 @@ app.post('/new', function(req, res) {
     console.log('/new?userNames=' + userNames);
     console.log(req.body);
 
-    // var proxy = server.getProxy(user);
+    // var proxy = server.getTransport(user);
     // if (proxy)
     //     proxy.updateCommands(req.body);
     server.onSendCommands(req.body);

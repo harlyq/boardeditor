@@ -1,18 +1,22 @@
 /// <reference path="_dependencies.ts" />
 module Game {
 
+    export enum StepStatus {
+        Ready, Complete, Error
+    }
+
     // server has perfect knowledge of the game.  validates all moves.
-    export class GameServer implements ProxyListener {
+    export class GameServer {
         private board: Board = new Board();
         private rulesIter: any;
-        private proxies: BaseServerProxy[] = [];
+        private proxies: BaseTransport[] = [];
         private ruleUsers: string[] = [];
         private ruleBatch: BatchCommand = {
             ruleId: -1,
             commands: {}
         };
+        private inNewGame: boolean = false;
         public config: GameConfig = null;
-        public gameId: number = -1;
 
         rulesGen: (board: Board) => {
             next(...args: any[]): any
@@ -23,21 +27,21 @@ module Game {
         setupFunc: (board: Board) => void;
         whereList: any[] = [];
 
-        addProxy(proxy: BaseServerProxy) {
+        addTransport(proxy: BaseTransport) {
             this.proxies.push(proxy);
         }
 
-        removeProxy(proxy: BaseServerProxy) {
+        removeTransport(proxy: BaseTransport) {
             var i = this.proxies.indexOf(proxy);
             if (i !== -1)
                 this.proxies.splice(i, 1);
         }
 
-        getProxies(userNames: string): BaseServerProxy[] {
+        getProxies(userNames: string): BaseTransport[] {
             var inputNames = userNames.split(',');
-            var proxies: BaseServerProxy[] = [];
+            var proxies: BaseTransport[] = [];
             for (var i = 0; i < this.proxies.length; ++i) {
-                if (union(this.proxies[i].userNames, inputNames).length > 0)
+                if (union(this.proxies[i].user, inputNames).length > 0)
                     proxies.push(this.proxies[i]); // at least one of the users is in this proxy
             }
             return proxies;
@@ -54,68 +58,50 @@ module Game {
             if (typeof this.newGameGen === 'function')
                 this.rulesIter = this.newGameGen(this.board);
 
+            this.inNewGame = true;
             this.step(); // don't have user rules in the newGame!!!
-
-            if (typeof this.rulesGen === 'function')
-                this.rulesIter = this.rulesGen(this.board);
-
-            this.step();
         }
 
-        step(nextValue ? : any): boolean {
+        step(nextValue ? : any): StepStatus {
             if (!('next' in this.rulesIter))
-                return;
+                return StepStatus.Error;
 
-            do {
-                var result = this.rulesIter.next(nextValue); // step into rules
-                if (result.done) {
-                    console.log('RULES COMPLETE');
-                    return true;
-                }
+            var result = this.rulesIter.next(nextValue); // step into rules
+            if (result.done) {
+                console.log('RULES COMPLETE');
+                return StepStatus.Complete;
+            }
 
-                var nextRule: BaseRule = result.value;
-                if (!nextRule) {
-                    _error('game rules yielded an empty rule');
-                    continue; // continue tracing to see which yield was incorrect
-                }
+            var nextRule: BaseRule = result.value;
+            if (!nextRule) {
+                _error('game rules yielded an empty rule');
+                return StepStatus.Error;
+            }
 
-                console.log(nextRule);
+            console.log(nextRule);
 
-                this.ruleBatch = {
-                    ruleId: nextRule.id,
-                    commands: {}
-                };
-                if (!nextRule.user)
-                    _error('there is no user in the rule - ' + nextRule);
+            this.ruleBatch = {
+                ruleId: nextRule.id,
+                commands: {}
+            };
+            if (!nextRule.user)
+                _error('there is no user in the rule - ' + nextRule);
 
-                this.ruleUsers = nextRule.user.split(',');
+            this.ruleUsers = nextRule.user.split(',');
 
-                var userProxies = this.getProxies(nextRule.user);
-                if (userProxies.length === 0) {
-                    _error('user does not have proxy - ' + nextRule.user);
-                    return false; // this.error('User does not have a proxy')
-                }
+            var userProxies = this.getProxies(nextRule.user);
+            if (userProxies.length === 0) {
+                _error('user does not have proxy - ' + nextRule.user);
+                return StepStatus.Error; // this.error('User does not have a proxy')
+            }
 
-                // concatenate all commands, there may be multiple commands from multiple proxies
-                var commands: {
-                    [user: string]: BaseCommand[]
-                } = {};
+            for (var i = 0; i < userProxies.length; ++i)
+                userProxies[i].sendMessage({
+                    command: 'rule',
+                    rule: nextRule
+                });
 
-                for (var i = 0; i < userProxies.length; ++i) {
-                    var localBatch = userProxies[i].resolveRule(nextRule);
-                    if (localBatch)
-                        extend(commands, localBatch.commands);
-                }
-
-                nextValue = {};
-                var allResponded = this.handleCommands({
-                    ruleId: nextRule.id,
-                    commands: commands
-                }, nextValue);
-
-            } while (allResponded) // while we're not waiting for commands
-
-            return true;
+            return StepStatus.Ready;
         }
 
         private handleCommands(batch: BatchCommand, nextValue): boolean {
@@ -166,7 +152,10 @@ module Game {
             }
 
             for (var i = 0; i < this.proxies.length; ++i)
-                this.proxies[i].broadcastCommands(batch);
+                this.proxies[i].sendMessage({
+                    command: 'batch',
+                    batch: batch
+                });
 
             this.board.print();
 
@@ -174,10 +163,22 @@ module Game {
         }
 
         // server only supports sendCommands
-        onSendCommands(batch: BatchCommand) {
+        onHandleMessage(msg: any) {
+            if (!('command' in msg) || !('batch' in msg) || msg.command !== 'batch') {
+                debugger; // unknown command
+                return;
+            }
+
             var nextValue = {};
-            if (this.handleCommands(batch, nextValue))
-                this.step(nextValue);
+            if (this.handleCommands(msg.batch, nextValue)) {
+                if (this.step(nextValue) === StepStatus.Complete && this.inNewGame) {
+                    if (typeof this.rulesGen === 'function') {
+                        this.rulesIter = this.rulesGen(this.board);
+                        this.step();
+                    }
+                    this.inNewGame = false;
+                }
+            }
         }
 
         getUser(): string {

@@ -2,23 +2,32 @@
 
 module Game {
     //-------------------------------
-    export class Client implements ProxyListener {
+    export class Client {
+        private transport: BaseTransport = null;
         private localVariables: {
             [name: string]: any
         } = {};
+        /*protected*/
+        mapping: HTMLMapping = null;
         showMoves: boolean = true;
         whereList: any[] = [];
 
-        constructor(public user: string, public proxy: BaseClientProxy, public board: Board) {
-            proxy.addListener(this);
+        constructor(public user: string, public board: Board) {}
+
+        setTransport(transport: BaseTransport) {
+            this.transport = transport;
         }
 
         getBoard(): Board {
             return this.board;
         }
 
-        getProxy(): BaseClientProxy {
-            return this.proxy;
+        getTransport(): BaseTransport {
+            return this.transport;
+        }
+
+        getMapping(): HTMLMapping {
+            return this.mapping;
         }
 
         getUser(): string {
@@ -35,11 +44,33 @@ module Game {
             this.localVariables[name] = value;
         }
 
-        onResolveRule(rule: BaseRule): BatchCommand {
-            // if a rule cannot be resolved, then cast the rule as a single command
-            return createBatchCommand(rule.id, this.user, [ < BaseCommand > rule]);
+        onHandleMessage(msg: any) {
+            if (!('command' in msg))
+                return;
+
+            switch (msg.command) {
+                case 'rule':
+                    var commands = this.onResolveRule(msg.rule);
+                    if (commands)
+                        this.sendUserCommands(msg.rule.id, commands);
+                    break;
+
+                case 'batch':
+                    this.onBroadcastCommands(msg.batch);
+                    break;
+
+                default:
+                    _error('client - ' + this.user + ' - received unknown command - ' + msg.command);
+            }
         }
 
+        /* protected */
+        onResolveRule(rule: BaseRule): BaseCommand[] {
+            // if a rule cannot be resolved, then cast the rule as a single command
+            return [ < BaseCommand > rule];
+        }
+
+        /* protected */
         onBroadcastCommands(batch: BatchCommand) {
             for (var k in batch.commands) {
                 var commands = batch.commands[k];
@@ -59,42 +90,25 @@ module Game {
         }
 
         sendUserCommands(ruleId: number, commands: BaseCommand[]) {
-            this.proxy.sendCommands(createBatchCommand(ruleId, this.user, commands));
+            this.transport.sendMessage({
+                command: 'batch',
+                batch: createBatchCommand(ruleId, this.user, commands)
+            });
         }
     }
 
-
-    //-------------------------------
-    export class HTMLClient extends Client {
-        public mapping: HTMLMapping;
-
-        constructor(user: string, proxy: BaseClientProxy, board: Board, public boardElem: HTMLElement) {
-            super(user, proxy, board);
-
-            // use the board to establish an initial mapping and configuration of the boardElem
-            this.mapping = new HTMLMapping(board, user, boardElem);
-        }
-
-        getMapping(): HTMLMapping {
-            return this.mapping;
-        }
-
-        getBoardElem(): HTMLElement {
-            return this.boardElem;
-        }
-    }
 
     //-------------------------------
     export class BankClient extends Client {
 
-        onResolveRule(rule: BaseRule): BatchCommand {
+        onResolveRule(rule: BaseRule): BaseCommand[] {
             var results = []
             for (var i in plugins) {
                 var performRule = plugins[i].performRule;
                 if (typeof performRule === 'function' && performRule(this, rule, results)) {
                     if (results.length > 0) {
                         var commands = results[~~(Math.random() * results.length)]; // pick a random option
-                        return createBatchCommand(rule.id, this.user, commands);
+                        return commands;
                     } else {
                         console.log('user - ' + this.getUser() + ' waiting for plugin - ' + i + ' - for rule - ' + rule.type);
                         return null;
@@ -106,9 +120,20 @@ module Game {
         }
     }
 
-    export class HumanClient extends HTMLClient {
+    //-------------------------------
+    export class HTMLClient extends Client {
+        constructor(user: string, board: Board, public boardElem: HTMLElement) {
+            super(user, board);
 
-        onResolveRule(rule: BaseRule): BatchCommand {
+            // use the board to establish an initial mapping and configuration of the boardElem
+            this.mapping = new HTMLMapping(board, user, boardElem);
+        }
+
+        getBoardElem(): HTMLElement {
+            return this.boardElem;
+        }
+
+        onResolveRule(rule: BaseRule): BaseCommand[] {
             if (!rule.type)
                 _error('no type specified in rule - ' + rule);
 
@@ -117,7 +142,7 @@ module Game {
                 var performRule = plugins[i].performRule;
                 if (typeof performRule === 'function' && performRule(this, rule, results)) {
                     if (results.length > 0) {
-                        return createBatchCommand(rule.id, this.user, results[0]); // first option
+                        return results[0]; // first option
                     } else {
                         console.log('user - ' + this.getUser() + ' waiting for plugin - ' + i + ' - for rule - ' + rule.type);
                         return null;

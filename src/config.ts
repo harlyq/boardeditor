@@ -18,98 +18,46 @@ module Game {
         return null;
     }
 
-    export function createClient(
-        game: any,
-        screenConfig: ScreenConfig,
-        createClientFunc: (user: string, proxy: BaseClientProxy, board: Board) => Client): Client {
+    export function createClient(game: any, screenConfig: ScreenConfig, boardElem: HTMLElement): Client {
+        var board = new Board(),
+            user = screenConfig.user,
+            client = null,
+            proxy = null;
 
-        var user = screenConfig.user;
-        var proxy: BaseClientProxy = null;
+        game.setupFunc(board);
+
+        switch (screenConfig.type) {
+            case 'human':
+                client = new HTMLClient(user, board, boardElem);
+                break;
+
+            case 'ai':
+                client = new AIClient(user, board);
+                break;
+
+            case 'bank':
+                client = new BankClient(user, board);
+                break;
+        }
+        if (!client)
+            return null; // unable to create client
 
         switch (screenConfig.transport) {
             case 'REST':
-                proxy = createRESTClientProxy(user, game.whereList);
+                proxy = createRESTClientTransport(user, client.onHandleMessage.bind(client));
                 break;
 
             case 'local':
-                proxy = createLocalClientProxy(user);
+                proxy = createLocalClientTransport(user, client.onHandleMessage.bind(client));
                 break;
 
             case 'message':
-                proxy = createMessageClientProxy(user, game.whereList);
+                proxy = createMessageClientTransport(user, window.parent, client.onHandleMessage.bind(client));
                 break;
         }
-        if (!proxy)
-            return null;
-
-        var board = new Board();
-        game.setupFunc(board);
-
-        var client = createClientFunc(user, proxy, board);
-        // screenConfig.client = client;
+        client.setTransport(proxy);
 
         return client;
-
-        // proxy.setup(game.setupFunc);
-        // screenConfig.proxy = proxy;
-
-        // for (var i = 0; i < numPlayers; ++i) {
-        //     var user = users[i],
-        //         client: Client = null,
-        //         board = new Board();
-
-        //     game.setupFunc(board);
-
-        //     switch (user.type) {
-        //         case 'AI':
-        //             break;
-
-        //         case 'Human':
-        //             break;
-
-        //         case 'BANK':
-        //             break;
-        //     }
-
-        //     if (user.type in createClientFunc)
-        //         client = createClientFunc[user.type](user.name, proxy, board);
-
-        //     user.client = client;
-
-        //     if (!client)
-        //         continue; // client type not supported
-
-        //     proxy.addListener(client);
-
-        //     if (screenConfig.mode !== 'shared') {
-        //         // every client gets a me value centered around them
-        //         client.setLocalVariable('me', user.me);
-        //         for (var j = 0; j < numPlayers; ++j) {
-        //             if (j === i)
-        //                 continue;
-
-        //             if (j > i) {
-        //                 client.setLocalVariable('me+' + (j - i), users[j].me);
-        //                 client.setLocalVariable('me-' + (i + numPlayers - j), users[j].me);
-        //             } else {
-        //                 client.setLocalVariable('me+' + (j + numPlayers - i), users[j].me);
-        //                 client.setLocalVariable('me-' + (i - j), users[j].me);
-        //             }
-        //         }
-        //     } else {
-        //         // every client gets the same me value (that of the first client)
-        //         for (var j = 0; j < numPlayers; ++j) {
-        //             if (j === 0) {
-        //                 client.setLocalVariable('me', users[j].me);
-        //             } else {
-        //                 client.setLocalVariable('me+' + j, users[j].me);
-        //                 client.setLocalVariable('me-' + (numPlayers - j), users[j].me);
-        //             }
-        //         }
-        //     }
-
-        //     client.setup();
-        // }
     }
 
     export function createServer(game: any, config: GameConfig): GameServer {
@@ -121,20 +69,20 @@ module Game {
                 continue;
 
             var user = screenConfig.user;
-            var proxy: BaseServerProxy = null;
+            var proxy: BaseTransport = null;
 
             switch (screenConfig.transport) {
                 case 'REST':
-                    proxy = Game.createRESTServerProxy(user, game.whereList, server);
+                    proxy = Game.createRESTServerTransport(user, server.onHandleMessage.bind(server));
                     break;
 
                 case 'local':
-                    proxy = Game.createLocalServerProxy(user, server);
+                    proxy = Game.createLocalServerTransport(user, server.onHandleMessage.bind(server));
                     break;
 
                 case 'message':
                     var iframe = < HTMLIFrameElement > (document.getElementById(screenConfig.iframe));
-                    proxy = Game.createMessageServerProxy(user, iframe, game.whereList, server);
+                    proxy = Game.createMessageServerTransport(user, iframe.contentWindow, server.onHandleMessage.bind(server));
 
                     // for message we tell the iframe which screen to use
                     var msg = {
@@ -149,22 +97,11 @@ module Game {
             if (!proxy)
                 continue;
 
-            server.addProxy(proxy);
+            server.addTransport(proxy);
 
-            if (screenConfig.transport === 'local') {
-                var client = createClient(game, screenConfig, function(user, proxy, board) {
-                    switch (screenConfig.type) {
-                        case 'bank':
-                            return new BankClient(user, proxy, board);
-                            break;
-                        case 'AI':
-                            return new AIClient(user, proxy, board);
-                            break;
-                    }
-                    return null;
-                });
-                // screenConfig.client = client;
-            }
+            // start all local clients
+            if (screenConfig.transport === 'local')
+                var client = createClient(game, screenConfig, null);
         }
 
         server.config = config;
@@ -179,10 +116,6 @@ module Game {
             client: Client,
             screen: string;
 
-        var createHumanFunc = function(user, proxy, board) {
-            return new HumanClient(user, proxy, board, boardElem);
-        };
-
         // setup for debug server
         window.addEventListener('message', function(e) {
             var msg = JSON.parse(e.data);
@@ -193,36 +126,16 @@ module Game {
                 case 'config':
                     screenConfig = msg.config;
                     screen = msg.screen;
-                    client = createClient(setup, screenConfig, createHumanFunc);
+                    client = createClient(setup, screenConfig, boardElem);
                     break;
 
                 case 'broadcastCommands':
                 case 'resolveRule':
-                    var proxy = < MessageClientProxy > (client ? client.getProxy() : null);
-                    if (proxy && typeof proxy.onServerMessage === 'function')
-                        proxy.onServerMessage(msg);
+                    var proxy = < MessageTransport > (client ? client.getTransport() : null);
+                    if (proxy)
+                        proxy.sendMessage(msg);
                     break;
             }
         });
-
-        // // setup for web server
-        // var req = new XMLHttpRequest();
-        // req.onload = function() {
-        //     var msg = JSON.parse(this.response);
-        //     if ('type' in msg && msg.type === 'loveletter') {
-        //         config = msg.config;
-        //         screen = msg.screen;
-        //         client = createClient(setup, screen, config, createHumanFunc);
-        //     }
-
-        //     var proxy = < RESTClientProxy > (client ? client.getProxy() : null);
-        //     if (proxy && typeof proxy.pollServer === 'function')
-        //         proxy.pollServer();
-        // };
-        // req.open('GET', 'config?screen=' + screen); // this board layout
-        // req.setRequestHeader('Content-Type', 'application/json');
-        // try {
-        //     req.send(); // will fail for the iframe (debug server) version
-        // } catch (e) {}
     }
 }
