@@ -14,7 +14,7 @@ module DelayPlugin {
         }, board.createRule('delay'))
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: Game.BatchCommand[]) {
         if (rule.type !== 'delay')
             return false;
 

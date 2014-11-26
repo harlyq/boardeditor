@@ -7,7 +7,7 @@ module Game {
 
     // server has perfect knowledge of the game.  validates all moves.
     export class GameServer {
-        private board: Board = new Board();
+        private board: Board = null;
         private rulesIter: any;
         private proxies: BaseTransport[] = [];
         private ruleUsers: string[] = [];
@@ -16,6 +16,7 @@ module Game {
             commands: {}
         };
         private inNewGame: boolean = false;
+        private bankClient: BankClient = null;
         public config: GameConfig = null;
 
         rulesGen: (board: Board) => {
@@ -47,22 +48,27 @@ module Game {
             return proxies;
         }
 
-        setup() {
-            if (typeof this.setupFunc === 'function')
-                this.setupFunc(this.board);
+        setBankClient(client: BankClient) {
+            this.bankClient = client;
+            this.board = client.getBoard();
+        }
 
-            this.board.print();
+        getBankClient(): BankClient {
+            return this.bankClient;
         }
 
         newGame() {
-            if (typeof this.newGameGen === 'function')
-                this.rulesIter = this.newGameGen(this.board);
+            if (typeof this.rulesGen === 'function')
+                this.rulesIter = this.rulesGen(this.board);
 
-            this.inNewGame = true;
+            // this.inNewGame = true;
             this.step(); // don't have user rules in the newGame!!!
         }
 
-        step(nextValue ? : any): StepStatus {
+        step(nextValue ? : {
+            [user: string]: BaseResult[]
+        }): StepStatus {
+
             if (!('next' in this.rulesIter))
                 return StepStatus.Error;
 
@@ -104,7 +110,10 @@ module Game {
             return StepStatus.Ready;
         }
 
-        private handleCommands(batch: BatchCommand, nextValue): boolean {
+        private handleCommands(batch: BatchCommand, nextValue: {
+            [user: string]: BaseResult[]
+        }): boolean {
+
             if (!batch)
                 return false;
 
@@ -114,10 +123,10 @@ module Game {
             }
 
             if (!batch.commands)
-                return;
+                return false;
 
-            for (var k in batch.commands) {
-                if (typeof this.ruleBatch.commands[k] !== 'undefined') {
+            for (var user in batch.commands) {
+                if (typeof this.ruleBatch.commands[user] !== 'undefined') {
                     _error('command received twice from user ' + i);
                     return false;
                 }
@@ -130,31 +139,15 @@ module Game {
             if (union(this.ruleUsers, responders).length !== this.ruleUsers.length)
                 return false; // waiting for responses
 
-            for (var k in batch.commands) {
-                var commands = batch.commands[k];
-
-                for (var i = 0; i < commands.length; ++i) {
-
-                    for (var j in plugins) {
-                        var updateBoard = plugins[j].updateBoard;
-                        var results = [];
-                        if (typeof updateBoard === 'function' && updateBoard(this.board, commands[i], results)) {
-                            if (results.length > 0) {
-                                if (!(k in nextValue))
-                                    nextValue[k] = [];
-
-                                [].push.apply(nextValue[k], results);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
+            // determine the nextValue before we send the batch to each of the proxies and 
+            // they update their boards
+            for (var user in batch.commands)
+                nextValue[user] = this.bankClient.createResults(batch.commands[user]);
 
             for (var i = 0; i < this.proxies.length; ++i)
                 this.proxies[i].sendMessage({
                     command: 'batch',
-                    batch: batch
+                    batch: this.ruleBatch
                 });
 
             this.board.print();
@@ -169,16 +162,13 @@ module Game {
                 return;
             }
 
-            var nextValue = {};
-            if (this.handleCommands(msg.batch, nextValue)) {
-                if (this.step(nextValue) === StepStatus.Complete && this.inNewGame) {
-                    if (typeof this.rulesGen === 'function') {
-                        this.rulesIter = this.rulesGen(this.board);
-                        this.step();
-                    }
-                    this.inNewGame = false;
-                }
-            }
+            var nextValue: {
+                [user: string]: BaseResult[]
+            } = {};
+            if (!this.handleCommands(msg.batch, nextValue))
+                return; // commands from other users are pending
+
+            var status = this.step(nextValue);
         }
 
         getUser(): string {

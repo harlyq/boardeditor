@@ -13,6 +13,10 @@ interface PickCommand extends Game.BaseCommand {
     values: any[]; // picked items
 }
 
+interface PickResult extends Game.BaseResult {
+    values: any[]; // picked items, Game.Locations or Game.Cards
+}
+
 module PickPlugin {
     var Game = require('./game');
     var PluginHelper = require('./pluginhelper');
@@ -59,28 +63,34 @@ module PickPlugin {
         });
     }
 
-    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
-        var pickCommand = < PickCommand > command;
+    // export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+
+    export function createResult(client: Game.BaseClient, command: Game.BaseCommand): Game.BaseResult {
+        var pickCommand = < PickCommand > command,
+            board = client.getBoard();
 
         switch (command.type) {
             case 'pick':
-                [].push.apply(results, pickCommand.values);
-                return true;
+                return {
+                    values: pickCommand.values
+                };
 
             case 'pickLocation':
-                [].push.apply(results, board.queryLocations(pickCommand.values.join(',')));
-                return true;
+                return {
+                    values: board.queryLocations(pickCommand.values.join(','))
+                };
 
             case 'pickCard':
-                [].push.apply(results, board.queryCards(pickCommand.values.join(',')));
-                return true;
+                return {
+                    values: board.queryCards(pickCommand.values.join(','))
+                };
         }
 
-        return false;
+        return undefined;
     }
 
     // returns an array of valid BatchCommands
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean {
         switch (rule.type) {
             case 'pick':
             case 'pickLocation':

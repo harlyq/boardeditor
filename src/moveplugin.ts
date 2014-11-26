@@ -22,6 +22,13 @@ interface MoveCommand extends Game.BaseCommand {
     index: number;
 }
 
+interface MoveResult extends Game.BaseResult {
+    card: Game.Card;
+    from: Game.Location;
+    to: Game.Location;
+    index: number;
+}
+
 module MovePlugin {
     var Game = require('./game');
     var PluginHelper = require('./pluginhelper');
@@ -49,7 +56,7 @@ module MovePlugin {
         return newRule;
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean {
         if (rule.type !== 'move')
             return false;
 
@@ -76,31 +83,44 @@ module MovePlugin {
         return true;
     }
 
-    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
+    export function createResult(client: Game.BaseClient, command: Game.BaseCommand): Game.BaseResult {
         if (command.type !== 'move')
-            return false;
+            return undefined;
 
-        var moveCommand = < MoveCommand > command;
-        var from = board.findLocationById(moveCommand.fromId);
-        var to = board.findLocationById(moveCommand.toId);
-        var card = board.findCardById(moveCommand.cardId);
-        to.insertCard(card, moveCommand.index);
+        var moveCommand = < MoveCommand > command,
+            board = client.getBoard(),
+            from = board.findLocationById(moveCommand.fromId),
+            to = board.findLocationById(moveCommand.toId),
+            card = board.findCardById(moveCommand.cardId);
 
-        results.push({
+        if (!from && card)
+            from = card.location;
+
+        return <MoveResult > {
             from: from,
             to: to,
             card: card,
             index: moveCommand.index
-        });
-        return true;
+        };
     }
 
-    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'move')
-            return;
+            return false;
 
         var moveCommand = < MoveCommand > command,
-            cardElem = mapping.getElemFromCardId(moveCommand.cardId),
+            board = client.getBoard(),
+            from = board.findLocationById(moveCommand.fromId),
+            to = board.findLocationById(moveCommand.toId),
+            card = board.findCardById(moveCommand.cardId);
+
+        to.insertCard(card, moveCommand.index);
+
+        var mapping = client.getMapping();
+        if (!mapping)
+            return true; // command understood but no mapping features
+
+        var cardElem = mapping.getElemFromCardId(moveCommand.cardId),
             fromElem = mapping.getElemFromLocationId(moveCommand.fromId),
             toElem = mapping.getElemFromLocationId(moveCommand.toId);
 

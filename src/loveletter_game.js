@@ -18,10 +18,21 @@
         COUNTESS = 7,
         PRINCESS = 8;
 
-    function getFirstEntry(obj) {
+    function getFirstMove(obj) {
         for (var k in obj) {
             if (obj[k].length > 0)
                 return obj[k][0];
+        }
+        return null;
+    }
+
+    function getFirstPick(obj) {
+        for (var k in obj) {
+            if (obj[k].length > 0) {
+                var result = obj[k][0];
+                if (result.values.length > 0)
+                    return result.values[0];
+            }
         }
         return null;
     }
@@ -37,6 +48,8 @@
     }
 
     setup.rulesGen = function*(board) {
+        yield * this.newGameGen(board);
+
         var winner = -1;
         while (winner === -1) {
             yield * startRound(board);
@@ -145,7 +158,7 @@
                     });
             }
 
-            var card = getFirstEntry(moves).card;
+            var card = getFirstMove(moves).card;
             yield * cardAction(board, card);
 
             currentPlayer = allPlayers.next(currentPlayer);
@@ -222,7 +235,7 @@
                         list: board.queryCards('.cardType'),
                         user: userNames[currentPlayer]
                     });
-                var value = getFirstEntry(pickedType).getVariable('value');
+                var value = getFirstPick(pickedType).getVariable('value');
 
                 yield board.waitLabel({
                     key: 'picktype',
@@ -237,7 +250,7 @@
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var name = getFirstEntry(pickedLocations).name;
+                var name = getFirstPick(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
 
                 var pickedHand = board.queryFirstLocation('hand' + pickedPlayer);
@@ -255,7 +268,7 @@
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var name = getFirstEntry(pickedLocations).name;
+                var name = getFirstPick(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 var pickedHand = 'hand' + pickedPlayer;
                 var cards = board.queryFirstLocation(pickedHand).getCards();
@@ -281,7 +294,7 @@
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var name = getFirstEntry(pickedLocations).name;
+                var name = getFirstPick(pickedLocations).name;
                 var otherPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
                 var myHand = board.queryFirstLocation('hand' + currentPlayer);
                 var myCard = myHand.getCardByIndex(0);
@@ -329,7 +342,7 @@
                         list: allHands,
                         user: userNames[currentPlayer]
                     });
-                var name = getFirstEntry(pickedLocations).name;
+                var name = getFirstPick(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
 
                 var discarded =
@@ -338,7 +351,7 @@
                         to: 'discard' + pickedPlayer,
                         quantity: Game.Quantity.All
                     });
-                var discardedCard = getFirstEntry(discarded).card;
+                var discardedCard = getFirstMove(discarded).card;
                 yield * checkDiscarded(board, pickedPlayer, discardedCard);
 
                 // if the pickedPlayer discarded the PRINCESS then they are instantly out of 
@@ -361,7 +374,7 @@
                         list: otherPlayers,
                         user: userNames[currentPlayer]
                     });
-                var name = getFirstEntry(pickedLocations).name;
+                var name = getFirstPick(pickedLocations).name;
                 var pickedPlayer = parseInt(name.match(/(\d+)$/)[0], 10);
 
                 yield board.waitSwap({

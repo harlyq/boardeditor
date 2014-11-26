@@ -2,9 +2,9 @@
 module Game {
     export interface PluginInfo {
         createRule: (...args: any[]) => Game.BaseRule;
-        performRule: (client: Game.Client, rule: Game.BaseRule, results: any[]) => boolean;
-        updateBoard ? : (board: Game.Board, command: Game.BaseCommand, results: any[]) => any;
-        updateHTML ? : (mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
+        performRule ? : (client: Game.BaseClient, rule: Game.BaseRule, results: any[]) => boolean;
+        createResult ? : (client: Game.BaseClient, command: Game.BaseCommand) => any;
+        updateBoard ? : (client: Game.BaseClient, command: Game.BaseCommand, results: any[]) => boolean;
     };
 
     export var plugins: {

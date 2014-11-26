@@ -22,12 +22,14 @@ module ShufflePlugin {
         }, board.createRule('shuffle'));
     }
 
-    export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {
+    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'shuffle')
             return false;
 
-        var shuffleCommand = < ShuffleCommand > command;
-        var location = board.findLocationById(shuffleCommand.locationId);
+        var shuffleCommand = < ShuffleCommand > command,
+            board = client.getBoard(),
+            location = board.findLocationById(shuffleCommand.locationId);
+
         Math.seedrandom(shuffleCommand.seed);
         if (location)
             location.shuffle();
@@ -35,7 +37,7 @@ module ShufflePlugin {
         return true;
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]) {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]) {
         if (rule.type !== 'shuffle')
             return false;
 

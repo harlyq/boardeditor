@@ -2,14 +2,13 @@
 
 module Game {
     //-------------------------------
-    export class Client {
+    export class BaseClient {
         private transport: BaseTransport = null;
         private localVariables: {
             [name: string]: any
         } = {};
         /*protected*/
         mapping: HTMLMapping = null;
-        showMoves: boolean = true;
         whereList: any[] = [];
 
         constructor(public user: string, public board: Board) {}
@@ -44,6 +43,26 @@ module Game {
             this.localVariables[name] = value;
         }
 
+        createResults(commands: BaseCommand[]): BaseResult[] {
+            var results = [];
+            for (var i = 0; i < commands.length; ++i) {
+                var command = commands[i];
+
+                for (var j in plugins) {
+                    var createResult = plugins[j].createResult;
+                    if (typeof createResult === 'function') {
+                        var result = createResult(this, command);
+                        if (result) {
+                            results.push(result);
+                            break; // for (plugins)
+                        }
+                    }
+                }
+            }
+
+            return results;
+        }
+
         onHandleMessage(msg: any) {
             if (!('command' in msg))
                 return;
@@ -72,8 +91,8 @@ module Game {
 
         /* protected */
         onBroadcastCommands(batch: BatchCommand) {
-            for (var k in batch.commands) {
-                var commands = batch.commands[k];
+            for (var user in batch.commands) {
+                var commands = batch.commands[user];
 
                 for (var i = 0; i < commands.length; ++i) {
                     var command = commands[i];
@@ -82,7 +101,7 @@ module Game {
 
                     for (var j in plugins) {
                         var updateBoard = plugins[j].updateBoard;
-                        if (typeof updateBoard === 'function' && updateBoard(this.board, command, []))
+                        if (typeof updateBoard === 'function' && updateBoard(this, command, []))
                             break;
                     }
                 }
@@ -99,7 +118,7 @@ module Game {
 
 
     //-------------------------------
-    export class BankClient extends Client {
+    export class BankClient extends BaseClient {
 
         onResolveRule(rule: BaseRule): BaseCommand[] {
             var results = []
@@ -121,7 +140,7 @@ module Game {
     }
 
     //-------------------------------
-    export class HTMLClient extends Client {
+    export class HTMLClient extends BaseClient {
         constructor(user: string, board: Board, public boardElem: HTMLElement) {
             super(user, board);
 
@@ -152,33 +171,10 @@ module Game {
 
             return super.onResolveRule(rule);
         }
-
-        onBroadcastCommands(batch: BatchCommand) {
-            super.onBroadcastCommands(batch);
-
-            // if (this.mapping.lastRuleId >= batch.ruleId)
-            //     return;
-
-            for (var k in batch.commands) {
-                var commands = batch.commands[k];
-
-                for (var j = 0; j < commands.length; ++j) {
-                    var command = commands[j];
-
-                    for (var i in plugins) {
-                        var updateHTML = plugins[i].updateHTML;
-                        if (typeof updateHTML === 'function')
-                            updateHTML(this.mapping, command);
-                    }
-                }
-            }
-
-            // this.mapping.lastRuleId = batch.ruleId;
-        }
     }
 
     //-------------------------------
-    export class AIClient extends Client {
+    export class AIClient extends BaseClient {
 
     }
 

@@ -77,9 +77,11 @@ module Game {
                 // the client may try to send a reply message while we are calling
                 // it's handler, so queue the messages and send them after we've 
                 // finished with the client
+                this.setProcessing(true);
                 this.pair.setProcessing(true);
                 this.pair.callHandler(msg);
                 this.pair.setProcessing(false);
+                this.setProcessing(false);
             }
         }
 

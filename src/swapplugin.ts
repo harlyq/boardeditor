@@ -33,7 +33,7 @@ module SwapModule {
 
     // convert swap into move commands because the BANK has access to a complete board, but other
     // players may have imperfect knowledge.
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean {
         if (rule.type !== 'swap')
             return;
 
@@ -80,8 +80,7 @@ module SwapModule {
         return true;
     }
 
-    // export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): boolean {
-    // export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    // export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
 }
 
 if (typeof browserRequire === 'function')

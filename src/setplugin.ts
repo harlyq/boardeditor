@@ -36,17 +36,18 @@ module SetPlugin {
     }
 
     // user the default performRule, which uses the rule as a command
-    // export function performRule(client: Game.Client, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    // export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: Game.BatchCommand[]) {
 
-    // board is never updated, only the clients
-    // export function updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]) {}
-
-    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')
-            return;
+            return false;
 
-        var setCommand = < SetRule > command,
+        var mapping = client.getMapping(),
+            setCommand = < SetRule > command,
             elems = [];
+
+        if (!mapping)
+            return true; // no mapping for this client
 
         if (setCommand.affects && Game.union(setCommand.affects, mapping.getUser()).length === 0)
             return; // does not affect this user

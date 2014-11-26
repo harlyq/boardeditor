@@ -34,7 +34,7 @@ module SetTemporaryPlugin {
         });
     }
 
-    export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]) {
+    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]) {
         if (rule.type !== 'setTemporaryCard' && rule.type !== 'setTemporaryLocation')
             return false;
 

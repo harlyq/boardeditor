@@ -18,16 +18,19 @@ module SendMessagePlugin {
     }
 
     // use the default performRule, which converts the rule into a single command
-    // performRule(client: Client, rule: BaseRule, results: any[]): boolean {}
+    // performRule(client: BaseClient, rule: BaseRule, results: any[]): boolean {}
 
     // nothing to update on the board
-    // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any {}
-
-    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'sendMessage')
             return;
 
-        var sendMessageCommand = < SendMessageRule > command;
+        var sendMessageCommand = < SendMessageRule > command,
+            mapping = client.getMapping();
+
+        if (!mapping)
+            return;
+
         var event = new( < any > CustomEvent)(sendMessageCommand.message, {
             bubbles: sendMessageCommand.bubbles,
             cancelable: sendMessageCommand.bubbles,

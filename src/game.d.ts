@@ -32,6 +32,8 @@ declare module Game {
         user ? : string;
     }
 
+    export interface BaseResult {}
+
     export interface BatchCommand {
         ruleId: number;
         commands: {
@@ -182,6 +184,7 @@ declare module Game {
 
         name: string;
         id: number;
+        location: Game.Location;
 
         // public labels: string[];
         addLabel: (label: string) => void;
@@ -311,16 +314,15 @@ declare module Game {
     //     getUser: () => string;
     // }
 
-    export class Client /*implements TransportListener*/ {
+    export class BaseClient /*implements TransportListener*/ {
         // getTransport(): BaseTransport;
+        getMapping(): HTMLMapping;
         getBoard(): Board;
         getUser(): string;
         sendUserCommands(ruleId: number, commands: BaseCommand[]);
     }
 
-    export class HTMLClient extends Client {
-        getMapping(): HTMLMapping;
-    }
+    export class HTMLClient extends BaseClient {}
 
     export class HTMLMapping {
         getUser(): string;
@@ -355,9 +357,8 @@ declare module Game {
 
     export interface PluginInfo {
         createRule: (...args: any[]) => Game.BaseRule;
-        performRule ? : (client: Game.Client, rule: Game.BaseRule, results: any[]) => boolean;
-        updateBoard ? : (board: Game.Board, command: Game.BaseCommand, results: any[]) => any;
-        updateHTML ? : (mapping: Game.HTMLMapping, command: Game.BaseCommand) => void;
+        performRule ? : (client: Game.BaseClient, rule: Game.BaseRule, results: any[]) => boolean;
+        updateBoard ? : (client: Game.BaseClient, command: Game.BaseCommand, results: any[]) => boolean;
     }
 
     export function bindPlugin(board: Board, name: string, info: any);

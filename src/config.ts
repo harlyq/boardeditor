@@ -18,7 +18,7 @@ module Game {
         return null;
     }
 
-    export function createClient(game: any, screenConfig: ScreenConfig, boardElem: HTMLElement): Client {
+    export function createClient(game: any, screenConfig: ScreenConfig, boardElem: HTMLElement): BaseClient {
         var board = new Board(),
             user = screenConfig.user,
             client = null,
@@ -61,7 +61,8 @@ module Game {
     }
 
     export function createServer(game: any, config: GameConfig): GameServer {
-        var server = new GameServer();
+        var server = new GameServer(),
+            bankClient = null;
 
         for (var i = 0; i < config.screens.length; ++i) {
             var screenConfig = config.screens[i];
@@ -100,20 +101,22 @@ module Game {
             server.addTransport(proxy);
 
             // start all local clients
+            var client = null;
             if (screenConfig.transport === 'local')
-                var client = createClient(game, screenConfig, null);
+                client = createClient(game, screenConfig, null);
+
+            if (screenConfig.user === 'BANK')
+                server.setBankClient(client);
         }
 
         server.config = config;
-        server.setupFunc = game.setupFunc;
-        server.setup();
 
         return server;
     }
 
     export function queryServer(setup: any, boardElem: HTMLElement) {
         var screenConfig: ScreenConfig,
-            client: Client,
+            client: BaseClient,
             screen: string;
 
         // setup for debug server

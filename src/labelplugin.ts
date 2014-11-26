@@ -24,18 +24,20 @@ module LabelPlugin {
     }
 
     // LabelRule is the command, just pass it through
-    // export function performRule(client: Game.Client, rule: Game.BaseRule, results: any[]): boolean
+    // export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean
 
-    // Nothing to update in the board
-    // updateBoard(board: Game.Board, command: Game.BaseCommand, results: any[]): any
-
-    export function updateHTML(mapping: Game.HTMLMapping, command: Game.BaseCommand) {
+    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
         if (command.type !== 'label')
-            return;
+            return false;
 
-        var labelCommand = < LabelRule > command;
+        var labelCommand = < LabelRule > command,
+            mapping = client.getMapping();
+
+        if (!mapping)
+            return true;
+
         if (Game.union(labelCommand.affects, mapping.getUser()).length === 0)
-            return; // not intended for this user
+            return true; // command correct, but not intended for this user
 
         var elems = mapping.getElemsFromIds(labelCommand.key);
         for (var i = 0; i < elems.length; ++i) {

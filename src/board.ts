@@ -82,6 +82,8 @@ module Game {
         user ? : string;
     }
 
+    export interface BaseResult {};
+
     export interface BatchCommand {
         ruleId: number;
         commands: {
