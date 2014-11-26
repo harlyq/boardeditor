@@ -61,57 +61,71 @@ module BoardSystem {
     }
 
     export function createServer(game: any, config: GameConfig): GameServer {
-        var server = new GameServer(),
-            bankClient = null;
+        var server = new GameServer();
 
         for (var i = 0; i < config.screens.length; ++i) {
             var screenConfig = config.screens[i];
             if (!screenConfig)
                 continue;
 
-            var user = screenConfig.user;
-            var proxy: BaseTransport = null;
-
-            switch (screenConfig.transport) {
-                case 'REST':
-                    proxy = BoardSystem.createRESTServerTransport(user, server.onHandleMessage.bind(server));
-                    break;
-
-                case 'local':
-                    proxy = BoardSystem.createLocalServerTransport(user, server.onHandleMessage.bind(server));
-                    break;
-
-                case 'message':
-                    var iframe = < HTMLIFrameElement > (document.getElementById(screenConfig.iframe));
-                    proxy = BoardSystem.createMessageServerTransport(user, iframe.contentWindow, server.onHandleMessage.bind(server));
-
-                    // for message we tell the iframe which screen to use
-                    var msg = {
-                        type: 'config',
-                        config: screenConfig,
-                        screen: screenConfig.screen
-                    }
-                    iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
-                    break;
-            }
-
-            if (!proxy)
+            var screenTransport = createTransport(screenConfig, server.onHandleMessage.bind(server));
+            if (!screenTransport)
                 continue;
 
-            server.addTransport(proxy);
+            server.addTransport(screenTransport);
 
-            // start all local clients
-            var client = null;
+            // setup all local clients
             if (screenConfig.transport === 'local')
-                client = createClient(game, screenConfig, null);
-
-            if (screenConfig.user === 'BANK')
-                server.setBankClient(client);
+                var client = createClient(game, screenConfig, null);
         }
 
+        // setup special bank client
+        var bankConfig: ScreenConfig = {
+            screen: 'bank',
+            userKey: '-1',
+            transport: 'local',
+            user: 'BANK',
+            type: 'bank'
+        };
+        // transport must be first
+        var bankTransport = createTransport(bankConfig, server.onHandleMessage.bind(server));
+        var bankClient = createClient(game, bankConfig, null);
+
+        server.addTransport(bankTransport);
+        server.setBankClient(bankClient);
         server.config = config;
 
         return server;
+    }
+
+    function createTransport(screenConfig: ScreenConfig, handler: (msg: any) => void): BaseTransport {
+        var transport: BaseTransport = null,
+            user = screenConfig.user;
+
+        switch (screenConfig.transport) {
+            case 'REST':
+                transport = BoardSystem.createRESTServerTransport(user, handler);
+                break;
+
+            case 'local':
+                transport = BoardSystem.createLocalServerTransport(user, handler);
+                break;
+
+            case 'message':
+                var iframe = < HTMLIFrameElement > (document.getElementById(screenConfig.iframe));
+                transport = BoardSystem.createMessageServerTransport(user, iframe.contentWindow, handler);
+
+                // for message we tell the iframe which screen to use
+                var msg = {
+                    type: 'config',
+                    config: screenConfig,
+                    screen: screenConfig.screen
+                }
+                iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
+                break;
+        }
+
+        return transport;
     }
 
     export function queryServer(setup: any, boardElem: HTMLElement) {

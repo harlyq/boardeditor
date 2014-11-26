@@ -22,7 +22,6 @@ module BoardSystem {
         rulesGen: (board: Board) => {
             next(...args: any[]): any
         };
-        setupFunc: (board: Board) => void;
         whereList: any[] = [];
 
         addTransport(proxy: BaseTransport) {

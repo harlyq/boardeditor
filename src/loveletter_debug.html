@@ -22,11 +22,6 @@
         var config = {
             type: 'config',
             screens: [{
-                screen: 'bank',
-                transport: 'local',
-                user: 'BANK',
-                type: 'bank'
-            }, {
                 screen: 'common1',
                 transport: 'message',
                 iframe: 'iframe1',
@@ -56,11 +51,6 @@
         var config2 = {
             type: 'config',
             screens: [{
-                screen: 'bank',
-                transport: 'local',
-                user: 'BANK',
-                type: 'bank'
-            }, {
                 screen: 'common1',
                 transport: 'message',
                 iframe: 'iframe1',
@@ -74,16 +64,11 @@
 
         // use a short pause before starting a new game, to ensure that the server config
         // message is received before any new game information
-        // setTimeout(function() {
-        //     server.newGameGen = myGame.newGameGen;
-        //     server.rulesGen = myGame.rulesGen;
-        //     server.newGame()
-        // }, 100);
-        document.getElementById("start").addEventListener("click", function() {
+        setTimeout(function() {
             server.newGameGen = myGame.newGameGen;
             server.rulesGen = myGame.rulesGen;
-            server.newGame();
-        });
+            server.newGame()
+        }, 100);
     });
     </script>
 
@@ -95,7 +80,6 @@
 </head>
 
 <body>
-    <button id="start">start</button>
     <iframe id="iframe1" src="loveletter_common.html" width="800" height="750" scrolling="no">
         Missing loveletter_common.html
     </iframe>

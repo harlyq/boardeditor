@@ -1,6 +1,6 @@
 // node server
 var BoardSystem = require('./boardsystem');
-var loveletter = require('./loveletter_game');
+var loveletter = require('./loveletter_rules');
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
@@ -22,11 +22,6 @@ var config = {
         PLAYER4: '',
     },
     screens: [{
-        screen: 'bank',
-        transport: 'local',
-        user: 'BANK',
-        type: 'bank'
-    }, {
         screen: 'common1',
         transport: 'REST',
         user: 'PLAYER1',
