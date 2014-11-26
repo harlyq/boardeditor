@@ -41,6 +41,6 @@ declare
 var exports: any;
 
 if (typeof exports !== 'undefined') {
-    for (var k in Game)
-        exports[k] = Game[k];
+    for (var k in BoardSystem)
+        exports[k] = BoardSystem[k];
 }

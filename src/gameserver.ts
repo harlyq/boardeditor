@@ -1,5 +1,5 @@
 /// <reference path="_dependencies.ts" />
-module Game {
+module BoardSystem {
 
     export enum StepStatus {
         Ready, Complete, Error
@@ -20,9 +20,6 @@ module Game {
         public config: GameConfig = null;
 
         rulesGen: (board: Board) => {
-            next(...args: any[]): any
-        };
-        newGameGen: (board: Board) => {
             next(...args: any[]): any
         };
         setupFunc: (board: Board) => void;
@@ -113,7 +110,6 @@ module Game {
         private handleCommands(batch: BatchCommand, nextValue: {
             [user: string]: BaseResult[]
         }): boolean {
-
             if (!batch)
                 return false;
 

@@ -1,7 +1,7 @@
-/// <reference path='game.d.ts' />
+/// <reference path='boardsystem.d.ts' />
 module PluginHelper {
 
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
     // COMBINATORIAL FUNCTIONS
 
@@ -78,19 +78,19 @@ module PluginHelper {
     }
 
     // COUNTING FUNCTIONS
-    export function isCountComplete(quantity: Game.Quantity, count: number, value: number): boolean {
+    export function isCountComplete(quantity: BoardSystem.Quantity, count: number, value: number): boolean {
         switch (quantity) {
-            case Game.Quantity.All:
+            case BoardSystem.Quantity.All:
                 return false; // all must be accounted for elsewhere
-            case Game.Quantity.Exactly:
+            case BoardSystem.Quantity.Exactly:
                 return value === count;
-            case Game.Quantity.AtMost:
+            case BoardSystem.Quantity.AtMost:
                 return value <= count;
-            case Game.Quantity.AtLeast:
+            case BoardSystem.Quantity.AtLeast:
                 return value >= count;
-            case Game.Quantity.MoreThan:
+            case BoardSystem.Quantity.MoreThan:
                 return value > count;
-            case Game.Quantity.LessThan:
+            case BoardSystem.Quantity.LessThan:
                 return value < count;
         }
         return false;

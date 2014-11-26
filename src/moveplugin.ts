@@ -1,62 +1,62 @@
-/// <reference path='game.d.ts' />
+/// <reference path='boardsystem.d.ts' />
 /// <reference path='pluginhelper.d.ts' />
 /// <reference path='interact.ts' />
 
-interface MoveRule extends Game.BaseRule {
+interface MoveRule extends BoardSystem.BaseRule {
     from: any;
-    fromPosition ? : Game.Position;
+    fromPosition ? : BoardSystem.Position;
     to: any;
-    toPosition ? : Game.Position;
+    toPosition ? : BoardSystem.Position;
     cards ? : string;
     where ? : (from: Location, to: Location) => boolean;
     whereIndex ? : number; // internal, use where instead
     hint ? : string;
-    quantity ? : Game.Quantity;
+    quantity ? : BoardSystem.Quantity;
     count ? : number;
 }
 
-interface MoveCommand extends Game.BaseCommand {
+interface MoveCommand extends BoardSystem.BaseCommand {
     cardId: number;
     fromId: number;
     toId: number;
     index: number;
 }
 
-interface MoveResult extends Game.BaseResult {
-    card: Game.Card;
-    from: Game.Location;
-    to: Game.Location;
+interface MoveResult extends BoardSystem.BaseResult {
+    card: BoardSystem.Card;
+    from: BoardSystem.Location;
+    to: BoardSystem.Location;
     index: number;
 }
 
 module MovePlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
     var PluginHelper = require('./pluginhelper');
 
-    export function createRule(board: Game.Board, rule: MoveRule): Game.BaseRule {
+    export function createRule(board: BoardSystem.Board, rule: MoveRule): BoardSystem.BaseRule {
         var newRule = < MoveRule > board.createRule('move');
         newRule.from = board.convertLocationsToIdString(rule.from);
-        newRule.fromPosition = rule.fromPosition || Game.Position.Default;
+        newRule.fromPosition = rule.fromPosition || BoardSystem.Position.Default;
         newRule.to = board.convertLocationsToIdString(rule.to);
-        newRule.toPosition = rule.toPosition || Game.Position.Default;
+        newRule.toPosition = rule.toPosition || BoardSystem.Position.Default;
         newRule.cards = board.convertCardsToIdString(rule.cards);
         newRule.where = rule.where || null;
         newRule.whereIndex = rule.whereIndex || -1;
         newRule.hint = rule.hint || '';
-        newRule.quantity = rule.quantity || Game.Quantity.Exactly;
+        newRule.quantity = rule.quantity || BoardSystem.Quantity.Exactly;
         newRule.count = rule.count || 1;
         newRule.user = rule.user || newRule.user;
 
         if (!newRule.to)
-            Game._error('moveRule, unknown to location - ' + rule.to);
+            BoardSystem._error('moveRule, unknown to location - ' + rule.to);
 
         if (!newRule.cards && !newRule.from)
-            return Game._error('moveRule without from or cards - ' + rule);
+            return BoardSystem._error('moveRule without from or cards - ' + rule);
 
         return newRule;
     }
 
-    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean {
+    export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: any[]): boolean {
         if (rule.type !== 'move')
             return false;
 
@@ -72,18 +72,18 @@ module MovePlugin {
         }
 
         if (cardList.length === 0)
-            return Game._error('moveRule no cards in the from location - ' + moveRule.from)
+            return BoardSystem._error('moveRule no cards in the from location - ' + moveRule.from)
 
         // note: HTMLMove will be send commands via proxy.sendCommands(), the results list will be empty
-        if (client instanceof Game.HTMLClient)
-            new HTMLMove( < Game.HTMLClient > client, moveRule, cardList, fromList, toList);
+        if (client instanceof BoardSystem.HTMLClient)
+            new HTMLMove( < BoardSystem.HTMLClient > client, moveRule, cardList, fromList, toList);
         else
             buildValidMoves(client.getUser(), client.getBoard(), moveRule, cardList, fromList, toList, results);
 
         return true;
     }
 
-    export function createResult(client: Game.BaseClient, command: Game.BaseCommand): Game.BaseResult {
+    export function createResult(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): BoardSystem.BaseResult {
         if (command.type !== 'move')
             return undefined;
 
@@ -104,7 +104,7 @@ module MovePlugin {
         };
     }
 
-    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateClient(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): boolean {
         if (command.type !== 'move')
             return false;
 
@@ -157,21 +157,21 @@ module MovePlugin {
     }
 
     function buildValidMoves(user: string,
-        board: Game.Board,
+        board: BoardSystem.Board,
         moveRule: MoveRule,
-        cardList: Game.Card[],
-        fromList: Game.Location[],
-        toList: Game.Location[],
+        cardList: BoardSystem.Card[],
+        fromList: BoardSystem.Location[],
+        toList: BoardSystem.Location[],
         results: any[]) {
 
         var i = 0,
             maxCards = cardList.length;
 
-        if (moveRule.quantity === Game.Quantity.All)
+        if (moveRule.quantity === BoardSystem.Quantity.All)
             i = maxCards;
 
         for (; i <= maxCards; ++i) {
-            if (moveRule.quantity !== Game.Quantity.All &&
+            if (moveRule.quantity !== BoardSystem.Quantity.All &&
                 !PluginHelper.isCountComplete(moveRule.quantity, moveRule.count, i))
                 continue; // number of cards does not suit the quantity in the rule
 
@@ -184,20 +184,20 @@ module MovePlugin {
                     useAllCards = false;
 
                 switch (moveRule.fromPosition) {
-                    case Game.Position.Default:
-                    case Game.Position.Top:
+                    case BoardSystem.Position.Default:
+                    case BoardSystem.Position.Top:
                         // can only take the top 'i' cards
                         for (var j = 0; j < i; ++j)
                             cards.push(cardList[j]);
                         break;
 
-                    case Game.Position.Bottom:
+                    case BoardSystem.Position.Bottom:
                         // can only take the bottom 'i' cards
                         for (var j = 0; j < i; ++j)
                             cards.push(cardList[maxCards - i + j]);
                         break;
 
-                    case Game.Position.Random:
+                    case BoardSystem.Position.Random:
                         // can take cards from anywhere, so all cards are available.
                         // start with the first 'i' cards then iterate over the combinations
                         useAllCards = true;
@@ -207,7 +207,7 @@ module MovePlugin {
                 }
 
                 do {
-                    var commands: Game.BaseCommand[] = [];
+                    var commands: BoardSystem.BaseCommand[] = [];
 
                     // TODO, run where clause, don't push batch if where fails
                     for (var j = 0; j < i; ++j) {
@@ -236,16 +236,16 @@ module MovePlugin {
         private CLASS_HIGHLIGHT: string = 'highlight';
         private fromInteract: Interact;
         private toInteract: Interact;
-        private mapping: Game.HTMLMapping;
-        private board: Game.Board;
+        private mapping: BoardSystem.HTMLMapping;
+        private board: BoardSystem.Board;
         private transformKeyword: string = 'transform';
         private highlightElems: HTMLElement[] = [];
 
-        constructor(private client: Game.HTMLClient,
+        constructor(private client: BoardSystem.HTMLClient,
             moveRule: MoveRule,
-            cardList: Game.Card[],
-            fromList: Game.Location[],
-            toList: Game.Location[]) {
+            cardList: BoardSystem.Card[],
+            fromList: BoardSystem.Location[],
+            toList: BoardSystem.Location[]) {
 
             this.mapping = client.getMapping();
             this.board = client.getBoard();
@@ -313,7 +313,7 @@ module MovePlugin {
                     var dragCard = e.detail.dragTarget;
                     self.clearHighlights();
 
-                    var commands: Game.BaseCommand[] = [{
+                    var commands: BoardSystem.BaseCommand[] = [{
                         type: 'move',
                         cardId: self.mapping.getCardFromElem(dragCard).id,
                         fromId: self.mapping.getLocationFromElem(dragCard.parentNode).id,
@@ -327,7 +327,7 @@ module MovePlugin {
                 });
         }
 
-        resolveMove(moveRule: MoveRule, cardList: Game.Card[], fromLocations: Game.Location[], toLocations: Game.Location[]) {
+        resolveMove(moveRule: MoveRule, cardList: BoardSystem.Card[], fromLocations: BoardSystem.Location[], toLocations: BoardSystem.Location[]) {
             this.lastRuleId = moveRule.id;
 
             if (toLocations.length === 0)

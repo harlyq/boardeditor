@@ -1,6 +1,6 @@
-/// <reference path="game.d.ts" />
+/// <reference path="boardsystem.d.ts" />
 
-interface LabelRule extends Game.BaseRule, Game.BaseCommand {
+interface LabelRule extends BoardSystem.BaseRule, BoardSystem.BaseCommand {
     key: any;
     labels: {
         [name: string]: boolean
@@ -9,12 +9,12 @@ interface LabelRule extends Game.BaseRule, Game.BaseCommand {
 }
 
 module LabelPlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
-    export function createRule(board: Game.Board, rule: LabelRule): Game.BaseRule {
+    export function createRule(board: BoardSystem.Board, rule: LabelRule): BoardSystem.BaseRule {
         var info = board.convertToIdString(rule.key);
 
-        return Game.extend({
+        return BoardSystem.extend({
             key: '',
             labels: {},
             affects: rule.user || '' // by default we affect the user we send the command to
@@ -24,9 +24,9 @@ module LabelPlugin {
     }
 
     // LabelRule is the command, just pass it through
-    // export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean
+    // export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: any[]): boolean
 
-    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateClient(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): boolean {
         if (command.type !== 'label')
             return false;
 
@@ -36,7 +36,7 @@ module LabelPlugin {
         if (!mapping)
             return true;
 
-        if (Game.union(labelCommand.affects, mapping.getUser()).length === 0)
+        if (BoardSystem.union(labelCommand.affects, mapping.getUser()).length === 0)
             return true; // command correct, but not intended for this user
 
         var elems = mapping.getElemsFromIds(labelCommand.key);

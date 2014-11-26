@@ -13,7 +13,7 @@ var concat = require('gulp-concat');
 // });
 
 gulp.task('typescript', function(cb) {
-    run('tsc.cmd --target ES5 --out src/game.js src/game.ts').exec(cb).on('error', gutil.log);
+    run('tsc.cmd --target ES5 --out src/boardsystem.js src/boardsystem.ts').exec(cb).on('error', gutil.log);
 });
 
 gulp.task('plugins', function(cb) {
@@ -21,8 +21,8 @@ gulp.task('plugins', function(cb) {
 });
 
 // gulp.task('merge', ['typescript'], function() {
-//     gulp.src(['src/game.js', 'src/gamex.js'])
-//         .pipe(concat('finalgame.js'))
+//     gulp.src(['src/boardsystem.js', 'src/gamex.js'])
+//         .pipe(concat('finalboardsystem.js'))
 //         .pipe(gulp.dest('src'));
 // });
 

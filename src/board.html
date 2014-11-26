@@ -8,7 +8,7 @@
     <!--script src="interact.js" type="text/javascript"></script-->
     <script src="deckcard.js" type="text/javascript"></script>
     <script src="decklayout.js" type="text/javascript"></script>
-    <script src="game.js" type="text/javascript"></script>
+    <script src="boardsystem.js" type="text/javascript"></script>
     <script src="mancala_setup.js" type="text/javascript"></script>
 
     <script>
@@ -117,12 +117,12 @@
 
         switch (msg.type) {
             case 'mancala':
-                myConfig = Game.createClients('common', document.getElementById('board'), mySetup, msg);
+                myConfig = BoardSystem.createClients('common', document.getElementById('board'), mySetup, msg);
                 break;
 
             case 'broadcastCommands':
             case 'resolveRule':
-                var proxy = Game.getClientTransport(myConfig, 'common', msg.userNames);
+                var proxy = BoardSystem.getClientTransport(myConfig, 'common', msg.userNames);
                 if (proxy && typeof proxy.onServerMessage === 'function')
                     proxy.onServerMessage(msg);
                 break;
@@ -130,7 +130,7 @@
     });
 
     var pollServer = function(myConfig) {
-        var screenConfig = Game.getScreenConfigByScreen(myConfig, 'common');
+        var screenConfig = BoardSystem.getScreenConfigByScreen(myConfig, 'common');
 
         for (var i = 0; i < screenConfig.users.length; ++i) {
             var client = screenConfig.users[i].client;
@@ -167,7 +167,7 @@
         req.onload = function() {
             msg = JSON.parse(this.response);
             if ('type' in msg && msg.type === 'mancala')
-                myConfig = Game.createClients('common', document.getElementById('board'), mySetup, msg);
+                myConfig = BoardSystem.createClients('common', document.getElementById('board'), mySetup, msg);
             pollServer(myConfig);
         };
         req.open('GET', 'config?screen=common'); // this board layout

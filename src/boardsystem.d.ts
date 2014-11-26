@@ -7,7 +7,7 @@ declare
 
 function require(filename: string): any;
 
-declare module Game {
+declare module BoardSystem {
     export function extend(base: any, ...others: any[]): any;
 
     export function isNumeric(value: any);
@@ -184,7 +184,7 @@ declare module Game {
 
         name: string;
         id: number;
-        location: Game.Location;
+        location: BoardSystem.Location;
 
         // public labels: string[];
         addLabel: (label: string) => void;
@@ -356,9 +356,10 @@ declare module Game {
     }
 
     export interface PluginInfo {
-        createRule: (...args: any[]) => Game.BaseRule;
-        performRule ? : (client: Game.BaseClient, rule: Game.BaseRule, results: any[]) => boolean;
-        updateBoard ? : (client: Game.BaseClient, command: Game.BaseCommand, results: any[]) => boolean;
+        createRule: (...args: any[]) => BoardSystem.BaseRule;
+        performRule ? : (client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: any[]) => boolean;
+        createResult ? : (client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand) => BoardSystem.BaseResult;
+        updateClient ? : (client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand) => boolean;
     }
 
     export function bindPlugin(board: Board, name: string, info: any);

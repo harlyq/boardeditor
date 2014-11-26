@@ -1,15 +1,15 @@
-/// <reference path='game.d.ts' />
+/// <reference path='boardsystem.d.ts' />
 
-interface SetRule extends Game.BaseRule, Game.BaseCommand {
+interface SetRule extends BoardSystem.BaseRule, BoardSystem.BaseCommand {
     key: any;
     value: any;
     affects: string; // affected users
 }
 
 module SetPlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
-    export function createRule(board: Game.Board, setRule: SetRule) {
+    export function createRule(board: BoardSystem.Board, setRule: SetRule) {
         var ruleType = 'setVariable',
             key: any = setRule.key,
             keyArray = Array.isArray(key);
@@ -28,7 +28,7 @@ module SetPlugin {
         }
 
         // note 'affects' is set to the 'user', and 'user' is set to the default
-        return Game.extend({
+        return BoardSystem.extend({
             key: info.value,
             value: setRule.value,
             affects: setRule.user || ''
@@ -36,9 +36,9 @@ module SetPlugin {
     }
 
     // user the default performRule, which uses the rule as a command
-    // export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    // export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: BoardSystem.BatchCommand[]) {
 
-    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateClient(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): boolean {
         if (command.type !== 'setCardVariable' && command.type !== 'setLocationVariable')
             return false;
 
@@ -49,7 +49,7 @@ module SetPlugin {
         if (!mapping)
             return true; // no mapping for this client
 
-        if (setCommand.affects && Game.union(setCommand.affects, mapping.getUser()).length === 0)
+        if (setCommand.affects && BoardSystem.union(setCommand.affects, mapping.getUser()).length === 0)
             return; // does not affect this user
 
         switch (command.type) {

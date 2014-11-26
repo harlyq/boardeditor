@@ -1,5 +1,5 @@
 (function() {
-    var Game = require('./game')
+    var BoardSystem = require('./boardsystem')
     var setup = require('./loveletter_setup');
 
     var currentPlayer = 0,
@@ -37,18 +37,8 @@
         return null;
     }
 
-    setup.newGameGen = function*(board) {
-        yield board.waitMove({
-            cards: '.token',
-            to: 'tokenPile',
-            quantity: Game.Quantity.All
-        });
-
-        tokens = [0, 0, 0, 0];
-    }
-
     setup.rulesGen = function*(board) {
-        yield * this.newGameGen(board);
+        yield * newGameGen(board);
 
         var winner = -1;
         while (winner === -1) {
@@ -86,13 +76,13 @@
         yield board.waitMove({
             cards: '.card',
             to: 'pile',
-            quantity: Game.Quantity.All
+            quantity: BoardSystem.Quantity.All
         });
 
         yield board.waitMove({
             cards: '.cardType',
             to: 'picktype',
-            quantity: Game.Quantity.All
+            quantity: BoardSystem.Quantity.All
         });
 
         yield board.waitShuffle({
@@ -126,6 +116,16 @@
         currentPlayer = allPlayers.get(~~(Math.random() * allPlayers.length));
     }
 
+    function* newGameGen(board) {
+        yield board.waitMove({
+            cards: '.token',
+            to: 'tokenPile',
+            quantity: BoardSystem.Quantity.All
+        });
+
+        tokens = [0, 0, 0, 0];
+    }
+
     function* nextRound(board) {
         while (allPlayers.length > 1 && board.queryFirstLocation('pile').getNumCards() > 0) {
             yield board.waitMove({
@@ -152,7 +152,7 @@
                 moves =
                     yield board.waitMove({
                         from: 'hand' + currentPlayer,
-                        fromPosition: Game.Position.Random,
+                        fromPosition: BoardSystem.Position.Random,
                         to: 'discard' + currentPlayer,
                         user: userNames[currentPlayer]
                     });
@@ -206,7 +206,7 @@
 
             var hand = board.queryFirstLocation('hand' + player);
             var discard = board.queryFirstLocation('discard' + player);
-            var topCard = discard.getCard(Game.Position.Top);
+            var topCard = discard.getCard(BoardSystem.Position.Top);
 
             // player's who just discarded the handmaid cannot be selected
             if (!topCard || topCard.getVariable('value') !== HANDMAID)
@@ -349,7 +349,7 @@
                     yield board.waitMove({
                         from: 'hand' + pickedPlayer,
                         to: 'discard' + pickedPlayer,
-                        quantity: Game.Quantity.All
+                        quantity: BoardSystem.Quantity.All
                     });
                 var discardedCard = getFirstMove(discarded).card;
                 yield * checkDiscarded(board, pickedPlayer, discardedCard);

@@ -6,6 +6,6 @@ node_modules/*
 !src/mancala_game.js
 !src/mancala_setup.js
 !src/mancala_server.js
-!src/loveletter_game.js
+!src/loveletter_rules.js
 !src/loveletter_setup.js
 !src/loveletter_server.js

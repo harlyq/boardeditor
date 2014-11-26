@@ -1,6 +1,6 @@
 // node server
-var Game = require('./game');
-console.log(Game);
+var BoardSystem = require('./boardsystem');
+console.log(BoardSystem);
 var mancalaSetup = require('./mancala_setup');
 var mancalaGame = require('./mancala_game');
 console.log(mancalaSetup);
@@ -70,7 +70,7 @@ var host = app.listen(3000, function() {
     console.log('Listening on port ' + host.address().port);
 });
 
-var server = new Game.createServer(mancalaSetup, config);
+var server = new BoardSystem.createServer(mancalaSetup, config);
 server.newGameGen = mancalaGame.newGameGen;
 server.rulesGen = mancalaGame.rulesGen;
 server.newGame();

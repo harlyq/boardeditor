@@ -1,6 +1,6 @@
 /// <reference path="_dependencies.ts" />
 
-module Game {
+module BoardSystem {
     export function getScreenConfigByScreen(config: GameConfig, screen: string): ScreenConfig {
         for (var i = 0; i < config.screens.length; ++i) {
             if (config.screens[i].screen === screen)
@@ -74,16 +74,16 @@ module Game {
 
             switch (screenConfig.transport) {
                 case 'REST':
-                    proxy = Game.createRESTServerTransport(user, server.onHandleMessage.bind(server));
+                    proxy = BoardSystem.createRESTServerTransport(user, server.onHandleMessage.bind(server));
                     break;
 
                 case 'local':
-                    proxy = Game.createLocalServerTransport(user, server.onHandleMessage.bind(server));
+                    proxy = BoardSystem.createLocalServerTransport(user, server.onHandleMessage.bind(server));
                     break;
 
                 case 'message':
                     var iframe = < HTMLIFrameElement > (document.getElementById(screenConfig.iframe));
-                    proxy = Game.createMessageServerTransport(user, iframe.contentWindow, server.onHandleMessage.bind(server));
+                    proxy = BoardSystem.createMessageServerTransport(user, iframe.contentWindow, server.onHandleMessage.bind(server));
 
                     // for message we tell the iframe which screen to use
                     var msg = {

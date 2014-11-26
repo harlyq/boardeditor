@@ -1,20 +1,20 @@
-/// <reference path="game.d.ts" />
+/// <reference path="boardsystem.d.ts" />
 
-interface DelayRule extends Game.BaseRule {
+interface DelayRule extends BoardSystem.BaseRule {
     seconds: number;
 }
 
 module DelayPlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
-    export function createRule(board: Game.Board, delayRule: DelayRule) {
+    export function createRule(board: BoardSystem.Board, delayRule: DelayRule) {
         // note: force user to be the default
-        return Game.extend({
+        return BoardSystem.extend({
             seconds: delayRule.seconds || 10
         }, board.createRule('delay'))
     }
 
-    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: Game.BatchCommand[]) {
+    export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: BoardSystem.BatchCommand[]) {
         if (rule.type !== 'delay')
             return false;
 

@@ -1,6 +1,6 @@
 /// <reference path="_dependencies.ts" />
 
-module Game {
+module BoardSystem {
     //-------------------------------
     export class BaseClient {
         private transport: BaseTransport = null;
@@ -100,8 +100,8 @@ module Game {
                         _error('no type specified in command - ' + command);
 
                     for (var j in plugins) {
-                        var updateBoard = plugins[j].updateBoard;
-                        if (typeof updateBoard === 'function' && updateBoard(this, command, []))
+                        var updateClient = plugins[j].updateClient;
+                        if (typeof updateClient === 'function' && updateClient(this, command))
                             break;
                     }
                 }

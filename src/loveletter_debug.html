@@ -4,11 +4,11 @@
 <head>
     <meta name="viewport" content="width=600">
     <script src="seedrandom.js" type="text/javascript"></script>
-    <script src="game.js" type="text/javascript"></script>
+    <script src="boardsystem.js" type="text/javascript"></script>
     <script src="pluginhelper.js" type="text/javascript"></script>
     <script src="coreplugins.js" type="text/javascript"></script>
     <script src="loveletter_setup.js" type="text/javascript"></script>
-    <script src="loveletter_game.js" type="text/javascript"></script>
+    <script src="loveletter_rules.js" type="text/javascript"></script>
 
     <script>
     // will fail if generators not supported
@@ -17,7 +17,7 @@
     }
 
     window.addEventListener('load', function(e) {
-        var myGame = require("./loveletter_game"); // for whereList and setup
+        var myGame = require("./loveletter_rules"); // for whereList and setup
 
         var config = {
             type: 'config',
@@ -69,16 +69,21 @@
             }]
         }
 
-        var server = Game.createServer(myGame, config);
-        //var server = Game.createServer(myGame, config2);
+        var server = BoardSystem.createServer(myGame, config);
+        //var server = BoardSystem.createServer(myGame, config2);
 
         // use a short pause before starting a new game, to ensure that the server config
         // message is received before any new game information
-        setTimeout(function() {
+        // setTimeout(function() {
+        //     server.newGameGen = myGame.newGameGen;
+        //     server.rulesGen = myGame.rulesGen;
+        //     server.newGame()
+        // }, 100);
+        document.getElementById("start").addEventListener("click", function() {
             server.newGameGen = myGame.newGameGen;
             server.rulesGen = myGame.rulesGen;
-            server.newGame()
-        }, 100);
+            server.newGame();
+        });
     });
     </script>
 
@@ -90,6 +95,7 @@
 </head>
 
 <body>
+    <button id="start">start</button>
     <iframe id="iframe1" src="loveletter_common.html" width="800" height="750" scrolling="no">
         Missing loveletter_common.html
     </iframe>

@@ -2,21 +2,21 @@ var setup = (function() {
     var setup = {};
     var maxPlayers = 4;
 
-    var Game = require('./game')
+    var BoardSystem = require('./boardsystem')
     var corePlugins = require('./coreplugins');
 
     setup.whereList = [];
 
     setup.setupFunc = function(board) {
-        Game.bindPlugin(board, 'waitPick', corePlugins, 'pick');
-        Game.bindPlugin(board, 'waitShuffle', corePlugins, 'shuffle');
-        Game.bindPlugin(board, 'waitSet', corePlugins, 'set');
-        Game.bindPlugin(board, 'waitMove', corePlugins, 'move');
-        Game.bindPlugin(board, 'waitSetTemporary', corePlugins, 'setTemporary');
-        Game.bindPlugin(board, 'waitSendMessage', corePlugins, 'sendMessage');
-        Game.bindPlugin(board, 'waitLabel', corePlugins, 'label');
-        Game.bindPlugin(board, 'waitDelay', corePlugins, 'delay');
-        Game.bindPlugin(board, 'waitSwap', corePlugins, 'swap');
+        BoardSystem.bindPlugin(board, 'waitPick', corePlugins, 'pick');
+        BoardSystem.bindPlugin(board, 'waitShuffle', corePlugins, 'shuffle');
+        BoardSystem.bindPlugin(board, 'waitSet', corePlugins, 'set');
+        BoardSystem.bindPlugin(board, 'waitMove', corePlugins, 'move');
+        BoardSystem.bindPlugin(board, 'waitSetTemporary', corePlugins, 'setTemporary');
+        BoardSystem.bindPlugin(board, 'waitSendMessage', corePlugins, 'sendMessage');
+        BoardSystem.bindPlugin(board, 'waitLabel', corePlugins, 'label');
+        BoardSystem.bindPlugin(board, 'waitDelay', corePlugins, 'delay');
+        BoardSystem.bindPlugin(board, 'waitSwap', corePlugins, 'swap');
 
         var id = 1;
         board.createLocation('pile', id++, {

@@ -1,4 +1,4 @@
-module Game {
+module BoardSystem {
     // var HTML_DEFINED = typeof window !== 'undefined';
 
     //--------------------------------------------

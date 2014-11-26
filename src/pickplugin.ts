@@ -1,60 +1,60 @@
-/// <reference path='game.d.ts' />
+/// <reference path='boardsystem.d.ts' />
 /// <reference path='pluginhelper.d.ts' />
 
-interface PickRule extends Game.BaseRule {
+interface PickRule extends BoardSystem.BaseRule {
     list: any;
-    quantity ? : Game.Quantity;
+    quantity ? : BoardSystem.Quantity;
     count ? : number;
     where ? : number;
     whereIndex ? : number; // internal, use where instead
 }
 
-interface PickCommand extends Game.BaseCommand {
+interface PickCommand extends BoardSystem.BaseCommand {
     values: any[]; // picked items
 }
 
-interface PickResult extends Game.BaseResult {
-    values: any[]; // picked items, Game.Locations or Game.Cards
+interface PickResult extends BoardSystem.BaseResult {
+    values: any[]; // picked items, BoardSystem.Locations or BoardSystem.Cards
 }
 
 module PickPlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
     var PluginHelper = require('./pluginhelper');
 
-    export function createRule(board: Game.Board, rule: PickRule): Game.BaseRule {
+    export function createRule(board: BoardSystem.Board, rule: PickRule): BoardSystem.BaseRule {
         var type = '',
             list: any = rule.list;
 
         if (!list)
-            Game._error('pickRule has no list');
+            BoardSystem._error('pickRule has no list');
 
         if (typeof list === 'string') {
             if (list === '')
-                Game._error('pickRule list is an empty string');
+                BoardSystem._error('pickRule list is an empty string');
 
             type = 'pick';
 
         } else if (Array.isArray(list)) {
             if (list.length === 0)
-                Game._error('pickRule list is empty');
+                BoardSystem._error('pickRule list is empty');
 
             var item = list[0];
-            if (item instanceof Game.Location) {
+            if (item instanceof BoardSystem.Location) {
                 type = 'pickLocation';
                 list = board.convertLocationsToIdString(list);
-            } else if (item instanceof Game.Card) {
+            } else if (item instanceof BoardSystem.Card) {
                 type = 'pickCard';
                 list = board.convertCardsToIdString(list);
             } else {
                 type = 'pick';
             }
         } else {
-            Game._error('pickRule list type is not a string or array - ' + list)
+            BoardSystem._error('pickRule list type is not a string or array - ' + list)
         }
 
-        return Game.extend({
+        return BoardSystem.extend({
             list: '',
-            quantity: Game.Quantity.Exactly,
+            quantity: BoardSystem.Quantity.Exactly,
             count: 1,
             where: null,
             whereIndex: -1
@@ -63,9 +63,9 @@ module PickPlugin {
         });
     }
 
-    // export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+    // export function updateClient(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): boolean {
 
-    export function createResult(client: Game.BaseClient, command: Game.BaseCommand): Game.BaseResult {
+    export function createResult(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): BoardSystem.BaseResult {
         var pickCommand = < PickCommand > command,
             board = client.getBoard();
 
@@ -90,14 +90,14 @@ module PickPlugin {
     }
 
     // returns an array of valid BatchCommands
-    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]): boolean {
+    export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: any[]): boolean {
         switch (rule.type) {
             case 'pick':
             case 'pickLocation':
             case 'pickCard':
-                if (client instanceof Game.HTMLClient)
+                if (client instanceof BoardSystem.HTMLClient)
                 // don't build results, they will sent via Transport.sendCommand()
-                    new HTMLPick( < Game.HTMLClient > client, < PickRule > rule);
+                    new HTMLPick( < BoardSystem.HTMLClient > client, < PickRule > rule);
                 else
                     findValidPickCommands(client.getBoard(), < PickRule > rule, results);
                 return true;
@@ -106,7 +106,7 @@ module PickPlugin {
         return false;
     }
 
-    function findValidPickCommands(board: Game.Board, pickRule: PickRule, results: any[]) {
+    function findValidPickCommands(board: BoardSystem.Board, pickRule: PickRule, results: any[]) {
         var where: any = pickRule.where || function() {
             return true;
         }
@@ -158,7 +158,7 @@ module PickPlugin {
         }
     }
 
-    function getPickList(board: Game.Board, pickRule: PickRule): any[] {
+    function getPickList(board: BoardSystem.Board, pickRule: PickRule): any[] {
         var where: any = pickRule.where || function() {
             return true;
         }
@@ -189,15 +189,15 @@ module PickPlugin {
     export class HTMLPick {
         private pickList: any[] = [];
         private lastRuleId: number = 0;
-        private board: Game.Board;
-        private mapping: Game.HTMLMapping;
+        private board: BoardSystem.Board;
+        private mapping: BoardSystem.HTMLMapping;
         private highlightElems: HTMLElement[] = [];
         private pickHandler = this.onPickLocation.bind(this);
         private pickType: string;
 
         CLASS_HIGHLIGHT: string = 'highlight';
 
-        constructor(private client: Game.HTMLClient, pickRule: PickRule) {
+        constructor(private client: BoardSystem.HTMLClient, pickRule: PickRule) {
             this.board = client.getBoard();
             this.mapping = client.getMapping();
             this.pickType = pickRule.type;
@@ -206,7 +206,7 @@ module PickPlugin {
         }
 
         private createPickCommand(type: string, values: any): PickCommand {
-            return Game.extend({
+            return BoardSystem.extend({
                 type: type,
                 values: values
             });
@@ -230,7 +230,7 @@ module PickPlugin {
             this.pickList = getPickList(this.board, pickRule);
 
             if (this.pickList.length === 0) {
-                Game._error('no items in ' + pickRule.type + ' list - ' + pickRule.list + ', rule - ' + pickRule.where);
+                BoardSystem._error('no items in ' + pickRule.type + ' list - ' + pickRule.list + ', rule - ' + pickRule.where);
                 return;
             }
 

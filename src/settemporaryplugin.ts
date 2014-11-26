@@ -1,50 +1,50 @@
-/// <reference path='game.d.ts' />
+/// <reference path='boardsystem.d.ts' />
 
-interface SetTemporaryRule extends Game.BaseRule {
+interface SetTemporaryRule extends BoardSystem.BaseRule {
     key: any;
     value: any;
     timeout: number; // seconds
 }
 
 module SetTemporaryPlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
-    export function createRule(board: Game.Board, setTemporaryRule: SetTemporaryRule) {
+    export function createRule(board: BoardSystem.Board, setTemporaryRule: SetTemporaryRule) {
         var type = 'setTemporaryCard',
             key: any = setTemporaryRule.key,
             keyArray = Array.isArray(key);
 
         if (keyArray && key.length === 0)
-            Game._error('key is an empty array');
+            BoardSystem._error('key is an empty array');
 
-        if (key instanceof Game.Card || (keyArray && key[0] instanceof Game.Card)) {
+        if (key instanceof BoardSystem.Card || (keyArray && key[0] instanceof BoardSystem.Card)) {
             type = 'setTemporaryCard';
             key = board.convertCardsToIdString(key);
-        } else if (key instanceof Game.Location || (keyArray && key[0] instanceof Game.Location)) {
+        } else if (key instanceof BoardSystem.Location || (keyArray && key[0] instanceof BoardSystem.Location)) {
             type = 'setTemporaryLocation';
             key = board.convertLocationsToIdString(key);
         } else {
-            Game._error('unknown type of key - ' + key);
+            BoardSystem._error('unknown type of key - ' + key);
         }
 
-        return Game.extend({
+        return BoardSystem.extend({
             timeout: 1.0
         }, board.createRule(type), setTemporaryRule, {
             key: key
         });
     }
 
-    export function performRule(client: Game.BaseClient, rule: Game.BaseRule, results: any[]) {
+    export function performRule(client: BoardSystem.BaseClient, rule: BoardSystem.BaseRule, results: any[]) {
         if (rule.type !== 'setTemporaryCard' && rule.type !== 'setTemporaryLocation')
             return false;
 
         // setTemporary does nothing on a non-HumanClient
-        if (!(client instanceof Game.HTMLClient))
+        if (!(client instanceof BoardSystem.HTMLClient))
             return true;
 
         var setTemporaryRule = < SetTemporaryRule > rule,
             board = client.getBoard(),
-            mapping = ( < Game.HTMLClient > client).getMapping(),
+            mapping = ( < BoardSystem.HTMLClient > client).getMapping(),
             oldVariables = [],
             things = [],
             elems = [];

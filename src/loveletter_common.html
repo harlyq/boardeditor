@@ -6,7 +6,7 @@
     <script src="interact.js" type="text/javascript"></script>
     <script src="layout.js" type="text/javascript"></script>
     <script src="card.js" type="text/javascript"></script>
-    <script src="game.js" type="text/javascript"></script>
+    <script src="boardsystem.js" type="text/javascript"></script>
     <script src="pluginhelper.js" type="text/javascript"></script>
     <script src="coreplugins.js" type="text/javascript"></script>
     <script src="loveletter_setup.js" type="text/javascript"></script>
@@ -155,7 +155,7 @@
             document.getElementById('arrow' + player).classList.remove('hidden');
         });
 
-        Game.queryServer(loveletter, board);
+        BoardSystem.queryServer(loveletter, board);
     });
     </script>
     <defs>

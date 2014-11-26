@@ -1,5 +1,5 @@
 /// <reference path="_dependencies.ts" />
-module Game {
+module BoardSystem {
     var LABEL_PREFIX = '.'
     var LABEL_PREFIX_LENGTH = LABEL_PREFIX.length;
 
@@ -92,7 +92,7 @@ module Game {
     }
 
     export function createBatchCommand(id: number, user: string, commands ? : any[]): BatchCommand {
-        var batch: Game.BatchCommand = {
+        var batch: BatchCommand = {
             ruleId: id,
             commands: {}
         };
@@ -1106,14 +1106,14 @@ module Game {
                 value = '';
 
             if (isKeyArray && key.length === 0) {
-                Game._error('key is an empty array');
-            } else if (key instanceof Game.Card || (isKeyArray && key[0] instanceof Game.Card)) {
+                _error('key is an empty array');
+            } else if (key instanceof Card || (isKeyArray && key[0] instanceof Card)) {
                 type = 'card';
                 value = this.convertCardsToIdString(key);
-            } else if (key instanceof Game.Location || (isKeyArray && key[0] instanceof Game.Location)) {
+            } else if (key instanceof Location || (isKeyArray && key[0] instanceof Location)) {
                 type = 'location';
                 value = this.convertLocationsToIdString(key);
-            } else if (key instanceof Game.Region || (isKeyArray && key[0] instanceof Game.Region)) {
+            } else if (key instanceof Region || (isKeyArray && key[0] instanceof Region)) {
                 type = 'region';
                 // value = board.convertRegionsToIdString(key);
             } else if (isKeyArray) {
@@ -1138,14 +1138,14 @@ module Game {
 
         convertLocationsToIdString(other: any): string {
             var str = '';
-            if (other instanceof Game.Location)
+            if (other instanceof Location)
                 str = other.id.toString();
             else if (Array.isArray(other)) {
                 for (var i = 0; i < other.length; ++i) {
                     var value = other[i];
                     if (i > 0)
                         str += ',';
-                    if (value instanceof Game.Location)
+                    if (value instanceof Location)
                         str += value.id;
                     else if (typeof value === 'string')
                         str += value;
@@ -1162,14 +1162,14 @@ module Game {
 
         convertCardsToIdString(other: any): string {
             var str = '';
-            if (other instanceof Game.Card)
+            if (other instanceof Card)
                 str = other.id.toString();
             else if (Array.isArray(other)) {
                 for (var i = 0; i < other.length; ++i) {
                     var value = other[i];
                     if (i > 0)
                         str += ',';
-                    if (value instanceof Game.Card)
+                    if (value instanceof Card)
                         str += value.id;
                     else if (typeof value === 'string')
                         str += value;

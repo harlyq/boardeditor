@@ -1,5 +1,5 @@
 // node server
-var Game = require('./game');
+var BoardSystem = require('./boardsystem');
 var loveletter = require('./loveletter_game');
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -49,7 +49,7 @@ var config = {
     }]
 };
 
-Game.addGameConfig(config);
+BoardSystem.addGameConfig(config);
 
 // app.get('/', function(req, res) {
 //     res.sendFile(__dirname + '/client.html');
@@ -75,7 +75,7 @@ app.post('/message', function(req, res) {
 app.post('/addUser', function(req, res) {
     var gameKey = req.param('gameKey');
     var userKey = req.param('userKey');
-    var config = Game.getGameConfig(gameKey);
+    var config = BoardSystem.getGameConfig(gameKey);
     if (!config) {
         res.send(JSON.stringify({
             error: 'unknown gameKey'
@@ -102,7 +102,7 @@ app.post('/addUser', function(req, res) {
     }
 
     //HACK - get the first screen for this user
-    var screenConfig = Game.getScreenConfigByUser(config, k);
+    var screenConfig = BoardSystem.getScreenConfigByUser(config, k);
     if (!screenConfig) {
         console.error('config did not container user - ' + k);
         return; // something seriously wrong
@@ -139,11 +139,11 @@ app.get('/config', function(req, res) {
     var gameKey = req.param('gameKey');
     console.log('/config?gameKey=' + gameKey + 'screen=' + screen);
 
-    var config = Game.getGameConfig(gameKey);
+    var config = BoardSystem.getGameConfig(gameKey);
 
     var msg = {
         type: 'config',
-        config: Game.getScreenConfigByScreen(config, screen),
+        config: BoardSystem.getScreenConfigByScreen(config, screen),
     };
     res.send(JSON.stringify(msg));
 });
@@ -152,7 +152,7 @@ var host = app.listen(3000, function() {
     console.log('Listening on port ' + host.address().port);
 });
 
-var server = new Game.createServer(loveletter, config);
+var server = new BoardSystem.createServer(loveletter, config);
 server.newGameGen = loveletter.newGameGen;
 server.rulesGen = loveletter.rulesGen;
 server.newGame();

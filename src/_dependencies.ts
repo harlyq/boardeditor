@@ -7,6 +7,3 @@
 /// <reference path="gameconfig.ts" />
 /// <reference path="gameserver.ts" />
 /// <reference path="config.ts" />
-
-declare
-var require: any;

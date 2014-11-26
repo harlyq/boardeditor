@@ -1,16 +1,16 @@
-/// <reference path="game.d.ts" />
+/// <reference path="boardsystem.d.ts" />
 
-interface SendMessageRule extends Game.BaseRule, Game.BaseCommand {
+interface SendMessageRule extends BoardSystem.BaseRule, BoardSystem.BaseCommand {
     message: string;
     detail: any;
     bubbles ? : boolean;
 }
 
 module SendMessagePlugin {
-    var Game = require('./game');
+    var BoardSystem = require('./boardsystem');
 
-    export function createRule(board: Game.Board, rule: SendMessageRule): Game.BaseRule {
-        return Game.extend({
+    export function createRule(board: BoardSystem.Board, rule: SendMessageRule): BoardSystem.BaseRule {
+        return BoardSystem.extend({
             message: '',
             detail: {},
             bubbles: false
@@ -21,7 +21,7 @@ module SendMessagePlugin {
     // performRule(client: BaseClient, rule: BaseRule, results: any[]): boolean {}
 
     // nothing to update on the board
-    export function updateBoard(client: Game.BaseClient, command: Game.BaseCommand, results: any[]): boolean {
+    export function updateClient(client: BoardSystem.BaseClient, command: BoardSystem.BaseCommand): boolean {
         if (command.type !== 'sendMessage')
             return;
 

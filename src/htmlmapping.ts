@@ -1,5 +1,5 @@
 /// <reference path="_dependencies.ts" />
-module Game {
+module BoardSystem {
     export class HTMLMapping {
         private locationToElem: {
             [key: number]: HTMLElement;
@@ -12,7 +12,7 @@ module Game {
         } = {};
         public lastRuleId: number = -1;
 
-        constructor(private board: Game.Board, public user: string, public boardElem: HTMLElement) {
+        constructor(private board: Board, public user: string, public boardElem: HTMLElement) {
             this.parseElement(boardElem);
         }
 
@@ -39,7 +39,7 @@ module Game {
                     self.applyLabels(element, location.getLabels());
                     self.applyVariables(element, location.getVariables());
                 } else {
-                    Game._error('could not find location "' + name + '" alias "' + altName + '"');
+                    _error('could not find location "' + name + '" alias "' + altName + '"');
                 }
             });
 
@@ -56,7 +56,7 @@ module Game {
                     self.applyLabels(element, card.labels);
                     self.applyVariables(element, card.getVariables());
                 } else {
-                    Game._error('could not find element for card - ' + card.name);
+                    _error('could not find element for card - ' + card.name);
                 }
             });
         }
@@ -105,7 +105,7 @@ module Game {
             return results;
         }
 
-        getDeckFromElem(deckElem: HTMLElement): Game.Deck {
+        getDeckFromElem(deckElem: HTMLElement): Deck {
             for (var i in this.deckToElem) {
                 if (deckElem = this.deckToElem[i]) {
                     var deckId = parseInt(i);
@@ -114,7 +114,7 @@ module Game {
             }
         }
 
-        getElemFromDeck(deck: Game.Deck): HTMLElement {
+        getElemFromDeck(deck: Deck): HTMLElement {
             if (!deck)
                 return null;
 
@@ -125,7 +125,7 @@ module Game {
             return this.deckToElem[deckId];
         }
 
-        getCardFromElem(cardElem: HTMLElement): Game.Card {
+        getCardFromElem(cardElem: HTMLElement): Card {
             for (var i in this.cardToElem) {
                 if (cardElem === this.cardToElem[i]) {
                     var cardId = parseInt(i);
@@ -135,7 +135,7 @@ module Game {
             return null;
         }
 
-        getElemFromCard(card: Game.Card): HTMLElement {
+        getElemFromCard(card: Card): HTMLElement {
             if (!card)
                 return null;
 
@@ -161,7 +161,7 @@ module Game {
             return list;
         }
 
-        getElemsFromCards(cards: Game.Card[]): HTMLElement[] {
+        getElemsFromCards(cards: Card[]): HTMLElement[] {
             var list = [];
             for (var i = 0; i < cards.length; ++i) {
                 var card = cards[i];
@@ -170,7 +170,7 @@ module Game {
             return list;
         }
 
-        getLocationFromElem(locationElem: HTMLElement): Game.Location {
+        getLocationFromElem(locationElem: HTMLElement): Location {
             for (var i in this.locationToElem) {
                 if (locationElem === this.locationToElem[i]) {
                     var locationId = parseInt(i);
@@ -180,7 +180,7 @@ module Game {
             return null;
         }
 
-        getElemFromLocation(location: Game.Location): HTMLElement {
+        getElemFromLocation(location: Location): HTMLElement {
             if (!location)
                 return null;
 
@@ -206,7 +206,7 @@ module Game {
             return list;
         }
 
-        getElemsFromLocations(locations: Game.Location[]): HTMLElement[] {
+        getElemsFromLocations(locations: Location[]): HTMLElement[] {
             var list = [];
             for (var i = 0; i < locations.length; ++i) {
                 var location = locations[i];

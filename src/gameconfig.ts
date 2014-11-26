@@ -1,5 +1,5 @@
 /// <reference path="_dependencies.ts" />
-module Game {
+module BoardSystem {
     export interface ScreenConfig {
         userKey: string; // the user owning this screen
         screen: string; // board for this user (html name)
